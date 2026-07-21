@@ -570,7 +570,8 @@
 }
 
 .gamepadHint,
-.gamepadFeedback {
+.gamepadFeedback,
+.gamepadError {
   margin: 10px 2px;
   font-size: 13px;
   line-height: 1.45;
@@ -582,6 +583,10 @@
 
 .gamepadFeedback {
   color: var(--success);
+}
+
+.gamepadError {
+  color: var(--danger);
 }
 
 .gamepadGroup {

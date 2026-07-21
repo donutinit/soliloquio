@@ -19,10 +19,12 @@ const DIAGNOSTICS_POLL_MS = 100;
 
 export function GamepadSettingsPanel({
   bindings,
+  error,
   onChange,
   onClose
 }: {
   bindings: GamepadBindings;
+  error: string | null;
   onChange: (bindings: GamepadBindings) => void;
   onClose: () => void;
 }) {
@@ -141,12 +143,17 @@ export function GamepadSettingsPanel({
 
       <p className={styles.gamepadHint} aria-live="polite">
         {listening
-          ? `Press a controller button for “${actionLabel(listening)}”… (Esc cancels)`
+          ? `Press a controller button for “${actionLabel(listening)}”… Tap the action again to cancel.`
           : 'Tap an action, then press the controller button you want for it. Assigning a busy button swaps the two actions. Stick axes always scroll.'}
       </p>
-      {feedback && (
+      {feedback && !error && (
         <p className={styles.gamepadFeedback} data-testid="gamepad-feedback" role="status">
           {feedback}
+        </p>
+      )}
+      {error && (
+        <p className={styles.gamepadError} data-testid="gamepad-error" role="alert">
+          {error}
         </p>
       )}
 

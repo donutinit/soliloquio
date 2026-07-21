@@ -524,6 +524,7 @@ export function ScriptsPage({
       {gamepadOpen && appSettings && (
         <GamepadSettingsPanel
           bindings={appSettings.controllerBindings}
+          error={settingsError}
           onChange={(bindings) => void updateBindings(bindings)}
           onClose={() => setGamepadOpen(false)}
         />
