@@ -17,7 +17,7 @@ export function formatFromFileName(fileName: string): ScriptFormat {
  * archivo de origen nunca se modifica.
  */
 export function stripFrontmatter(content: string): string {
-  const match = /^﻿?---[ \t]*\r?\n[\s\S]*?\r?\n---[ \t]*(?:\r?\n|$)/.exec(content);
+  const match = /^\uFEFF?---[ \t]*\r?\n[\s\S]*?\r?\n---[ \t]*(?:\r?\n|$)/.exec(content);
   if (!match) return content;
   return content.slice(match[0].length).replace(/^\s*\n/, '');
 }
