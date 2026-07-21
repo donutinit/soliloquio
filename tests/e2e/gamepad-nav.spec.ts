@@ -41,12 +41,17 @@ test('el d-pad enfoca la biblioteca y Sur activa el elemento enfocado', async ({
   // Una tarjeta enfocada se resalta entera: su botón llena la tarjeta y el
   // overflow:hidden recortaría un anillo exterior.
   const card = cardByTitle(page, 'Welcome to Teleprompter');
-  await card.getByTestId('open-prompter').focus();
-  await expect(card).toHaveCSS('border-color', 'rgb(138, 180, 255)');
-  await expect(card).toHaveCSS(
-    'box-shadow',
-    /rgb\(138, 180, 255\) 0px 0px 0px 1px inset/
-  );
+  const cardMain = card.getByTestId('open-prompter');
+  await cardMain.focus();
+  await expect(cardMain).toHaveCSS('outline-style', 'none');
+  await expect
+    .poll(() =>
+      card.evaluate((element) => {
+        const ring = getComputedStyle(element, '::after');
+        return `${ring.borderTopColor}|${ring.borderTopLeftRadius}`;
+      })
+    )
+    .toBe('rgb(138, 180, 255)|19px');
 
   // The overflow menu remains available to touch/keyboard, but controller
   // confirm must neither open it nor leave focus trapped on it.
@@ -56,7 +61,7 @@ test('el d-pad enfoca la biblioteca y Sur activa el elemento enfocado', async ({
   await expect(page.getByRole('button', { name: 'Help' })).toBeFocused();
 
   // Sur activa el elemento enfocado: con una tarjeta enfocada, abre el prompter.
-  await card.getByTestId('open-prompter').focus();
+  await cardMain.focus();
   await pressNav(page, SOUTH);
   await expect(page.getByTestId('prompter-page')).toBeVisible();
 });
