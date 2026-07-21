@@ -415,6 +415,13 @@
   font-size: 16px;
 }
 
+.appSettingRow input[type='checkbox'] {
+  width: 28px;
+  height: 28px;
+  margin: 8px;
+  accent-color: var(--accent);
+}
+
 .appSettingRow select:focus-visible {
   border-color: var(--focus);
   outline: 3px solid color-mix(in srgb, var(--focus) 28%, transparent);

@@ -24,6 +24,7 @@ export function defaultSettings(): PrompterSettings {
     fontSize: FONT_LIMITS.default,
     horizontalMargin: MARGIN_LIMITS.default,
     countdownSeconds: COUNTDOWN_LIMITS.default,
+    keepScreenAwake: true,
     controllerMapping: { ...DEFAULT_DUALSHOCK_MAPPING }
   };
 }
@@ -50,6 +51,8 @@ export function normalizeSettings(raw: unknown): PrompterSettings {
     countdownSeconds: Math.round(
       clampToLimit(Number(partial.countdownSeconds), COUNTDOWN_LIMITS)
     ),
+    // Solo un false explícito lo desactiva: datos antiguos sin el campo quedan activados.
+    keepScreenAwake: partial.keepScreenAwake !== false,
     controllerMapping: normalizeMapping(partial.controllerMapping)
   };
 }

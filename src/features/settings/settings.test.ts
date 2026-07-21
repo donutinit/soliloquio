@@ -45,6 +45,13 @@ describe('normalizeSettings', () => {
     expect(normalized.controllerMapping.square).toBe(DEFAULT_DUALSHOCK_MAPPING.square);
   });
 
+  it('mantiene la pantalla encendida por defecto y solo un false explícito lo apaga', () => {
+    expect(defaultSettings().keepScreenAwake).toBe(true);
+    expect(normalizeSettings({}).keepScreenAwake).toBe(true);
+    expect(normalizeSettings({ keepScreenAwake: 'nope' }).keepScreenAwake).toBe(true);
+    expect(normalizeSettings({ keepScreenAwake: false }).keepScreenAwake).toBe(false);
+  });
+
   it('keeps the countdown disabled by default and normalizes whole seconds', () => {
     expect(defaultSettings().countdownSeconds).toBe(0);
     expect(normalizeSettings({ countdownSeconds: 4.6 }).countdownSeconds).toBe(5);

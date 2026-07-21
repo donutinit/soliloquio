@@ -46,5 +46,6 @@ export type PrompterSettings = {
   fontSize: number;
   horizontalMargin: number;
   countdownSeconds: number;
+  keepScreenAwake: boolean;
   controllerMapping: ControllerMapping;
 };

@@ -48,6 +48,18 @@ test('keeps the countdown off by default and runs it only before a fresh start',
   await expect(page.getByTestId('startup-countdown')).toHaveCount(0);
 });
 
+test('keep screen awake is on by default and the choice survives a reload', async ({ page }) => {
+  await page.getByTestId('app-settings-button').click();
+  const toggle = page.getByTestId('keep-awake-setting');
+  await expect(toggle).toBeChecked();
+  await toggle.uncheck();
+  await page.getByRole('button', { name: 'Done' }).click();
+
+  await page.reload();
+  await page.getByTestId('app-settings-button').click();
+  await expect(page.getByTestId('keep-awake-setting')).not.toBeChecked();
+});
+
 test('factory reset requires confirmation and restores the complete first-run state', async ({ page }) => {
   await page.getByTestId('new-script').click();
   await page.getByTestId('editor-title').fill('Temporary script');
@@ -58,6 +70,7 @@ test('factory reset requires confirmation and restores the complete first-run st
 
   await page.getByTestId('app-settings-button').click();
   await page.getByTestId('countdown-setting').selectOption('6');
+  await page.getByTestId('keep-awake-setting').uncheck();
   await page.getByTestId('factory-reset').click();
   await expect(page.getByTestId('factory-reset-confirm')).toHaveText('Erase everything');
   await page.getByTestId('factory-reset-confirm').click();
@@ -70,4 +83,5 @@ test('factory reset requires confirmation and restores the complete first-run st
 
   await page.getByTestId('app-settings-button').click();
   await expect(page.getByTestId('countdown-setting')).toHaveValue('0');
+  await expect(page.getByTestId('keep-awake-setting')).toBeChecked();
 });

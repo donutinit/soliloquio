@@ -20,6 +20,7 @@ import {
 } from '../../features/export/backup';
 import { prompterHash } from '../../app/router';
 import { checkForPWAUpdate } from '../../services/pwa';
+import { applyKeepScreenAwake } from '../../services/keepAwake';
 import { useModalFocus } from '../../app/useModalFocus';
 import { Icon } from '../../components/Icon';
 import { ScriptEditor } from './ScriptEditor';
@@ -143,6 +144,9 @@ export function ScriptsPage({
           errors.push(`${file.name}: ${error instanceof Error ? error.message : 'Could not restore backup.'}`);
         }
       }
+      if (backupFiles.length > 0) {
+        applyKeepScreenAwake((await getSettings()).keepScreenAwake);
+      }
 
       const outcomes = await readImportedFiles(scriptFiles);
       for (const outcome of outcomes) {
@@ -198,11 +202,15 @@ export function ScriptsPage({
     }
   };
 
-  const updateCountdown = async (seconds: number) => {
+  const updateAppSettings = async (
+    changes: Partial<PrompterSettings>,
+    errorMessage: string
+  ) => {
     if (!appSettings) return;
     const previous = appSettings;
-    const next = { ...previous, countdownSeconds: seconds };
+    const next = { ...previous, ...changes };
     setAppSettings(next);
+    applyKeepScreenAwake(next.keepScreenAwake);
     setSettingsError(null);
     setSettingsSaving(true);
     const save = appSettingsSaveRef.current
@@ -213,11 +221,18 @@ export function ScriptsPage({
       await save;
     } catch {
       setAppSettings(previous);
-      setSettingsError('The countdown setting could not be saved.');
+      applyKeepScreenAwake(previous.keepScreenAwake);
+      setSettingsError(errorMessage);
     } finally {
       setSettingsSaving(false);
     }
   };
+
+  const updateCountdown = (seconds: number) =>
+    updateAppSettings({ countdownSeconds: seconds }, 'The countdown setting could not be saved.');
+
+  const updateKeepAwake = (enabled: boolean) =>
+    updateAppSettings({ keepScreenAwake: enabled }, 'The screen setting could not be saved.');
 
   const handleFactoryReset = async () => {
     setBusy(true);
@@ -225,7 +240,9 @@ export function ScriptsPage({
     try {
       await appSettingsSaveRef.current.catch(() => undefined);
       await resetToFactoryDefaults();
-      setAppSettings(await getSettings());
+      const restored = await getSettings();
+      setAppSettings(restored);
+      applyKeepScreenAwake(restored.keepScreenAwake);
       setSettingsOpen(false);
       setQuery('');
       setImportErrors([]);
@@ -492,6 +509,7 @@ export function ScriptsPage({
           updateError={updateError}
           busy={busy || settingsSaving || updateState === 'checking'}
           onCountdownChange={(seconds) => void updateCountdown(seconds)}
+          onKeepAwakeChange={(enabled) => void updateKeepAwake(enabled)}
           onCheckForUpdate={() => void handleCheckForUpdate()}
           onFactoryReset={() => void handleFactoryReset()}
           onClose={closeAppSettings}

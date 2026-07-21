@@ -20,6 +20,7 @@ export function AppSettingsPanel({
   updateError,
   busy,
   onCountdownChange,
+  onKeepAwakeChange,
   onCheckForUpdate,
   onFactoryReset,
   onClose
@@ -30,6 +31,7 @@ export function AppSettingsPanel({
   updateError: string | null;
   busy: boolean;
   onCountdownChange: (seconds: number) => void;
+  onKeepAwakeChange: (enabled: boolean) => void;
   onCheckForUpdate: () => void;
   onFactoryReset: () => void;
   onClose: () => void;
@@ -77,6 +79,20 @@ export function AppSettingsPanel({
                 </option>
               ))}
             </select>
+          </div>
+          <div className={styles.appSettingRow}>
+            <label htmlFor="keep-screen-awake">
+              <strong>Keep screen awake</strong>
+              <span>Prevents the screen from sleeping anywhere in the app.</span>
+            </label>
+            <input
+              id="keep-screen-awake"
+              type="checkbox"
+              data-testid="keep-awake-setting"
+              checked={settings.keepScreenAwake}
+              disabled={busy}
+              onChange={(event) => onKeepAwakeChange(event.target.checked)}
+            />
           </div>
           {error && <p className={styles.settingsError} role="alert">{error}</p>}
         </section>

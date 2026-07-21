@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import { useRoute } from './router';
 import { ScriptsPage } from '../pages/ScriptsPage/ScriptsPage';
 import { PrompterPage } from '../pages/PrompterPage/PrompterPage';
-import { seedSampleScripts } from '../services/database';
+import { getSettings, seedSampleScripts } from '../services/database';
 import { setupPWA } from '../services/pwa';
-import { createWakeLock } from '../services/wakeLock';
+import { applyKeepScreenAwake } from '../services/keepAwake';
 import styles from './App.module.css';
 
 export function App() {
@@ -21,11 +21,11 @@ export function App() {
     setupPWA();
   }, []);
 
-  // Pantalla siempre encendida mientras la app está abierta.
+  // Pantalla encendida mientras la app está abierta, si el ajuste lo permite.
   useEffect(() => {
-    const wakeLock = createWakeLock();
-    void wakeLock.acquire();
-    return () => wakeLock.destroy();
+    void getSettings()
+      .then((settings) => applyKeepScreenAwake(settings.keepScreenAwake))
+      .catch(() => applyKeepScreenAwake(true));
   }, []);
 
   if (!ready) return <div className={styles.loading} role="status">Opening your library…</div>;

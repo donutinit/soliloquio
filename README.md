@@ -64,8 +64,9 @@ home-screen PWA is generally more resilient.
 - Tap the reading surface to hide or show controls.
 - Use Settings to change speed, text size, margins, or controller mapping.
 - The `E` and `R` values estimate elapsed and remaining reading time at the current speed.
-- The app requests a screen wake lock while the prompter is open and reacquires it after returning
-  from the background when the browser allows it.
+- The **Keep screen awake** toggle in App Settings (on by default) holds a screen wake lock
+  anywhere in the app and reacquires it after returning from the background when the browser
+  allows it.
 - App Settings also provides a confirmed factory reset that atomically erases local scripts and
   preferences, then restores the original samples and defaults.
 - App Settings includes an **Update app** button that bypasses the normal detection interval,
