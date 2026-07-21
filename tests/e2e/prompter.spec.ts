@@ -47,8 +47,9 @@ test('cambia velocidad, tamaño de fuente y márgenes desde ajustes', async ({ p
 test('vuelve al inicio y a la lista de guiones', async ({ page }) => {
   await page.getByTestId('play-pause').click();
   await page.waitForTimeout(500);
+  await page.getByTestId('play-pause').click(); // pausa antes de medir
   await page.getByTestId('reset-position').click();
-  expect(await prompterOffset(page)).toBe(0);
+  await expect.poll(() => prompterOffset(page)).toBe(0);
 
   await page.getByTestId('back-to-scripts').click();
   await expect(page.getByTestId('new-script')).toBeVisible();

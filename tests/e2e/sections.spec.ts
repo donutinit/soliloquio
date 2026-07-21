@@ -12,7 +12,7 @@ test('navega entre secciones con los botones', async ({ page }) => {
   await page.getByTestId('section-next').click();
   await expect(page.getByTestId('section-indicator')).toHaveText('2 / 4');
   await expect(page.getByTestId('section-toast')).toHaveText('Cómo usarlo');
-  expect(await prompterOffset(page)).toBeGreaterThan(0);
+  await expect.poll(() => prompterOffset(page)).toBeGreaterThan(0);
 
   await page.getByTestId('section-prev').click();
   await expect(page.getByTestId('section-indicator')).toHaveText('1 / 4');

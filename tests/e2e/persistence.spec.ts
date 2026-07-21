@@ -10,6 +10,7 @@ test('guiones, ajustes y posición sobreviven a recargar la página', async ({ p
   await page.getByTestId('editor-content').fill('Contenido que debe sobrevivir.');
   await expect(page.getByTestId('save-status')).toHaveText('Guardado');
   await page.getByTestId('editor-close').click();
+  await expect(cardByTitle(page, 'Persistente')).toBeVisible();
 
   // Cambiar un ajuste desde el prompter.
   await openScriptInPrompter(page, 'Bienvenida al teleprompter');
