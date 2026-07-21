@@ -64,6 +64,12 @@ test('el d-pad enfoca la biblioteca y Sur activa el elemento enfocado', async ({
   await cardMain.focus();
   await pressNav(page, SOUTH);
   await expect(page.getByTestId('prompter-page')).toBeVisible();
+
+  // Círculo/B/Este sale del lector y devuelve el cursor al mismo guion, no al header.
+  await pressNav(page, EAST);
+  await expect(page.getByTestId('prompter-page')).toHaveCount(0);
+  await expect(cardMain).toBeFocused();
+  await expect(page.locator(':root')).toHaveAttribute('data-gamepad-nav', 'true');
 });
 
 test('dentro de un modal el foco queda atrapado y Este lo cierra', async ({ page }) => {

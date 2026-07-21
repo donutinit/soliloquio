@@ -68,10 +68,12 @@ function OptionsSheet({
 
 export function ScriptsPage({
   navigate,
-  initialEditingId
+  initialEditingId,
+  initialGamepadFocusId
 }: {
   navigate: (hash: string) => void;
   initialEditingId?: string;
+  initialGamepadFocusId?: string;
 }) {
   const [scripts, setScripts] = useState<Script[]>([]);
   const [query, setQuery] = useState('');
@@ -91,6 +93,8 @@ export function ScriptsPage({
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const appSettingsSaveRef = useRef<Promise<void>>(Promise.resolve());
+  const cardButtonRefs = useRef(new Map<string, HTMLButtonElement>());
+  const restoredGamepadFocusRef = useRef(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -107,6 +111,20 @@ export function ScriptsPage({
   useEffect(() => {
     setEditingId(initialEditingId ?? null);
   }, [initialEditingId]);
+
+  useEffect(() => {
+    restoredGamepadFocusRef.current = false;
+  }, [initialGamepadFocusId]);
+
+  useEffect(() => {
+    if (!initialGamepadFocusId || restoredGamepadFocusRef.current) return;
+    const button = cardButtonRefs.current.get(initialGamepadFocusId);
+    if (!button) return;
+    document.documentElement.dataset.gamepadNav = 'true';
+    button.focus({ preventScroll: true });
+    button.scrollIntoView({ block: 'nearest' });
+    restoredGamepadFocusRef.current = true;
+  }, [initialGamepadFocusId, scripts]);
 
   const filtered = query.trim()
     ? scripts.filter((script) =>
@@ -449,6 +467,10 @@ export function ScriptsPage({
           {filtered.map((script) => (
             <li key={script.id} className={styles.card} data-testid="script-card">
               <button
+                ref={(element) => {
+                  if (element) cardButtonRefs.current.set(script.id, element);
+                  else cardButtonRefs.current.delete(script.id);
+                }}
                 type="button"
                 className={styles.cardMain}
                 data-testid="open-prompter"

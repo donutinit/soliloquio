@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRoute } from './router';
 import { useGamepadNavigation } from './useGamepadNavigation';
 import { ScriptsPage } from '../pages/ScriptsPage/ScriptsPage';
@@ -12,6 +12,23 @@ export function App() {
   const [route, navigate] = useRoute();
   const [ready, setReady] = useState(false);
   const [initializationError, setInitializationError] = useState(false);
+  const [gamepadReturnFocusId, setGamepadReturnFocusId] = useState<string | undefined>();
+
+  const navigateFromScripts = useCallback(
+    (hash: string) => {
+      setGamepadReturnFocusId(undefined);
+      navigate(hash);
+    },
+    [navigate]
+  );
+
+  const returnToScripts = useCallback(
+    (focusScriptId?: string) => {
+      setGamepadReturnFocusId(focusScriptId);
+      navigate('#/');
+    },
+    [navigate]
+  );
 
   useGamepadNavigation(route.page === 'prompter' ? 'prompter' : 'scripts');
 
@@ -46,9 +63,17 @@ export function App() {
   return (
     <>
       {route.page === 'scripts' ? (
-        <ScriptsPage navigate={navigate} initialEditingId={route.editScriptId} />
+        <ScriptsPage
+          navigate={navigateFromScripts}
+          initialEditingId={route.editScriptId}
+          initialGamepadFocusId={gamepadReturnFocusId}
+        />
       ) : (
-        <PrompterPage scriptId={route.scriptId} navigate={navigate} />
+        <PrompterPage
+          scriptId={route.scriptId}
+          navigate={navigate}
+          returnToScripts={returnToScripts}
+        />
       )}
     </>
   );

@@ -44,10 +44,12 @@ function formatDuration(seconds: number): string {
 
 export function PrompterPage({
   scriptId,
-  navigate
+  navigate,
+  returnToScripts
 }: {
   scriptId: string;
   navigate: (hash: string) => void;
+  returnToScripts: (focusScriptId?: string) => void;
 }) {
   const [script, setScript] = useState<Script | null>(null);
   const [settings, setSettings] = useState<PrompterSettings | null>(null);
@@ -100,17 +102,26 @@ export function PrompterPage({
 
   if (!script || !settings) return <div className={styles.missing} role="status">Opening script…</div>;
 
-  return <Prompter script={script} initialSettings={settings} navigate={navigate} />;
+  return (
+    <Prompter
+      script={script}
+      initialSettings={settings}
+      navigate={navigate}
+      returnToScripts={returnToScripts}
+    />
+  );
 }
 
 function Prompter({
   script,
   initialSettings,
-  navigate
+  navigate,
+  returnToScripts
 }: {
   script: Script;
   initialSettings: PrompterSettings;
   navigate: (hash: string) => void;
+  returnToScripts: (focusScriptId?: string) => void;
 }) {
   const blocks = useMemo(() => scriptToBlocks(script), [script]);
   const sections = useMemo(() => buildSections(blocks), [blocks]);
@@ -298,14 +309,14 @@ function Prompter({
     []
   );
 
-  const exitToScripts = useCallback(() => {
+  const exitToScripts = useCallback((restoreGamepadFocus: boolean) => {
     if (exitingRef.current) return;
     exitingRef.current = true;
     void persistSettings().then((saved) => {
-      if (saved) navigate('#/');
+      if (saved) returnToScripts(restoreGamepadFocus ? script.id : undefined);
       else exitingRef.current = false;
     });
-  }, [navigate, persistSettings]);
+  }, [persistSettings, returnToScripts, script.id]);
 
   const editScript = useCallback(() => {
     if (exitingRef.current) return;
@@ -334,7 +345,7 @@ function Prompter({
           resetToStart();
           break;
         case 'backToScripts':
-          exitToScripts();
+          exitToScripts(true);
           break;
         case 'toggleControls':
           setControlsVisible((v) => !v);
@@ -588,7 +599,7 @@ function Prompter({
               data-testid="back-to-scripts"
               className={styles.iconButton}
               aria-label="Back to scripts"
-              onClick={exitToScripts}
+              onClick={() => exitToScripts(false)}
             >
               <Icon name="back" />
             </button>
