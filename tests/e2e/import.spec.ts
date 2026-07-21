@@ -80,6 +80,12 @@ test('el .txt importado no interpreta Markdown', async ({ page }) => {
 });
 
 test('exports and restores a complete JSON backup', async ({ page }) => {
+  await page.evaluate(() => {
+    Object.defineProperties(navigator, {
+      share: { configurable: true, value: undefined },
+      canShare: { configurable: true, value: undefined }
+    });
+  });
   const downloadPromise = page.waitForEvent('download');
   await page.getByTestId('backup-button').click();
   const download = await downloadPromise;
