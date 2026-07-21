@@ -53,10 +53,12 @@ button:focus-visible,
   outline-offset: 2px;
 }
 
-/* Navegando con gamepad, el foco programático debe verse siempre. */
+/* Navegando con gamepad, el foco programático debe verse siempre. El anillo
+   es interior (estilo consola) para que ningún ancestro con overflow:hidden
+   pueda recortarlo, como pasa con las tarjetas y las listas redondeadas. */
 :root[data-gamepad-nav] :focus {
   outline: 3px solid var(--focus);
-  outline-offset: 2px;
+  outline-offset: -3px;
 }
 
 button:disabled {

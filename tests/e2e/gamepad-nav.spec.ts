@@ -34,9 +34,16 @@ test('el d-pad enfoca la biblioteca y Sur activa el elemento enfocado', async ({
     .poll(() => page.evaluate(() => document.activeElement?.getAttribute('aria-label') ?? ''))
     .toBe('Help');
   await expect(page.locator(':root')).toHaveAttribute('data-gamepad-nav', 'true');
+  // El elemento enfocado muestra el anillo interior (no lo recorta ningún overflow).
+  await expect(page.getByRole('button', { name: 'Help' })).toHaveCSS('outline-width', '3px');
+
+  // Una tarjeta enfocada se resalta entera: su botón llena la tarjeta y el
+  // overflow:hidden recortaría un anillo exterior.
+  const card = cardByTitle(page, 'Welcome to Teleprompter');
+  await card.getByTestId('open-prompter').focus();
+  await expect(card).toHaveCSS('border-color', 'rgb(138, 180, 255)');
 
   // Sur activa el elemento enfocado: con una tarjeta enfocada, abre el prompter.
-  await cardByTitle(page, 'Welcome to Teleprompter').getByTestId('open-prompter').focus();
   await pressNav(page, SOUTH);
   await expect(page.getByTestId('prompter-page')).toBeVisible();
 });

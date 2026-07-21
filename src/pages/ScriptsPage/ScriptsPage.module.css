@@ -171,6 +171,30 @@
   box-shadow: 0 14px 34px rgb(0 0 0 / 22%);
 }
 
+/* Tarjeta enfocada con el mando: resalte propio además del anillo interior,
+   porque el overflow:hidden de la tarjeta recorta cualquier anillo exterior. */
+:global([data-gamepad-nav]) .card:focus-within {
+  border-color: var(--focus);
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 0 1px var(--focus),
+    0 14px 34px rgb(0 0 0 / 28%);
+}
+
+/* Misma visibilidad para el foco por teclado, que sufre el mismo recorte. */
+.card:has(:focus-visible) {
+  border-color: var(--focus);
+  box-shadow:
+    0 0 0 1px var(--focus),
+    0 14px 34px rgb(0 0 0 / 28%);
+}
+
+/* El resalte de la tarjeta ya señala el foco del botón principal; sin esto
+   habría doble indicación (borde + anillo interior a la vez). */
+:global([data-gamepad-nav]) .cardMain:focus {
+  outline: none;
+}
+
 .cardMain {
   flex: 1;
   min-width: 0;
