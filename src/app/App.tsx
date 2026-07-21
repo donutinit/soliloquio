@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRoute } from './router';
 import { ScriptsPage } from '../pages/ScriptsPage/ScriptsPage';
 import { PrompterPage } from '../pages/PrompterPage/PrompterPage';
@@ -10,15 +10,14 @@ export function App() {
   const [route, navigate] = useRoute();
   const [ready, setReady] = useState(false);
   const [initializationError, setInitializationError] = useState(false);
-  const [updateAvailable, setUpdateAvailable] = useState(false);
-  const applyUpdateRef = useRef<(() => Promise<void>) | null>(null);
 
   useEffect(() => {
     void seedSampleScripts()
       .then(() => setInitializationError(false))
       .catch(() => setInitializationError(true))
       .finally(() => setReady(true));
-    applyUpdateRef.current = setupPWA(() => setUpdateAvailable(true));
+    // Auto-update: aplica y recarga en cuanto haya versión nueva publicada.
+    setupPWA();
   }, []);
 
   if (!ready) return <div className={styles.loading} role="status">Opening your library…</div>;
@@ -35,18 +34,6 @@ export function App() {
 
   return (
     <>
-      {updateAvailable && (
-        <div className={styles.updateBanner} role="status">
-          <span>A new version is available.</span>
-          <button
-            type="button"
-            data-testid="apply-update"
-            onClick={() => void applyUpdateRef.current?.()}
-          >
-            Update
-          </button>
-        </div>
-      )}
       {route.page === 'scripts' ? (
         <ScriptsPage navigate={navigate} initialEditingId={route.editScriptId} />
       ) : (

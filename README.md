@@ -162,8 +162,9 @@ server {
 
 ## Troubleshooting
 
-- **The app does not update:** close and reopen it; when a new version is ready, use the Update
-  banner.
+- **The app does not update:** updates apply automatically — the app checks on launch, when it
+  returns to the foreground, and every minute while open, then reloads itself. If it seems stale,
+  bring it to the foreground or reopen it and wait a few seconds.
 - **A save fails:** keep the editor open, free device storage if needed, and retry. Navigation from
   the editor is blocked until the latest content is safely stored.
 - **The controller does not respond:** press a button in the foreground, open Diagnostics, and
