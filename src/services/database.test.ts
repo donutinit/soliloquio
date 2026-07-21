@@ -8,6 +8,7 @@ import {
   getScript,
   getSettings,
   listScripts,
+  resetToFactoryDefaults,
   savePosition,
   saveSettings,
   restoreBackup,
@@ -96,6 +97,30 @@ describe('backup restore', () => {
       expect.arrayContaining([existing.id, restored.id])
     );
     expect((await getSettings(database)).speed).toBe(95);
+  });
+});
+
+describe('factory reset', () => {
+  it('atomically replaces local data with samples and default settings', async () => {
+    const database = freshDb();
+    await seedSampleScripts(database);
+    const custom = await createScript(
+      { title: 'Private draft', content: 'erase me', format: 'text' },
+      database
+    );
+    await saveSettings({ ...defaultSettings(), speed: 120, countdownSeconds: 7 }, database);
+
+    await resetToFactoryDefaults(database);
+
+    expect(await getScript(custom.id, database)).toBeUndefined();
+    expect((await listScripts(database)).map((script) => script.title)).toEqual([
+      'Welcome to Teleprompter',
+      'Quick notes'
+    ]);
+    expect(await getSettings(database)).toEqual(defaultSettings());
+
+    await seedSampleScripts(database);
+    expect(await listScripts(database)).toHaveLength(2);
   });
 });
 

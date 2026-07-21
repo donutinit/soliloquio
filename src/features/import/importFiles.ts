@@ -2,6 +2,10 @@ import type { ScriptFormat } from '../../types';
 
 const KNOWN_EXTENSIONS = /\.(md|markdown|txt)$/i;
 
+export function isSupportedScriptFile(fileName: string): boolean {
+  return KNOWN_EXTENSIONS.test(fileName);
+}
+
 export function titleFromFileName(fileName: string): string {
   const title = fileName.replace(KNOWN_EXTENSIONS, '').trim();
   return title || 'Untitled';
@@ -33,6 +37,13 @@ export type ImportOutcome =
 export async function readImportedFiles(files: File[]): Promise<ImportOutcome[]> {
   return Promise.all(
     files.map(async (file): Promise<ImportOutcome> => {
+      if (!isSupportedScriptFile(file.name)) {
+        return {
+          ok: false,
+          fileName: file.name,
+          error: 'Choose a Markdown (.md, .markdown), plain-text (.txt), or backup (.json) file'
+        };
+      }
       try {
         const content = await file.text();
         return {

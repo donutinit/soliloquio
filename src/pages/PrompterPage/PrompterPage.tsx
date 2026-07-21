@@ -117,6 +117,7 @@ function Prompter({
   settingsRef.current = settings;
 
   const [playing, setPlaying] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [panel, setPanel] = useState<Panel>('none');
   const [sectionIdx, setSectionIdx] = useState(0);
@@ -133,6 +134,9 @@ function Prompter({
   panelRef.current = panel;
   const gamepadConnectedRef = useRef(false);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const countdownRef = useRef<number | null>(null);
+  const hasStartedRef = useRef(false);
   const lastSavedPositionRef = useRef(script.lastPosition ?? 0);
   const dragRef = useRef<{ y: number; moved: boolean; startedAt: number } | null>(null);
   const settingsDirtyRef = useRef(false);
@@ -219,13 +223,77 @@ function Prompter({
     [sections.length, showSectionToast]
   );
 
-  const togglePlay = useCallback(() => {
-    const engine = engineRef.current!;
-    if (!engine.state.playing && engine.state.position >= engine.maxPosition - 1) engine.seek(0);
-    engine.state.playing = !engine.state.playing;
-    setPlaying(engine.state.playing);
-    wakeLoopRef.current();
+  const clearCountdown = useCallback(() => {
+    if (countdownTimerRef.current) {
+      clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+    countdownRef.current = null;
+    setCountdown(null);
   }, []);
+
+  const resetToStart = useCallback(() => {
+    clearCountdown();
+    const engine = engineRef.current!;
+    engine.state.playing = false;
+    engine.seek(0);
+    hasStartedRef.current = false;
+    setPlaying(false);
+    wakeLoopRef.current();
+  }, [clearCountdown]);
+
+  const togglePlay = useCallback(() => {
+    if (countdownRef.current !== null) {
+      clearCountdown();
+      return;
+    }
+
+    const engine = engineRef.current!;
+    if (engine.state.playing) {
+      engine.state.playing = false;
+      setPlaying(false);
+      wakeLoopRef.current();
+      return;
+    }
+
+    if (engine.state.position >= engine.maxPosition - 1) {
+      engine.seek(0);
+      hasStartedRef.current = false;
+    }
+
+    const seconds = settingsRef.current.countdownSeconds;
+    if (!hasStartedRef.current && seconds > 0) {
+      countdownRef.current = seconds;
+      setCountdown(seconds);
+      countdownTimerRef.current = setInterval(() => {
+        const current = countdownRef.current;
+        if (current === null) return;
+        if (current <= 1) {
+          clearCountdown();
+          hasStartedRef.current = true;
+          engine.state.playing = true;
+          setPlaying(true);
+          wakeLoopRef.current();
+          return;
+        }
+        countdownRef.current = current - 1;
+        setCountdown(current - 1);
+      }, 1000);
+      return;
+    }
+
+    hasStartedRef.current = true;
+    engine.state.playing = true;
+    setPlaying(true);
+    wakeLoopRef.current();
+  }, [clearCountdown]);
+
+  useEffect(
+    () => () => {
+      if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+    },
+    []
+  );
 
   const exitToScripts = useCallback(() => {
     if (exitingRef.current) return;
@@ -260,7 +328,7 @@ function Prompter({
           togglePlay();
           break;
         case 'resetToStart':
-          engineRef.current!.seek(0);
+          resetToStart();
           break;
         case 'backToScripts':
           exitToScripts();
@@ -300,7 +368,7 @@ function Prompter({
           break;
       }
     },
-    [togglePlay, exitToScripts, jumpToSection, updateSetting, sections.length]
+    [togglePlay, resetToStart, exitToScripts, jumpToSection, updateSetting, sections.length]
   );
   const applyActionRef = useRef(applyAction);
   applyActionRef.current = applyAction;
@@ -510,6 +578,13 @@ function Prompter({
         </div>
       )}
 
+      {countdown !== null && (
+        <div className={styles.countdown} data-testid="startup-countdown" role="status" aria-live="assertive">
+          <strong>{countdown}</strong>
+          <span>Starting…</span>
+        </div>
+      )}
+
       {storageError && (
         <div className={styles.storageError} role="alert">
           <span>{storageError}</span>
@@ -592,10 +667,7 @@ function Prompter({
                 className={styles.iconButton}
                 data-testid="reset-position"
                 aria-label="Back to start"
-                onClick={() => {
-                  engineRef.current!.seek(0);
-                  wakeLoopRef.current();
-                }}
+                onClick={resetToStart}
               >
                 <Icon name="reset" />
               </button>
@@ -613,10 +685,11 @@ function Prompter({
                 className={styles.playButton}
                 data-testid="play-pause"
                 data-playing={playing}
+                data-counting={countdown !== null}
                 onClick={togglePlay}
               >
-                <Icon name={playing ? 'pause' : 'play'} />
-                {playing ? 'PAUSE' : 'START'}
+                <Icon name={playing || countdown !== null ? 'pause' : 'play'} />
+                {countdown !== null ? 'CANCEL' : playing ? 'PAUSE' : 'START'}
               </button>
               <button
                 type="button"

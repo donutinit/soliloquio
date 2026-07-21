@@ -25,6 +25,15 @@ function newId(): string {
   return crypto.randomUUID();
 }
 
+function factoryScripts(now = Date.now()): Script[] {
+  return SAMPLE_SCRIPTS.map((sample, index) => ({
+    id: newId(),
+    createdAt: now - index,
+    updatedAt: now - index,
+    ...sample
+  }));
+}
+
 export async function listScripts(database: TeleprompterDB = db): Promise<Script[]> {
   return database.scripts.orderBy('updatedAt').reverse().toArray();
 }
@@ -111,21 +120,26 @@ export async function restoreBackup(
   });
 }
 
+/** Atomically erases all local data and recreates the first-run state. */
+export async function resetToFactoryDefaults(database: TeleprompterDB = db): Promise<void> {
+  await database.transaction('rw', database.scripts, database.kv, async () => {
+    await database.scripts.clear();
+    await database.kv.clear();
+    await database.scripts.bulkAdd(factoryScripts());
+    await database.kv.bulkPut([
+      { key: 'settings', value: defaultSettings() },
+      { key: 'seeded', value: true }
+    ]);
+  });
+}
+
 /** Siembra los guiones de ejemplo solo en el primer arranque. */
 export async function seedSampleScripts(database: TeleprompterDB = db): Promise<void> {
   const seeded = await database.kv.get('seeded');
   if (seeded) return;
   const count = await database.scripts.count();
   if (count === 0) {
-    const now = Date.now();
-    await database.scripts.bulkAdd(
-      SAMPLE_SCRIPTS.map((sample, index) => ({
-        id: newId(),
-        createdAt: now - index,
-        updatedAt: now - index,
-        ...sample
-      }))
-    );
+    await database.scripts.bulkAdd(factoryScripts());
   }
   await database.kv.put({ key: 'seeded', value: true });
 }

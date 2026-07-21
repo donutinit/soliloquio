@@ -26,7 +26,9 @@
 }
 
 .headerIconButton,
+.importControl,
 .primaryIconButton {
+  position: relative;
   width: 44px;
   height: 44px;
   display: grid;
@@ -34,6 +36,26 @@
   border-radius: 50%;
   border: 1px solid var(--border);
   background: color-mix(in srgb, var(--surface-2) 92%, transparent);
+}
+
+.importControl {
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.importControl input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.importControl:focus-within {
+  outline: 3px solid color-mix(in srgb, var(--focus) 35%, transparent);
+  outline-offset: 2px;
 }
 
 .primaryIconButton {
@@ -292,6 +314,132 @@
   font-weight: 700;
 }
 
+.appSettingsSheet {
+  gap: 12px;
+}
+
+.appSettingsSheet h2,
+.appSettingsSheet h3,
+.appSettingsSheet p {
+  margin: 0;
+}
+
+.appSettingsSheet h2 {
+  font-size: 22px;
+  text-align: center;
+}
+
+.settingsSection,
+.dangerZone {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.appSettingRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+}
+
+.appSettingRow label {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.appSettingRow label strong,
+.dangerZone h3 {
+  font-size: 15px;
+}
+
+.appSettingRow label span,
+.dangerZone p {
+  color: var(--text-dim);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.appSettingRow select {
+  min-width: 112px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 16px;
+}
+
+.appSettingRow select:focus-visible {
+  border-color: var(--focus);
+  outline: 3px solid color-mix(in srgb, var(--focus) 28%, transparent);
+  outline-offset: 1px;
+}
+
+.settingsError {
+  margin-top: 10px !important;
+  color: var(--danger);
+  font-size: 13px;
+}
+
+.dangerZone {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  border-color: color-mix(in srgb, var(--danger) 52%, var(--border));
+}
+
+.dangerButton,
+.resetConfirmation button,
+.settingsDone {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 11px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.dangerButton {
+  background: color-mix(in srgb, var(--danger) 15%, var(--surface-2));
+  color: var(--danger);
+}
+
+.dangerButton:disabled,
+.resetConfirmation button:disabled {
+  opacity: 0.55;
+}
+
+.resetConfirmation {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  color: var(--danger);
+}
+
+.resetConfirmation > div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.resetConfirmation button:not(.dangerButton) {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.settingsDone {
+  align-self: flex-end;
+  background: none;
+  color: var(--link);
+}
+
 .editorOverlay {
   position: fixed;
   inset: 0;
@@ -406,7 +554,11 @@
   }
 
   .header h1 {
-    font-size: 28px;
+    font-size: 22px;
+  }
+
+  .header {
+    gap: 4px;
   }
 
   .headerActions {
@@ -419,6 +571,14 @@
 
   .editorHeader button {
     font-size: 0;
+  }
+
+  .appSettingRow {
+    grid-template-columns: 1fr;
+  }
+
+  .appSettingRow select {
+    width: 100%;
   }
 }
 

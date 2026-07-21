@@ -45,5 +45,6 @@ export type PrompterSettings = {
   speed: number;
   fontSize: number;
   horizontalMargin: number;
+  countdownSeconds: number;
   controllerMapping: ControllerMapping;
 };

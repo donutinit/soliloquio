@@ -43,6 +43,8 @@ scripts/          PWA icon generation and shaolin deployment
 
 - Create a Markdown script with the plus button.
 - Import `.md`, `.markdown`, `.txt`, or a Teleprompter `.json` backup.
+- The import control is a directly tappable native file picker for reliable use in installed iOS
+  web apps; file extensions are validated safely after selection.
 - Markdown headings create navigable sections. Plain-text scripts can be converted to Markdown
   from their options menu.
 - Export one script from its options menu or create a complete JSON backup from the download
@@ -56,12 +58,16 @@ home-screen PWA is generally more resilient.
 ### Reading controls
 
 - Press **START** to begin automatic scrolling and **PAUSE** to stop.
+- Set an optional 0–10 second start countdown from App Settings. It is off by default and does
+  not run when resuming from pause.
 - Drag the text for manual scrolling.
 - Tap the reading surface to hide or show controls.
 - Use Settings to change speed, text size, margins, or controller mapping.
 - The `E` and `R` values estimate elapsed and remaining reading time at the current speed.
 - The app requests a screen wake lock while the prompter is open and reacquires it after returning
   from the background when the browser allows it.
+- App Settings also provides a confirmed factory reset that atomically erases local scripts and
+  preferences, then restores the original samples and defaults.
 
 ## DualShock 4
 

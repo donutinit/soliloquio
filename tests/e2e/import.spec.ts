@@ -10,6 +10,19 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/');
 });
 
+test('uses a directly tappable, unfiltered native picker for iOS web apps', async ({ page }) => {
+  const input = page.getByTestId('import-input');
+  expect(await input.getAttribute('hidden')).toBeNull();
+  expect(await input.getAttribute('accept')).toBeNull();
+
+  const controlBox = await page.getByTestId('import-button').boundingBox();
+  const inputBox = await input.boundingBox();
+  expect(controlBox).not.toBeNull();
+  expect(inputBox).not.toBeNull();
+  expect(inputBox!.width).toBe(controlBox!.width);
+  expect(inputBox!.height).toBe(controlBox!.height);
+});
+
 test('importa archivos .md y .txt con el título tomado del nombre', async ({ page }) => {
   await page
     .getByTestId('import-input')
@@ -77,6 +90,17 @@ test('el .txt importado no interpreta Markdown', async ({ page }) => {
   await expect(
     page.locator('[data-block-type="text"]', { hasText: '# Esto no es un encabezado' })
   ).toBeVisible();
+});
+
+test('reports unsupported files chosen through the native picker', async ({ page }) => {
+  await page.getByTestId('import-input').setInputFiles({
+    name: 'image.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from('not really an image')
+  });
+  await expect(page.getByRole('alert')).toContainText(
+    'Choose a Markdown (.md, .markdown), plain-text (.txt), or backup (.json) file'
+  );
 });
 
 test('exports and restores a complete JSON backup', async ({ page }) => {

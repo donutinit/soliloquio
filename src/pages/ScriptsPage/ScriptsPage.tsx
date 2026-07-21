@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import type { Script } from '../../types';
+import type { PrompterSettings, Script } from '../../types';
 import {
   createScript,
   deleteScript,
   duplicateScript,
   getSettings,
   listScripts,
+  resetToFactoryDefaults,
   restoreBackup,
+  saveSettings,
   updateScript
 } from '../../services/database';
 import { readImportedFiles } from '../../features/import/importFiles';
@@ -20,6 +22,7 @@ import { prompterHash } from '../../app/router';
 import { useModalFocus } from '../../app/useModalFocus';
 import { Icon } from '../../components/Icon';
 import { ScriptEditor } from './ScriptEditor';
+import { AppSettingsPanel } from './AppSettingsPanel';
 import { HelpPanel } from './HelpPanel';
 import styles from './ScriptsPage.module.css';
 
@@ -73,8 +76,12 @@ export function ScriptsPage({
   const [operationError, setOperationError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [appSettings, setAppSettings] = useState<PrompterSettings | null>(null);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+  const [settingsSaving, setSettingsSaving] = useState(false);
   const [busy, setBusy] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const appSettingsSaveRef = useRef<Promise<void>>(Promise.resolve());
 
   const refresh = useCallback(async () => {
     try {
@@ -172,6 +179,68 @@ export function ScriptsPage({
     }
   };
 
+  const openAppSettings = async () => {
+    setBusy(true);
+    setOperationError(null);
+    setSettingsError(null);
+    try {
+      setAppSettings(await getSettings());
+      setSettingsOpen(true);
+    } catch {
+      setOperationError('App settings could not be opened.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const updateCountdown = async (seconds: number) => {
+    if (!appSettings) return;
+    const previous = appSettings;
+    const next = { ...previous, countdownSeconds: seconds };
+    setAppSettings(next);
+    setSettingsError(null);
+    setSettingsSaving(true);
+    const save = appSettingsSaveRef.current
+      .catch(() => undefined)
+      .then(() => saveSettings(next));
+    appSettingsSaveRef.current = save;
+    try {
+      await save;
+    } catch {
+      setAppSettings(previous);
+      setSettingsError('The countdown setting could not be saved.');
+    } finally {
+      setSettingsSaving(false);
+    }
+  };
+
+  const handleFactoryReset = async () => {
+    setBusy(true);
+    setSettingsError(null);
+    try {
+      await appSettingsSaveRef.current.catch(() => undefined);
+      await resetToFactoryDefaults();
+      setAppSettings(await getSettings());
+      setSettingsOpen(false);
+      setQuery('');
+      setImportErrors([]);
+      setOperationError(null);
+      await refresh();
+      setNotice('Factory defaults restored.');
+    } catch {
+      setSettingsError('The app could not be reset. No partial reset was kept.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const closeAppSettings = () => {
+    void appSettingsSaveRef.current.then(
+      () => setSettingsOpen(false),
+      () => undefined
+    );
+  };
+
   const openMenu = (id: string) => {
     setMenuId(id);
     setConfirmingDelete(false);
@@ -196,14 +265,31 @@ export function ScriptsPage({
           </button>
           <button
             type="button"
-            data-testid="import-button"
+            data-testid="app-settings-button"
             className={styles.headerIconButton}
-            aria-label="Import scripts or backup"
+            aria-label="App settings"
+            title="Settings"
+            onClick={() => void openAppSettings()}
+          >
+            <Icon name="settings" />
+          </button>
+          <label
+            data-testid="import-button"
+            className={styles.importControl}
             title="Import"
-            onClick={() => fileInputRef.current?.click()}
           >
             <Icon name="upload" />
-          </button>
+            <input
+              data-testid="import-input"
+              type="file"
+              multiple
+              aria-label="Import scripts or backup"
+              onChange={(event) => {
+                void handleImport(event.target.files);
+                event.target.value = '';
+              }}
+            />
+          </label>
           <button
             type="button"
             data-testid="backup-button"
@@ -226,19 +312,6 @@ export function ScriptsPage({
           </button>
         </div>
       </header>
-
-      <input
-        ref={fileInputRef}
-        data-testid="import-input"
-        type="file"
-        accept=".md,.markdown,.txt,.json,text/markdown,text/plain,application/json"
-        multiple
-        hidden
-        onChange={(event) => {
-          void handleImport(event.target.files);
-          event.target.value = '';
-        }}
-      />
 
       {operationError && (
         <div className={styles.operationMessage} role="alert">
@@ -393,6 +466,16 @@ export function ScriptsPage({
         />
       )}
       {helpOpen && <HelpPanel onClose={() => setHelpOpen(false)} />}
+      {settingsOpen && appSettings && (
+        <AppSettingsPanel
+          settings={appSettings}
+          error={settingsError}
+          busy={busy || settingsSaving}
+          onCountdownChange={(seconds) => void updateCountdown(seconds)}
+          onFactoryReset={() => void handleFactoryReset()}
+          onClose={closeAppSettings}
+        />
+      )}
     </div>
   );
 }

@@ -78,6 +78,34 @@
   backdrop-filter: blur(12px);
 }
 
+.countdown {
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 8px;
+  pointer-events: none;
+  background: rgb(0 0 0 / 48%);
+  color: #fff;
+  text-shadow: 0 4px 28px #000;
+}
+
+.countdown strong {
+  font-size: clamp(96px, 30vw, 220px);
+  font-variant-numeric: tabular-nums;
+  line-height: 0.85;
+}
+
+.countdown span {
+  color: rgb(255 255 255 / 78%);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
 .toast {
   top: calc(env(safe-area-inset-top, 0px) + 66px);
   overflow: hidden;

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   formatFromFileName,
+  isSupportedScriptFile,
   readImportedFiles,
   stripFrontmatter,
   titleFromFileName
@@ -29,6 +30,15 @@ describe('formatFromFileName', () => {
     expect(formatFromFileName('a.markdown')).toBe('markdown');
     expect(formatFromFileName('a.txt')).toBe('text');
     expect(formatFromFileName('a')).toBe('text');
+  });
+});
+
+describe('isSupportedScriptFile', () => {
+  it('accepts script extensions without trusting browser MIME filtering', () => {
+    expect(isSupportedScriptFile('script.md')).toBe(true);
+    expect(isSupportedScriptFile('SCRIPT.MARKDOWN')).toBe(true);
+    expect(isSupportedScriptFile('notes.txt')).toBe(true);
+    expect(isSupportedScriptFile('photo.png')).toBe(false);
   });
 });
 
@@ -88,6 +98,17 @@ describe('readImportedFiles', () => {
       ok: false,
       fileName: 'malo.txt',
       error: 'The file could not be read'
+    });
+  });
+
+  it('rejects unsupported files selected by an unfiltered native picker', async () => {
+    const [outcome] = await readImportedFiles([
+      new File(['not an image'], 'photo.png', { type: 'image/png' })
+    ]);
+    expect(outcome).toEqual({
+      ok: false,
+      fileName: 'photo.png',
+      error: 'Choose a Markdown (.md, .markdown), plain-text (.txt), or backup (.json) file'
     });
   });
 });

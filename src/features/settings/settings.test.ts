@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  COUNTDOWN_LIMITS,
   FONT_LIMITS,
   MARGIN_LIMITS,
   SPEED_LIMITS,
@@ -17,6 +18,8 @@ describe('clampToLimit', () => {
     expect(clampToLimit(500, FONT_LIMITS)).toBe(FONT_LIMITS.max);
     expect(clampToLimit(-3, MARGIN_LIMITS)).toBe(MARGIN_LIMITS.min);
     expect(clampToLimit(80, MARGIN_LIMITS)).toBe(MARGIN_LIMITS.max);
+    expect(clampToLimit(-1, COUNTDOWN_LIMITS)).toBe(0);
+    expect(clampToLimit(99, COUNTDOWN_LIMITS)).toBe(10);
   });
 
   it('valores no numéricos caen al valor por defecto', () => {
@@ -40,5 +43,11 @@ describe('normalizeSettings', () => {
     expect(normalized.controllerMapping.circle).toBe(DEFAULT_DUALSHOCK_MAPPING.circle);
     expect(normalized.controllerMapping.triangle).toBe(DEFAULT_DUALSHOCK_MAPPING.triangle);
     expect(normalized.controllerMapping.square).toBe(DEFAULT_DUALSHOCK_MAPPING.square);
+  });
+
+  it('keeps the countdown disabled by default and normalizes whole seconds', () => {
+    expect(defaultSettings().countdownSeconds).toBe(0);
+    expect(normalizeSettings({ countdownSeconds: 4.6 }).countdownSeconds).toBe(5);
+    expect(normalizeSettings({ countdownSeconds: 99 }).countdownSeconds).toBe(10);
   });
 });
