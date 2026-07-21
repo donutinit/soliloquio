@@ -62,7 +62,7 @@ home-screen PWA is generally more resilient.
   not run when resuming from pause.
 - Drag the text for manual scrolling.
 - Tap the reading surface to hide or show controls.
-- Use Settings to change speed, text size, margins, or controller mapping.
+- Use Settings in the prompter to change speed, text size, or margins.
 - The `E` and `R` values estimate elapsed and remaining reading time at the current speed.
 - The **Keep screen awake** toggle in App Settings (on by default) holds a screen wake lock
   anywhere in the app and reacquires it after returning from the background when the browser
@@ -76,6 +76,9 @@ home-screen PWA is generally more resilient.
 
 Pair the controller in iOS Bluetooth settings by holding **PS + Share** until the light bar
 flashes. Once the prompter is open, press any button so Safari exposes the controller.
+
+Every reader action can be assigned to any controller button from **App Settings → Gamepad →
+Configure**: tap an action, then press the button you want for it. The default layout is:
 
 | Control | Short press | Hold |
 |---|---|---|
@@ -92,9 +95,10 @@ flashes. Once the prompter is open, press any button so Safari exposes the contr
 | Options | Settings | Same action on release |
 | Share | Section browser | Same action on release |
 
-Gamepad button ordering can vary by browser. Use **Settings → Controller → Diagnostics** to inspect
-raw input and remap actions. Assigning a button already in use swaps the two mappings so active
-actions remain unique.
+Hold behaviors (manual scrolling, step repeats) follow the action to its assigned button; stick
+axes always scroll. Gamepad button ordering can vary by browser — the panel's **Diagnostics**
+view shows raw button and axis input. Assigning a button already in use swaps the two actions so
+active actions remain unique, and **Reset** restores the default layout.
 
 ## Safari and iOS notes
 
@@ -170,7 +174,7 @@ server {
   open App Settings and tap **Update app** to force an immediate server check.
 - **A save fails:** keep the editor open, free device storage if needed, and retry. Navigation from
   the editor is blocked until the latest content is safely stored.
-- **The controller does not respond:** press a button in the foreground, open Diagnostics, and
-  remap browser-specific button indexes.
+- **The controller does not respond:** press a button in the foreground, open App Settings →
+  Gamepad → Diagnostics, and reassign browser-specific button indexes.
 - **`/healthz` fails:** inspect only the teleprompter container and use the rollback procedure.
 - **Anonymous pull fails:** confirm that the GHCR package is still public.

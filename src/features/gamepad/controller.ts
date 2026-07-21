@@ -7,23 +7,9 @@ import {
   applyDeadzone,
   triggerValue
 } from './gamepadInput';
-import { DEFAULT_DUALSHOCK_MAPPING, type ControllerButton, type ControllerMapping } from '../../types';
+import { GAMEPAD_ACTIONS, type GamepadAction, type GamepadBindings } from '../../types';
 
-export type GamepadAction =
-  | 'togglePlay'
-  | 'resetToStart'
-  | 'backToScripts'
-  | 'toggleControls'
-  | 'prevSection'
-  | 'nextSection'
-  | 'speedDown'
-  | 'speedUp'
-  | 'fontUp'
-  | 'fontDown'
-  | 'marginDown'
-  | 'marginUp'
-  | 'toggleSettings'
-  | 'toggleSections';
+export type { GamepadAction } from '../../types';
 
 export type GamepadFrame = {
   actions: GamepadAction[];
@@ -32,7 +18,30 @@ export type GamepadFrame = {
   connected: boolean;
 };
 
-const BUTTON_NAMES = Object.keys(DEFAULT_DUALSHOCK_MAPPING) as ControllerButton[];
+type ActionTrigger = 'short' | 'release' | 'step';
+
+/**
+ * Semántica de disparo de cada acción, independiente del botón asignado:
+ * - short: solo pulsación corta (el botón tiene además una acción mantenida).
+ * - release: al soltar, también tras una pulsación larga.
+ * - step: se repite mientras se mantiene (ajustes escalonados).
+ */
+export const ACTION_TRIGGERS: Record<GamepadAction, ActionTrigger> = {
+  togglePlay: 'short',
+  resetToStart: 'short',
+  speedDown: 'short',
+  speedUp: 'short',
+  backToScripts: 'release',
+  toggleControls: 'release',
+  prevSection: 'release',
+  nextSection: 'release',
+  toggleSettings: 'release',
+  toggleSections: 'release',
+  fontUp: 'step',
+  fontDown: 'step',
+  marginDown: 'step',
+  marginUp: 'step'
+};
 
 type ButtonLike = { pressed: boolean; value: number };
 
@@ -41,21 +50,23 @@ const RELEASED: ButtonLike = { pressed: false, value: 0 };
 /**
  * Traduce el estado crudo del mando (leído dentro del mismo rAF que el motor
  * de scroll) a acciones discretas y a una velocidad de scroll manual continua.
+ * Las acciones mantenidas (scroll manual) siguen a la acción, no al botón:
+ * se disparan desde el botón que tenga asignado cada acción.
  */
 export class GamepadController {
-  private machines = new Map<ControllerButton, HoldButton>();
+  private machines = new Map<GamepadAction, HoldButton>();
   private hadPad = false;
 
-  constructor(private mapping: ControllerMapping) {
+  constructor(private bindings: GamepadBindings) {
     this.resetMachines();
   }
 
-  setMapping(mapping: ControllerMapping): void {
-    this.mapping = mapping;
+  setBindings(bindings: GamepadBindings): void {
+    this.bindings = bindings;
   }
 
   private resetMachines(): void {
-    for (const name of BUTTON_NAMES) this.machines.set(name, new HoldButton());
+    for (const action of GAMEPAD_ACTIONS) this.machines.set(action, new HoldButton());
   }
 
   update(pad: Gamepad | null | undefined, nowMs: number): GamepadFrame {
@@ -69,52 +80,40 @@ export class GamepadController {
     }
     this.hadPad = true;
 
-    const button = (name: ControllerButton): ButtonLike =>
-      pad.buttons[this.mapping[name]] ?? RELEASED;
-    const isPressed = (name: ControllerButton): boolean => {
-      const b = button(name);
+    const button = (action: GamepadAction): ButtonLike =>
+      pad.buttons[this.bindings[action]] ?? RELEASED;
+    const isPressed = (action: GamepadAction): boolean => {
+      const b = button(action);
       return b.pressed || triggerValue(b) > 0;
     };
 
-    const events = {} as Record<ControllerButton, HoldButtonEvents>;
-    for (const name of BUTTON_NAMES) {
-      events[name] = this.machines.get(name)!.update(isPressed(name), nowMs);
+    const events = {} as Record<GamepadAction, HoldButtonEvents>;
+    for (const action of GAMEPAD_ACTIONS) {
+      events[action] = this.machines.get(action)!.update(isPressed(action), nowMs);
     }
 
     const actions: GamepadAction[] = [];
-    const onShort = (name: ControllerButton, action: GamepadAction) => {
-      if (events[name].shortPress) actions.push(action);
-    };
-    // Buttons without a hold action must still work when the user presses them
-    // for longer than the short-press threshold.
-    const onRelease = (name: ControllerButton, action: GamepadAction) => {
-      if (events[name].released) actions.push(action);
-    };
-    const onStep = (name: ControllerButton, action: GamepadAction) => {
-      const e = events[name];
-      if (e.shortPress || e.holdStart || e.repeat) actions.push(action);
-    };
-
-    onShort('cross', 'togglePlay');
-    onShort('triangle', 'resetToStart');
-    onRelease('circle', 'backToScripts');
-    onRelease('square', 'toggleControls');
-    onRelease('l1', 'prevSection');
-    onRelease('r1', 'nextSection');
-    onShort('l2', 'speedDown');
-    onShort('r2', 'speedUp');
-    onRelease('options', 'toggleSettings');
-    onRelease('share', 'toggleSections');
-    onStep('dpadUp', 'fontUp');
-    onStep('dpadDown', 'fontDown');
-    onStep('dpadLeft', 'marginDown');
-    onStep('dpadRight', 'marginUp');
+    for (const action of GAMEPAD_ACTIONS) {
+      const e = events[action];
+      const trigger = ACTION_TRIGGERS[action];
+      const fired =
+        trigger === 'short'
+          ? e.shortPress
+          : trigger === 'release'
+            ? e.released
+            : e.shortPress || e.holdStart || e.repeat;
+      if (fired) actions.push(action);
+    }
 
     let velocity = 0;
-    if (events.cross.holdActive) velocity += DEFAULT_MANUAL_SCROLL_SPEED;
-    if (events.triangle.holdActive) velocity -= DEFAULT_MANUAL_SCROLL_SPEED;
-    if (events.r2.holdActive) velocity += triggerValue(button('r2')) * DEFAULT_MANUAL_SCROLL_SPEED;
-    if (events.l2.holdActive) velocity -= triggerValue(button('l2')) * DEFAULT_MANUAL_SCROLL_SPEED;
+    if (events.togglePlay.holdActive) velocity += DEFAULT_MANUAL_SCROLL_SPEED;
+    if (events.resetToStart.holdActive) velocity -= DEFAULT_MANUAL_SCROLL_SPEED;
+    if (events.speedUp.holdActive) {
+      velocity += triggerValue(button('speedUp')) * DEFAULT_MANUAL_SCROLL_SPEED;
+    }
+    if (events.speedDown.holdActive) {
+      velocity -= triggerValue(button('speedDown')) * DEFAULT_MANUAL_SCROLL_SPEED;
+    }
     velocity +=
       applyDeadzone(pad.axes[3] ?? 0, STICK_DEADZONE) *
       DEFAULT_MANUAL_SCROLL_SPEED *

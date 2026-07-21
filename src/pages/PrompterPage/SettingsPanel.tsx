@@ -67,12 +67,10 @@ function SettingRow({
 export function SettingsPanel({
   settings,
   onChange,
-  onOpenMapping,
   onClose
 }: {
   settings: PrompterSettings;
   onChange: (key: SettingKey, value: number) => void;
-  onOpenMapping: () => void;
   onClose: () => void;
 }) {
   const dialogRef = useModalFocus<HTMLDivElement>(onClose);
@@ -113,10 +111,10 @@ export function SettingsPanel({
           unit="%"
           onChange={(v) => onChange('horizontalMargin', v)}
         />
+        <p className={styles.panelNote}>
+          Gamepad buttons are configured in App settings on the scripts screen.
+        </p>
         <div className={styles.panelActions}>
-          <button type="button" data-testid="open-mapping" onClick={onOpenMapping}>
-            Controller…
-          </button>
           <button type="button" data-testid="settings-close" onClick={onClose}>
             Done
           </button>

@@ -448,103 +448,11 @@
   font-variant-numeric: tabular-nums;
 }
 
-.mappingOverlay {
-  position: fixed;
-  inset: 0;
-  z-index: 46;
-  overflow-y: auto;
-  padding: calc(env(safe-area-inset-top, 0px) + 12px) calc(env(safe-area-inset-right, 0px) + 16px)
-    calc(env(safe-area-inset-bottom, 0px) + 16px) calc(env(safe-area-inset-left, 0px) + 16px);
-  background: var(--bg);
-}
-
-.mappingOverlay > * {
-  width: 100%;
-  max-width: 720px;
-  margin-right: auto;
-  margin-left: auto;
-}
-
-.mappingHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.mappingHeader h2 {
-  margin: 0;
-  font-size: 21px;
-}
-
-.mappingHeader button {
-  min-height: 44px;
-  padding: 0 14px;
-  border: 0;
-  border-radius: 12px;
-  background: none;
-  color: var(--link);
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.mappingHint,
-.mappingFeedback {
-  font-size: 14px;
-  line-height: 1.45;
-}
-
-.mappingHint {
+.panelNote {
+  margin: 2px 0 0;
   color: var(--text-dim);
-}
-
-.mappingFeedback {
-  color: var(--success);
-}
-
-.mappingList {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.mappingList button {
-  width: 100%;
-  min-height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 8px 12px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface);
-  font-size: 14px;
-  text-align: left;
-}
-
-.mappingListening {
-  border-color: var(--focus) !important;
-  color: var(--link);
-  outline: 2px solid color-mix(in srgb, var(--focus) 25%, transparent);
-}
-
-.mappingIndex {
-  color: var(--text-dim);
-  white-space: nowrap;
-}
-
-.diagnostics {
-  margin-top: 12px;
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface);
-  color: var(--text-dim);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12px;
-  word-break: break-all;
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 @keyframes fadeIn {
@@ -649,10 +557,6 @@
 
   .panel {
     max-height: 94vh;
-  }
-
-  .mappingOverlay {
-    padding-top: calc(env(safe-area-inset-top, 0px) + 6px);
   }
 }
 

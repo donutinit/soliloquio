@@ -29,7 +29,7 @@ export function HelpPanel({ onClose }: { onClose: () => void }) {
         </section>
         <section>
           <h3>Controller</h3>
-          <p>Connect it over Bluetooth, then press any button. Cross starts or pauses; L1/R1 change sections; Options opens settings.</p>
+          <p>Connect it over Bluetooth, then press any button. Cross starts or pauses; L1/R1 change sections. Assign any action to any button in App settings → Gamepad.</p>
         </section>
         <section>
           <h3>Your data</h3>

@@ -6,9 +6,10 @@ import {
   SPEED_LIMITS,
   clampToLimit,
   defaultSettings,
+  normalizeBindings,
   normalizeSettings
 } from './settings';
-import { DEFAULT_DUALSHOCK_MAPPING } from '../../types';
+import { DEFAULT_GAMEPAD_BINDINGS, GAMEPAD_ACTIONS } from '../../types';
 
 describe('clampToLimit', () => {
   it('recorta a los límites de velocidad, fuente y márgenes', () => {
@@ -33,16 +34,46 @@ describe('normalizeSettings', () => {
     expect(normalizeSettings({})).toEqual(defaultSettings());
   });
 
-  it('conserva un mapeo personalizado válido y descarta el inválido', () => {
+  it('conserva asignaciones válidas y descarta las inválidas', () => {
     const normalized = normalizeSettings({
       speed: 80,
-      controllerMapping: { cross: 5, circle: 'x', triangle: -1, square: 99 }
+      controllerBindings: { togglePlay: 5, backToScripts: 'x', resetToStart: -1, toggleControls: 99 }
     });
     expect(normalized.speed).toBe(80);
-    expect(normalized.controllerMapping.cross).toBe(5);
-    expect(normalized.controllerMapping.circle).toBe(DEFAULT_DUALSHOCK_MAPPING.circle);
-    expect(normalized.controllerMapping.triangle).toBe(DEFAULT_DUALSHOCK_MAPPING.triangle);
-    expect(normalized.controllerMapping.square).toBe(DEFAULT_DUALSHOCK_MAPPING.square);
+    expect(normalized.controllerBindings.togglePlay).toBe(5);
+    expect(normalized.controllerBindings.backToScripts).toBe(DEFAULT_GAMEPAD_BINDINGS.backToScripts);
+    expect(normalized.controllerBindings.resetToStart).toBe(DEFAULT_GAMEPAD_BINDINGS.resetToStart);
+    expect(normalized.controllerBindings.toggleControls).toBe(DEFAULT_GAMEPAD_BINDINGS.toggleControls);
+    // togglePlay ocupa el 5; nextSection (su dueño por defecto) recibe un índice libre.
+    expect(normalized.controllerBindings.nextSection).not.toBe(5);
+  });
+
+  it('migra un controllerMapping heredado conservando el remapeo del usuario', () => {
+    const normalized = normalizeSettings({
+      controllerMapping: { cross: 5, r1: 0 }
+    });
+    // En el modelo antiguo cross disparaba play/pausa y r1 la sección siguiente.
+    expect(normalized.controllerBindings.togglePlay).toBe(5);
+    expect(normalized.controllerBindings.nextSection).toBe(0);
+    expect(normalized.controllerBindings.backToScripts).toBe(DEFAULT_GAMEPAD_BINDINGS.backToScripts);
+  });
+
+  it('las asignaciones nuevas tienen prioridad sobre el formato heredado', () => {
+    const normalized = normalizeSettings({
+      controllerBindings: { togglePlay: 9, toggleSettings: 0 },
+      controllerMapping: { cross: 5 }
+    });
+    expect(normalized.controllerBindings.togglePlay).toBe(9);
+    expect(normalized.controllerBindings.toggleSettings).toBe(0);
+  });
+
+  it('resuelve duplicados de forma determinista sin dejar acciones repetidas', () => {
+    // togglePlay roba el botón de backToScripts; este cae al primer índice libre.
+    const bindings = normalizeBindings({ togglePlay: DEFAULT_GAMEPAD_BINDINGS.backToScripts });
+    expect(bindings.togglePlay).toBe(DEFAULT_GAMEPAD_BINDINGS.backToScripts);
+    expect(bindings.backToScripts).toBe(0);
+    const values = GAMEPAD_ACTIONS.map((action) => bindings[action]);
+    expect(new Set(values).size).toBe(values.length);
   });
 
   it('mantiene la pantalla encendida por defecto y solo un false explícito lo apaga', () => {

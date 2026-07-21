@@ -39,7 +39,62 @@ export const DEFAULT_DUALSHOCK_MAPPING = {
 
 export type ControllerButton = keyof typeof DEFAULT_DUALSHOCK_MAPPING;
 
+/** Formato heredado (versión 1 de settings): botón lógico → índice físico. */
 export type ControllerMapping = Record<ControllerButton, number>;
+
+export type GamepadAction =
+  | 'togglePlay'
+  | 'resetToStart'
+  | 'backToScripts'
+  | 'toggleControls'
+  | 'prevSection'
+  | 'nextSection'
+  | 'speedDown'
+  | 'speedUp'
+  | 'fontUp'
+  | 'fontDown'
+  | 'marginDown'
+  | 'marginUp'
+  | 'toggleSettings'
+  | 'toggleSections';
+
+/** Orden canónico: también decide la prioridad al resolver duplicados. */
+export const GAMEPAD_ACTIONS: readonly GamepadAction[] = [
+  'togglePlay',
+  'resetToStart',
+  'backToScripts',
+  'toggleControls',
+  'prevSection',
+  'nextSection',
+  'speedDown',
+  'speedUp',
+  'fontUp',
+  'fontDown',
+  'marginDown',
+  'marginUp',
+  'toggleSettings',
+  'toggleSections'
+];
+
+/** Acción de la app → índice de botón físico del layout estándar del Gamepad API. */
+export type GamepadBindings = Record<GamepadAction, number>;
+
+export const DEFAULT_GAMEPAD_BINDINGS: GamepadBindings = {
+  togglePlay: DEFAULT_DUALSHOCK_MAPPING.cross,
+  resetToStart: DEFAULT_DUALSHOCK_MAPPING.triangle,
+  backToScripts: DEFAULT_DUALSHOCK_MAPPING.circle,
+  toggleControls: DEFAULT_DUALSHOCK_MAPPING.square,
+  prevSection: DEFAULT_DUALSHOCK_MAPPING.l1,
+  nextSection: DEFAULT_DUALSHOCK_MAPPING.r1,
+  speedDown: DEFAULT_DUALSHOCK_MAPPING.l2,
+  speedUp: DEFAULT_DUALSHOCK_MAPPING.r2,
+  fontUp: DEFAULT_DUALSHOCK_MAPPING.dpadUp,
+  fontDown: DEFAULT_DUALSHOCK_MAPPING.dpadDown,
+  marginDown: DEFAULT_DUALSHOCK_MAPPING.dpadLeft,
+  marginUp: DEFAULT_DUALSHOCK_MAPPING.dpadRight,
+  toggleSettings: DEFAULT_DUALSHOCK_MAPPING.options,
+  toggleSections: DEFAULT_DUALSHOCK_MAPPING.share
+};
 
 export type PrompterSettings = {
   speed: number;
@@ -47,5 +102,5 @@ export type PrompterSettings = {
   horizontalMargin: number;
   countdownSeconds: number;
   keepScreenAwake: boolean;
-  controllerMapping: ControllerMapping;
+  controllerBindings: GamepadBindings;
 };

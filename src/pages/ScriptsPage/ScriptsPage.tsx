@@ -25,6 +25,7 @@ import { useModalFocus } from '../../app/useModalFocus';
 import { Icon } from '../../components/Icon';
 import { ScriptEditor } from './ScriptEditor';
 import { AppSettingsPanel, type AppUpdateState } from './AppSettingsPanel';
+import { GamepadSettingsPanel } from './GamepadSettingsPanel';
 import { HelpPanel } from './HelpPanel';
 import styles from './ScriptsPage.module.css';
 
@@ -79,6 +80,7 @@ export function ScriptsPage({
   const [notice, setNotice] = useState<string | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [gamepadOpen, setGamepadOpen] = useState(false);
   const [appSettings, setAppSettings] = useState<PrompterSettings | null>(null);
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [settingsSaving, setSettingsSaving] = useState(false);
@@ -233,6 +235,9 @@ export function ScriptsPage({
 
   const updateKeepAwake = (enabled: boolean) =>
     updateAppSettings({ keepScreenAwake: enabled }, 'The screen setting could not be saved.');
+
+  const updateBindings = (bindings: PrompterSettings['controllerBindings']) =>
+    updateAppSettings({ controllerBindings: bindings }, 'The gamepad settings could not be saved.');
 
   const handleFactoryReset = async () => {
     setBusy(true);
@@ -501,7 +506,7 @@ export function ScriptsPage({
         />
       )}
       {helpOpen && <HelpPanel onClose={() => setHelpOpen(false)} />}
-      {settingsOpen && appSettings && (
+      {settingsOpen && !gamepadOpen && appSettings && (
         <AppSettingsPanel
           settings={appSettings}
           error={settingsError}
@@ -510,9 +515,17 @@ export function ScriptsPage({
           busy={busy || settingsSaving || updateState === 'checking'}
           onCountdownChange={(seconds) => void updateCountdown(seconds)}
           onKeepAwakeChange={(enabled) => void updateKeepAwake(enabled)}
+          onOpenGamepad={() => setGamepadOpen(true)}
           onCheckForUpdate={() => void handleCheckForUpdate()}
           onFactoryReset={() => void handleFactoryReset()}
           onClose={closeAppSettings}
+        />
+      )}
+      {gamepadOpen && appSettings && (
+        <GamepadSettingsPanel
+          bindings={appSettings.controllerBindings}
+          onChange={(bindings) => void updateBindings(bindings)}
+          onClose={() => setGamepadOpen(false)}
         />
       )}
     </div>

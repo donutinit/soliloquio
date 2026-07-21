@@ -1,6 +1,11 @@
 import {
   DEFAULT_DUALSHOCK_MAPPING,
+  DEFAULT_GAMEPAD_BINDINGS,
+  GAMEPAD_ACTIONS,
+  type ControllerButton,
   type ControllerMapping,
+  type GamepadAction,
+  type GamepadBindings,
   type PrompterSettings
 } from '../../types';
 
@@ -11,7 +16,10 @@ export const FONT_LIMITS: Limit = { min: 20, max: 120, step: 2, default: 52 };
 export const MARGIN_LIMITS: Limit = { min: 0, max: 25, step: 1, default: 4 };
 export const COUNTDOWN_LIMITS: Limit = { min: 0, max: 10, step: 1, default: 0 };
 
-export const SETTINGS_SCHEMA_VERSION = 1;
+export const SETTINGS_SCHEMA_VERSION = 2;
+
+/** Máximo índice de botón aceptado; cubre mandos no estándar con botones extra. */
+const MAX_BUTTON_INDEX = 31;
 
 export function clampToLimit(value: number, limit: Limit): number {
   if (!Number.isFinite(value)) return limit.default;
@@ -25,25 +33,85 @@ export function defaultSettings(): PrompterSettings {
     horizontalMargin: MARGIN_LIMITS.default,
     countdownSeconds: COUNTDOWN_LIMITS.default,
     keepScreenAwake: true,
-    controllerMapping: { ...DEFAULT_DUALSHOCK_MAPPING }
+    controllerBindings: { ...DEFAULT_GAMEPAD_BINDINGS }
   };
 }
 
-function normalizeMapping(mapping: unknown): ControllerMapping {
-  const result: ControllerMapping = { ...DEFAULT_DUALSHOCK_MAPPING };
-  if (mapping && typeof mapping === 'object') {
-    for (const key of Object.keys(result) as (keyof ControllerMapping)[]) {
-      const value = (mapping as Record<string, unknown>)[key];
-      if (typeof value === 'number' && Number.isInteger(value) && value >= 0 && value < 32) {
-        result[key] = value;
+function isButtonIndex(value: unknown): value is number {
+  return (
+    typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= MAX_BUTTON_INDEX
+  );
+}
+
+/**
+ * En el modelo antiguo cada acción estaba fija a un botón lógico; esta tabla
+ * permite migrar un `controllerMapping` remapeado sin perder las preferencias.
+ */
+const LEGACY_ACTION_BUTTON: Record<GamepadAction, ControllerButton> = {
+  togglePlay: 'cross',
+  resetToStart: 'triangle',
+  backToScripts: 'circle',
+  toggleControls: 'square',
+  prevSection: 'l1',
+  nextSection: 'r1',
+  speedDown: 'l2',
+  speedUp: 'r2',
+  fontUp: 'dpadUp',
+  fontDown: 'dpadDown',
+  marginDown: 'dpadLeft',
+  marginUp: 'dpadRight',
+  toggleSettings: 'options',
+  toggleSections: 'share'
+};
+
+function legacyMappingToBindings(mapping: object): GamepadBindings {
+  const legacy: ControllerMapping = { ...DEFAULT_DUALSHOCK_MAPPING };
+  for (const key of Object.keys(legacy) as ControllerButton[]) {
+    const value = (mapping as Record<string, unknown>)[key];
+    if (isButtonIndex(value)) legacy[key] = value;
+  }
+  const bindings = { ...DEFAULT_GAMEPAD_BINDINGS };
+  for (const action of GAMEPAD_ACTIONS) bindings[action] = legacy[LEGACY_ACTION_BUTTON[action]];
+  return bindings;
+}
+
+/**
+ * Sanea unas asignaciones acción → botón: valores inválidos caen al valor por
+ * defecto y los duplicados se resuelven de forma determinista (gana la primera
+ * acción en orden canónico; la siguiente recupera su botón por defecto o el
+ * primer índice libre).
+ */
+export function normalizeBindings(raw: unknown, legacyMapping?: unknown): GamepadBindings {
+  const candidate = { ...DEFAULT_GAMEPAD_BINDINGS };
+  if (raw && typeof raw === 'object') {
+    for (const action of GAMEPAD_ACTIONS) {
+      const value = (raw as Record<string, unknown>)[action];
+      if (isButtonIndex(value)) candidate[action] = value;
+    }
+  } else if (legacyMapping && typeof legacyMapping === 'object') {
+    Object.assign(candidate, legacyMappingToBindings(legacyMapping));
+  }
+
+  const used = new Set<number>();
+  for (const action of GAMEPAD_ACTIONS) {
+    let index = candidate[action];
+    if (used.has(index)) {
+      index = DEFAULT_GAMEPAD_BINDINGS[action];
+      if (used.has(index)) {
+        index = 0;
+        while (used.has(index)) index += 1;
       }
     }
+    candidate[action] = index;
+    used.add(index);
   }
-  return result;
+  return candidate;
 }
 
 export function normalizeSettings(raw: unknown): PrompterSettings {
-  const partial = (raw && typeof raw === 'object' ? raw : {}) as Partial<PrompterSettings>;
+  const partial = (raw && typeof raw === 'object' ? raw : {}) as Partial<PrompterSettings> & {
+    controllerMapping?: unknown;
+  };
   return {
     speed: clampToLimit(Number(partial.speed), SPEED_LIMITS),
     fontSize: clampToLimit(Number(partial.fontSize), FONT_LIMITS),
@@ -53,6 +121,6 @@ export function normalizeSettings(raw: unknown): PrompterSettings {
     ),
     // Solo un false explícito lo desactiva: datos antiguos sin el campo quedan activados.
     keepScreenAwake: partial.keepScreenAwake !== false,
-    controllerMapping: normalizeMapping(partial.controllerMapping)
+    controllerBindings: normalizeBindings(partial.controllerBindings, partial.controllerMapping)
   };
 }

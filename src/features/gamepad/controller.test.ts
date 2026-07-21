@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { GamepadController } from './controller';
 import { HOLD_THRESHOLD_MS } from './holdButton';
 import { DEFAULT_MANUAL_SCROLL_SPEED } from './gamepadInput';
-import { DEFAULT_DUALSHOCK_MAPPING } from '../../types';
+import { DEFAULT_GAMEPAD_BINDINGS, GAMEPAD_ACTIONS } from '../../types';
 
 function fakePad(overrides: {
   buttons?: Record<number, { pressed: boolean; value: number }>;
@@ -24,26 +24,26 @@ function fakePad(overrides: {
   } as unknown as Gamepad;
 }
 
-describe('mapeo por defecto', () => {
-  it('tiene 18 botones con índices únicos', () => {
-    const values = Object.values(DEFAULT_DUALSHOCK_MAPPING);
-    expect(values).toHaveLength(18);
-    expect(new Set(values).size).toBe(18);
-    expect(DEFAULT_DUALSHOCK_MAPPING.cross).toBe(0);
-    expect(DEFAULT_DUALSHOCK_MAPPING.touchpad).toBe(17);
+describe('asignaciones por defecto', () => {
+  it('cubren todas las acciones con índices únicos', () => {
+    const values = GAMEPAD_ACTIONS.map((action) => DEFAULT_GAMEPAD_BINDINGS[action]);
+    expect(values).toHaveLength(14);
+    expect(new Set(values).size).toBe(14);
+    expect(DEFAULT_GAMEPAD_BINDINGS.togglePlay).toBe(0);
+    expect(DEFAULT_GAMEPAD_BINDINGS.marginUp).toBe(15);
   });
 });
 
 describe('GamepadController', () => {
-  it('pulsación corta de cross emite togglePlay', () => {
-    const controller = new GamepadController({ ...DEFAULT_DUALSHOCK_MAPPING });
+  it('pulsación corta del botón de play emite togglePlay', () => {
+    const controller = new GamepadController({ ...DEFAULT_GAMEPAD_BINDINGS });
     controller.update(fakePad({ buttons: { 0: { pressed: true, value: 1 } } }), 0);
     const frame = controller.update(fakePad({}), 100);
     expect(frame.actions).toContain('togglePlay');
   });
 
-  it('mantener cross no emite togglePlay y genera velocidad manual', () => {
-    const controller = new GamepadController({ ...DEFAULT_DUALSHOCK_MAPPING });
+  it('mantener el botón de play no emite togglePlay y genera velocidad manual', () => {
+    const controller = new GamepadController({ ...DEFAULT_GAMEPAD_BINDINGS });
     const pressed = fakePad({ buttons: { 0: { pressed: true, value: 1 } } });
     controller.update(pressed, 0);
     const held = controller.update(pressed, HOLD_THRESHOLD_MS + 10);
@@ -53,8 +53,8 @@ describe('GamepadController', () => {
     expect(released.manualVelocity).toBe(0);
   });
 
-  it('a long press still triggers buttons that have no hold action', () => {
-    const controller = new GamepadController({ ...DEFAULT_DUALSHOCK_MAPPING });
+  it('a long press still triggers actions that have no hold behavior', () => {
+    const controller = new GamepadController({ ...DEFAULT_GAMEPAD_BINDINGS });
     const pressed = fakePad({ buttons: { 5: { pressed: true, value: 1 } } });
     controller.update(pressed, 0);
     controller.update(pressed, HOLD_THRESHOLD_MS + 10);
@@ -63,22 +63,39 @@ describe('GamepadController', () => {
   });
 
   it('un gatillo analógico mantenido escala la velocidad manual', () => {
-    const controller = new GamepadController({ ...DEFAULT_DUALSHOCK_MAPPING });
+    const controller = new GamepadController({ ...DEFAULT_GAMEPAD_BINDINGS });
     const half = fakePad({ buttons: { 7: { pressed: true, value: 0.56 } } });
     controller.update(half, 0);
     const frame = controller.update(half, HOLD_THRESHOLD_MS + 10);
     expect(frame.manualVelocity).toBeCloseTo(DEFAULT_MANUAL_SCROLL_SPEED * 0.5);
   });
 
-  it('respeta un mapeo reasignado', () => {
-    const controller = new GamepadController({ ...DEFAULT_DUALSHOCK_MAPPING, cross: 5 });
+  it('respeta una acción reasignada a otro botón', () => {
+    const controller = new GamepadController({
+      ...DEFAULT_GAMEPAD_BINDINGS,
+      togglePlay: 5,
+      nextSection: 0
+    });
     controller.update(fakePad({ buttons: { 5: { pressed: true, value: 1 } } }), 0);
     const frame = controller.update(fakePad({}), 100);
     expect(frame.actions).toContain('togglePlay');
+    expect(frame.actions).not.toContain('nextSection');
+  });
+
+  it('la acción mantenida sigue a la acción reasignada, no al botón original', () => {
+    const controller = new GamepadController({
+      ...DEFAULT_GAMEPAD_BINDINGS,
+      togglePlay: 5,
+      nextSection: 0
+    });
+    const pressed = fakePad({ buttons: { 5: { pressed: true, value: 1 } } });
+    controller.update(pressed, 0);
+    const held = controller.update(pressed, HOLD_THRESHOLD_MS + 10);
+    expect(held.manualVelocity).toBe(DEFAULT_MANUAL_SCROLL_SPEED);
   });
 
   it('al desconectar el mando no dispara acciones pendientes', () => {
-    const controller = new GamepadController({ ...DEFAULT_DUALSHOCK_MAPPING });
+    const controller = new GamepadController({ ...DEFAULT_GAMEPAD_BINDINGS });
     controller.update(fakePad({ buttons: { 0: { pressed: true, value: 1 } } }), 0);
     const frame = controller.update(null, 100);
     expect(frame.connected).toBe(false);
@@ -89,7 +106,7 @@ describe('GamepadController', () => {
   });
 
   it('los sticks aportan scroll fino y rápido con zona muerta', () => {
-    const controller = new GamepadController({ ...DEFAULT_DUALSHOCK_MAPPING });
+    const controller = new GamepadController({ ...DEFAULT_GAMEPAD_BINDINGS });
     controller.update(fakePad({}), 0);
     expect(controller.update(fakePad({ axes: [0, 0.1, 0, 0.1] }), 16).manualVelocity).toBe(0);
     const fine = controller.update(fakePad({ axes: [0, 0, 0, 1] }), 32).manualVelocity;

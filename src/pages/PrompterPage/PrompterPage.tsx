@@ -14,7 +14,6 @@ import {
 } from '../../features/settings/settings';
 import { SettingsPanel } from './SettingsPanel';
 import { SectionNav } from './SectionNav';
-import { MappingEditor } from './MappingEditor';
 import { editorHash } from '../../app/router';
 import { Icon } from '../../components/Icon';
 import styles from './PrompterPage.module.css';
@@ -25,7 +24,7 @@ const TOAST_MS = 1500;
 const POSITION_SAVE_INTERVAL_MS = 2000;
 const IDLE_POLL_INTERVAL_MS = 250;
 
-type Panel = 'none' | 'settings' | 'sections' | 'mapping';
+type Panel = 'none' | 'settings' | 'sections';
 
 function formatDuration(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return '--:--';
@@ -129,8 +128,6 @@ function Prompter({
   const blockElsRef = useRef<(HTMLElement | null)[]>([]);
   const sectionOffsetsRef = useRef<number[]>([]);
   const sectionIdxRef = useRef(0);
-  const panelRef = useRef<Panel>('none');
-  panelRef.current = panel;
   const gamepadConnectedRef = useRef(false);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -156,7 +153,7 @@ function Prompter({
   }
   const controllerRef = useRef<GamepadController | null>(null);
   if (!controllerRef.current) {
-    controllerRef.current = new GamepadController(initialSettings.controllerMapping);
+    controllerRef.current = new GamepadController(initialSettings.controllerBindings);
   }
 
   useEffect(() => {
@@ -164,8 +161,8 @@ function Prompter({
   }, [settings.speed]);
 
   useEffect(() => {
-    controllerRef.current!.setMapping(settings.controllerMapping);
-  }, [settings.controllerMapping]);
+    controllerRef.current!.setBindings(settings.controllerBindings);
+  }, [settings.controllerBindings]);
 
   const persistSettings = useCallback((): Promise<boolean> => {
     if (!settingsDirtyRef.current) return settingsSaveRef.current;
@@ -425,14 +422,9 @@ function Prompter({
         gamepadConnectedRef.current = frame.connected;
         setGamepadConnected(frame.connected);
       }
-      // Mientras se edita el mapeo, los botones no disparan acciones.
-      if (panelRef.current !== 'mapping') {
-        for (const action of frame.actions) applyActionRef.current(action);
-        const direction = Math.sign(frame.manualVelocity) as -1 | 0 | 1;
-        engine.setManual(direction, Math.abs(frame.manualVelocity));
-      } else {
-        engine.setManual(0, 0);
-      }
+      for (const action of frame.actions) applyActionRef.current(action);
+      const direction = Math.sign(frame.manualVelocity) as -1 | 0 | 1;
+      engine.setManual(direction, Math.abs(frame.manualVelocity));
       const position = engine.tick(now);
       if (contentRef.current && position !== renderedPositionRef.current) {
         contentRef.current.style.transform = `translate3d(0, ${-position}px, 0)`;
@@ -720,7 +712,6 @@ function Prompter({
         <SettingsPanel
           settings={settings}
           onChange={updateSetting}
-          onOpenMapping={() => setPanel('mapping')}
           onClose={() => setPanel('none')}
         />
       )}
@@ -733,16 +724,6 @@ function Prompter({
             setPanel('none');
           }}
           onClose={() => setPanel('none')}
-        />
-      )}
-      {panel === 'mapping' && (
-        <MappingEditor
-          mapping={settings.controllerMapping}
-          onChange={(mapping) => {
-            settingsDirtyRef.current = true;
-            setSettingsState((prev) => ({ ...prev, controllerMapping: mapping }));
-          }}
-          onClose={() => setPanel('settings')}
         />
       )}
     </div>

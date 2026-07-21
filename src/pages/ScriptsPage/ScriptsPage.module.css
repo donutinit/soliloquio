@@ -488,6 +488,229 @@
   color: var(--link);
 }
 
+.gamepadOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  overflow-y: auto;
+  padding: calc(env(safe-area-inset-top, 0px) + 10px) calc(env(safe-area-inset-right, 0px) + 16px)
+    calc(env(safe-area-inset-bottom, 0px) + 20px) calc(env(safe-area-inset-left, 0px) + 16px);
+  background: var(--bg);
+}
+
+.gamepadOverlay > * {
+  width: 100%;
+  max-width: 560px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.gamepadHeader {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.gamepadHeader h2 {
+  margin: 0;
+  font-size: 21px;
+  text-align: center;
+}
+
+.gamepadBack,
+.gamepadReset {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: var(--link);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.gamepadBack svg {
+  width: 22px;
+}
+
+.gamepadReset {
+  justify-self: end;
+}
+
+.gamepadStatusOn,
+.gamepadStatusOff {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.gamepadStatusOn {
+  border-color: color-mix(in srgb, var(--success) 45%, var(--border));
+  color: var(--success);
+}
+
+.gamepadStatusOff {
+  color: var(--text-dim);
+}
+
+.gamepadStatusOn svg,
+.gamepadStatusOff svg {
+  width: 22px;
+  flex-shrink: 0;
+}
+
+.gamepadHint,
+.gamepadFeedback {
+  margin: 10px 2px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.gamepadHint {
+  color: var(--text-dim);
+}
+
+.gamepadFeedback {
+  color: var(--success);
+}
+
+.gamepadGroup {
+  margin-bottom: 14px;
+}
+
+.gamepadGroup h3 {
+  margin: 0 0 6px;
+  padding: 0 2px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gamepadGroup ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.gamepadGroup li + li {
+  border-top: 1px solid var(--border);
+}
+
+.gamepadRow,
+.gamepadRowListening {
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+
+.gamepadRow:active {
+  background: var(--surface-2);
+}
+
+.gamepadRowListening {
+  background: color-mix(in srgb, var(--focus) 12%, var(--surface));
+  box-shadow: inset 3px 0 0 var(--focus);
+}
+
+.gamepadActionText {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.gamepadActionLabel {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.gamepadActionHint {
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.gamepadChip {
+  flex-shrink: 0;
+  min-width: 64px;
+  padding: 6px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--link);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.gamepadRowListening .gamepadChip {
+  border-color: var(--focus);
+  color: var(--focus);
+  animation: chipPulse 1s ease-in-out infinite alternate;
+}
+
+.gamepadFooter {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.gamepadFooter button {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: var(--link);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.gamepadDiagnostics {
+  margin-top: 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text-dim);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.gamepadDiagnostics p {
+  margin: 4px 0;
+}
+
+@keyframes chipPulse {
+  from { opacity: 1; }
+  to { opacity: 0.45; }
+}
+
 .editorOverlay {
   position: fixed;
   inset: 0;
@@ -653,7 +876,8 @@
 @media (prefers-reduced-motion: reduce) {
   .card,
   .sheet,
-  .sheetBackdrop {
+  .sheetBackdrop,
+  .gamepadRowListening .gamepadChip {
     animation: none;
     transition: none;
   }

@@ -21,6 +21,7 @@ export function AppSettingsPanel({
   busy,
   onCountdownChange,
   onKeepAwakeChange,
+  onOpenGamepad,
   onCheckForUpdate,
   onFactoryReset,
   onClose
@@ -32,6 +33,7 @@ export function AppSettingsPanel({
   busy: boolean;
   onCountdownChange: (seconds: number) => void;
   onKeepAwakeChange: (enabled: boolean) => void;
+  onOpenGamepad: () => void;
   onCheckForUpdate: () => void;
   onFactoryReset: () => void;
   onClose: () => void;
@@ -95,6 +97,22 @@ export function AppSettingsPanel({
             />
           </div>
           {error && <p className={styles.settingsError} role="alert">{error}</p>}
+        </section>
+
+        <section className={styles.updateSection}>
+          <div>
+            <h3>Gamepad</h3>
+            <p>Choose which controller button triggers each reader action.</p>
+          </div>
+          <button
+            type="button"
+            className={styles.updateButton}
+            data-testid="open-gamepad-settings"
+            disabled={busy}
+            onClick={onOpenGamepad}
+          >
+            Configure
+          </button>
         </section>
 
         <section className={styles.updateSection}>
