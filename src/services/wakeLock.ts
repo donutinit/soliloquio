@@ -132,17 +132,6 @@ export function createWakeLock(
     // resolverse. Esperarla evita que release() termine dejando un lock tardío.
     const pending = requestInFlight;
     if (pending) await pending;
-    if (wanted) return;
-
-    const acquiredWhileReleasing = sentinel;
-    sentinel = null;
-    if (acquiredWhileReleasing && !acquiredWhileReleasing.released) {
-      try {
-        await acquiredWhileReleasing.release();
-      } catch {
-        // Ignorado: el sentinel ya podía estar liberado.
-      }
-    }
   }
 
   return {
