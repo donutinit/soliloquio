@@ -46,65 +46,70 @@ export function useGamepadNavigation(mode: 'scripts' | 'prompter'): void {
     const tick = () => {
       if (stopped) return;
       const pad = getActiveGamepad();
+      // Reprogramar pase lo que pase: una excepción puntual en un tick no debe
+      // matar la navegación para el resto de la sesión.
+      try {
+        const dialogs = document.querySelectorAll<HTMLElement>('[role="dialog"]');
+        const dialog = dialogs.length > 0 ? dialogs[dialogs.length - 1] : null;
+        const scope = dialog ?? (mode === 'scripts' ? document.body : null);
+        const suspended = document.querySelector('[data-gamepad-nav-suspend]') !== null;
 
-      const dialogs = document.querySelectorAll<HTMLElement>('[role="dialog"]');
-      const dialog = dialogs.length > 0 ? dialogs[dialogs.length - 1] : null;
-      const scope = dialog ?? (mode === 'scripts' ? document.body : null);
-      const suspended = document.querySelector('[data-gamepad-nav-suspend]') !== null;
+        if (!pad || !scope || suspended) {
+          // Fuera de ámbito no se consume nada; al volver, el primer frame ceba
+          // para que una pulsación en curso no dispare acciones fantasma.
+          reader.reset();
+          delete document.documentElement.dataset.gamepadNavReady;
+          return;
+        }
 
-      if (!pad || !scope || suspended) {
-        // Fuera de ámbito no se consume nada; al volver, el primer frame ceba
-        // para que una pulsación en curso no dispare acciones fantasma.
-        reader.reset();
-        schedule(pad ? ACTIVE_TICK_MS : IDLE_TICK_MS);
-        return;
-      }
+        const frame = reader.update(pad, performance.now());
+        // Baliza observable: el modo navegación está activo y cebado.
+        document.documentElement.dataset.gamepadNavReady = 'true';
+        if (frame.moves.length > 0 || frame.confirm || frame.back) markGamepadNavActive();
 
-      const frame = reader.update(pad, performance.now());
-      if (frame.moves.length > 0 || frame.confirm || frame.back) markGamepadNavActive();
-
-      if (frame.moves.length > 0) {
-        const candidates = Array.from(scope.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
-          (el) => {
-            const rect = el.getBoundingClientRect();
-            return rect.width > 0 && rect.height > 0;
+        if (frame.moves.length > 0) {
+          const candidates = Array.from(scope.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+            (el) => {
+              const rect = el.getBoundingClientRect();
+              return rect.width > 0 && rect.height > 0;
+            }
+          );
+          const rects = candidates.map((el) => toNavRect(el.getBoundingClientRect()));
+          for (const direction of frame.moves) {
+            const active = document.activeElement;
+            if (isRangeInput(active) && (direction === 'left' || direction === 'right')) {
+              adjustRange(active, direction);
+              continue;
+            }
+            const fromIndex = active instanceof HTMLElement ? candidates.indexOf(active) : -1;
+            const next = pickNext(rects, fromIndex >= 0 ? fromIndex : null, direction);
+            if (next !== null) {
+              candidates[next].focus({ preventScroll: true });
+              candidates[next].scrollIntoView({ block: 'nearest' });
+            }
           }
-        );
-        const rects = candidates.map((el) => toNavRect(el.getBoundingClientRect()));
-        for (const direction of frame.moves) {
+        }
+
+        if (frame.confirm) {
           const active = document.activeElement;
-          if (isRangeInput(active) && (direction === 'left' || direction === 'right')) {
-            adjustRange(active, direction);
-            continue;
-          }
-          const fromIndex = active instanceof HTMLElement ? candidates.indexOf(active) : -1;
-          const next = pickNext(rects, fromIndex >= 0 ? fromIndex : null, direction);
-          if (next !== null) {
-            candidates[next].focus({ preventScroll: true });
-            candidates[next].scrollIntoView({ block: 'nearest' });
+          if (active instanceof HTMLElement && scope.contains(active) && !isRangeInput(active)) {
+            active.click();
+          } else if (!(active instanceof HTMLElement) || !scope.contains(active)) {
+            // Nada enfocado dentro del ámbito: Sur empieza a navegar.
+            const first = Array.from(scope.querySelectorAll<HTMLElement>(FOCUSABLE)).find((el) => {
+              const rect = el.getBoundingClientRect();
+              return rect.width > 0 && rect.height > 0;
+            });
+            first?.focus({ preventScroll: true });
           }
         }
-      }
 
-      if (frame.confirm) {
-        const active = document.activeElement;
-        if (active instanceof HTMLElement && scope.contains(active) && !isRangeInput(active)) {
-          active.click();
-        } else if (!(active instanceof HTMLElement) || !scope.contains(active)) {
-          // Nada enfocado dentro del ámbito: Sur empieza a navegar.
-          const first = Array.from(scope.querySelectorAll<HTMLElement>(FOCUSABLE)).find((el) => {
-            const rect = el.getBoundingClientRect();
-            return rect.width > 0 && rect.height > 0;
-          });
-          first?.focus({ preventScroll: true });
+        if (frame.back && dialog) {
+          document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
         }
+      } finally {
+        schedule(pad ? ACTIVE_TICK_MS : IDLE_TICK_MS);
       }
-
-      if (frame.back && dialog) {
-        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-      }
-
-      schedule(ACTIVE_TICK_MS);
     };
 
     const schedule = (delay: number) => {
@@ -119,7 +124,7 @@ export function useGamepadNavigation(mode: 'scripts' | 'prompter'): void {
     };
     window.addEventListener('gamepadconnected', onConnected);
     window.addEventListener('pointerdown', onPointerDown);
-    schedule(IDLE_TICK_MS);
+    schedule(0);
 
     return () => {
       stopped = true;
@@ -127,6 +132,7 @@ export function useGamepadNavigation(mode: 'scripts' | 'prompter'): void {
       window.removeEventListener('gamepadconnected', onConnected);
       window.removeEventListener('pointerdown', onPointerDown);
       delete document.documentElement.dataset.gamepadNav;
+      delete document.documentElement.dataset.gamepadNavReady;
     };
   }, [mode]);
 }
