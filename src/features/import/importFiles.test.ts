@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { formatFromFileName, readImportedFiles, titleFromFileName } from './importFiles';
+import {
+  formatFromFileName,
+  readImportedFiles,
+  stripFrontmatter,
+  titleFromFileName
+} from './importFiles';
 
 describe('titleFromFileName', () => {
   it('elimina las extensiones conocidas', () => {
@@ -27,6 +32,29 @@ describe('formatFromFileName', () => {
   });
 });
 
+describe('stripFrontmatter', () => {
+  it('elimina el frontmatter YAML de Obsidian al inicio del archivo', () => {
+    const content = '---\ntitle: Nota\ntags: [obsidian]\n---\n\n# Hola\n\ntexto';
+    expect(stripFrontmatter(content)).toBe('# Hola\n\ntexto');
+  });
+
+  it('soporta finales de línea CRLF', () => {
+    expect(stripFrontmatter('---\r\ntitle: x\r\n---\r\ncuerpo')).toBe('cuerpo');
+  });
+
+  it('no toca contenido sin frontmatter', () => {
+    expect(stripFrontmatter('# Hola\n\n---\n\nseparador normal')).toBe(
+      '# Hola\n\n---\n\nseparador normal'
+    );
+    expect(stripFrontmatter('texto\n---\nno inicial')).toBe('texto\n---\nno inicial');
+  });
+
+  it('solo elimina el bloque inicial, no separadores posteriores', () => {
+    const content = '---\na: 1\n---\nuno\n\n---\n\ndos';
+    expect(stripFrontmatter(content)).toBe('uno\n\n---\n\ndos');
+  });
+});
+
 describe('readImportedFiles', () => {
   it('lee UTF-8 y conserva el contenido original', async () => {
     const file = new File(['# Título\n\náéíóú ñ 中文'], 'guion.md', { type: 'text/markdown' });
@@ -38,6 +66,14 @@ describe('readImportedFiles', () => {
       content: '# Título\n\náéíóú ñ 中文',
       format: 'markdown'
     });
+  });
+
+  it('el destino importado pierde el frontmatter de Obsidian', async () => {
+    const file = new File(['---\ntags: [x]\n---\n\ncuerpo'], 'nota.md', {
+      type: 'text/markdown'
+    });
+    const [outcome] = await readImportedFiles([file]);
+    expect(outcome.ok && outcome.content).toBe('cuerpo');
   });
 
   it('aísla errores por archivo sin tumbar el lote', async () => {

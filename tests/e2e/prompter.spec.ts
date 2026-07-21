@@ -31,13 +31,13 @@ test('cambia velocidad, tamaño de fuente y márgenes desde ajustes', async ({ p
   await page.getByTestId('speed-plus').click();
   await expect(page.getByTestId('speed-value')).toHaveText(String(speedBefore + 5));
 
-  await expect(page.getByTestId('font-value')).toHaveText('44px');
+  await expect(page.getByTestId('font-value')).toHaveText('52px');
   await page.getByTestId('font-plus').click();
-  await expect(page.getByTestId('font-value')).toHaveText('46px');
+  await expect(page.getByTestId('font-value')).toHaveText('54px');
   const fontSize = await page.evaluate(
     () => getComputedStyle(document.querySelector('[data-block-type="text"]')!).fontSize
   );
-  expect(fontSize).toBe('46px');
+  expect(fontSize).toBe('54px');
 
   await expect(page.getByTestId('margin-value')).toHaveText('4%');
   await page.getByTestId('margin-plus').click();

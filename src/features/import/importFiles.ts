@@ -11,6 +11,17 @@ export function formatFromFileName(fileName: string): ScriptFormat {
   return /\.(md|markdown)$/i.test(fileName) ? 'markdown' : 'text';
 }
 
+/**
+ * Elimina el frontmatter YAML de Obsidian (`--- … ---` al inicio del archivo).
+ * Se aplica SOLO al importar y solo sobre el contenido que se guarda; el
+ * archivo de origen nunca se modifica.
+ */
+export function stripFrontmatter(content: string): string {
+  const match = /^﻿?---[ \t]*\r?\n[\s\S]*?\r?\n---[ \t]*(?:\r?\n|$)/.exec(content);
+  if (!match) return content;
+  return content.slice(match[0].length).replace(/^\s*\n/, '');
+}
+
 export type ImportOutcome =
   | { ok: true; fileName: string; title: string; content: string; format: ScriptFormat }
   | { ok: false; fileName: string; error: string };
@@ -28,7 +39,7 @@ export async function readImportedFiles(files: File[]): Promise<ImportOutcome[]>
           ok: true,
           fileName: file.name,
           title: titleFromFileName(file.name),
-          content,
+          content: stripFrontmatter(content),
           format: formatFromFileName(file.name)
         };
       } catch {

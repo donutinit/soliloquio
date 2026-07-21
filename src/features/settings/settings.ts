@@ -6,8 +6,8 @@ import {
 
 export type Limit = { min: number; max: number; step: number; default: number };
 
-export const SPEED_LIMITS: Limit = { min: 10, max: 300, step: 5, default: 60 };
-export const FONT_LIMITS: Limit = { min: 20, max: 120, step: 2, default: 44 };
+export const SPEED_LIMITS: Limit = { min: 10, max: 300, step: 5, default: 65 };
+export const FONT_LIMITS: Limit = { min: 20, max: 120, step: 2, default: 52 };
 export const MARGIN_LIMITS: Limit = { min: 0, max: 25, step: 1, default: 4 };
 
 export const SETTINGS_SCHEMA_VERSION = 1;

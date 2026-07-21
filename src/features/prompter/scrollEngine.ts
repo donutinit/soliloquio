@@ -13,7 +13,7 @@ export class ScrollEngine {
   state: ScrollEngineState = {
     playing: false,
     position: 0,
-    baseSpeed: 60,
+    baseSpeed: 65,
     manualDirection: 0,
     manualSpeed: 0,
     temporarySpeedMultiplier: 1

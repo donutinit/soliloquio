@@ -16,7 +16,7 @@ test('guiones, ajustes y posición sobreviven a recargar la página', async ({ p
   await openScriptInPrompter(page, 'Bienvenida al teleprompter');
   await page.getByTestId('settings-toggle').click();
   await page.getByTestId('font-plus').click();
-  await expect(page.getByTestId('font-value')).toHaveText('46px');
+  await expect(page.getByTestId('font-value')).toHaveText('54px');
   await page.getByTestId('settings-close').click();
 
   // Avanzar y volver a la lista (guarda la posición).
@@ -35,7 +35,7 @@ test('guiones, ajustes y posición sobreviven a recargar la página', async ({ p
 
   await openScriptInPrompter(page, 'Bienvenida al teleprompter');
   await page.getByTestId('settings-toggle').click();
-  await expect(page.getByTestId('font-value')).toHaveText('46px');
+  await expect(page.getByTestId('font-value')).toHaveText('54px');
   await page.getByTestId('settings-close').click();
 
   // La posición de lectura se restauró (con tolerancia por redondeo).

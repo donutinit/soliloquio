@@ -40,20 +40,21 @@
   will-change: transform;
 }
 
-/* Todos los bloques comparten fuente, tamaño, interlineado y márgenes. */
+/* Prompter siempre en negro puro y blanco puro; bloques con el mismo interlineado y márgenes. */
 .content .text,
 .content .heading {
-  font-size: var(--prompter-font-size, 44px);
+  font-size: var(--prompter-font-size, 52px);
   line-height: 1.35;
   margin: 0 0 0.8em;
   color: #fff;
   overflow-wrap: break-word;
 }
 
-/* Los headings solo se distinguen por negrita, color y espacio moderado. */
+/* Headings: negrita, monospace y algo más pequeños que el texto normal. */
 .content .heading {
   font-weight: 800;
-  color: var(--accent);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  font-size: calc(var(--prompter-font-size, 52px) * 0.85);
   margin-top: 1.2em;
 }
 

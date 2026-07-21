@@ -1,3 +1,8 @@
+---
+title: Guion de prueba
+tags: [obsidian, prueba]
+---
+
 # Apertura
 
 Bienvenidos al programa de hoy, donde hablaremos de **temas importantes** con *calma*.
