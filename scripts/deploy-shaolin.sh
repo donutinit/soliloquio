@@ -4,6 +4,9 @@
 # No construye nada localmente ni en el servidor: solo corre la imagen de GHCR.
 set -Eeuo pipefail
 
+# Ejecutable desde cualquier directorio: trabajar siempre desde la raíz del repo.
+cd "$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
+
 REMOTE_HOST="${REMOTE_HOST:-shaolin}"
 # Ruta relativa al home remoto (scp en modo SFTP no expande $HOME)
 REMOTE_DIR="${REMOTE_DIR:-docker/teleprompter}"
