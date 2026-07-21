@@ -26,6 +26,8 @@ test('guiones, ajustes y posición sobreviven a recargar la página', async ({ p
   const position = await prompterOffset(page);
   expect(position).toBeGreaterThan(0);
   await page.getByTestId('back-to-scripts').click();
+  // Esperar a que la navegación (async tras guardar posición) llegue a #/.
+  await expect(page.getByTestId('new-script')).toBeVisible();
 
   // Recargar: todo debe seguir ahí.
   await page.reload();

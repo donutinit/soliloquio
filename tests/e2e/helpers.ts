@@ -17,7 +17,8 @@ export async function prompterOffset(page: Page): Promise<number> {
     const el = document.querySelector('[data-testid="prompter-content"]') as HTMLElement;
     const transform = getComputedStyle(el).transform;
     if (!transform || transform === 'none') return 0;
-    return -new DOMMatrixReadOnly(transform).m42;
+    const y = new DOMMatrixReadOnly(transform).m42;
+    return y === 0 ? 0 : -y; // evita -0, que rompe toBe(0)
   });
 }
 
