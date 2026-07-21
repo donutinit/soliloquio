@@ -16,14 +16,28 @@ import { createWakeLock } from '../../services/wakeLock';
 import { SettingsPanel } from './SettingsPanel';
 import { SectionNav } from './SectionNav';
 import { MappingEditor } from './MappingEditor';
+import { editorHash } from '../../app/router';
+import { Icon } from '../../components/Icon';
 import styles from './PrompterPage.module.css';
 
 /** Línea de lectura: fracción del alto del viewport donde se considera que se lee. */
 const READING_LINE_FRACTION = 0.4;
 const TOAST_MS = 1500;
 const POSITION_SAVE_INTERVAL_MS = 2000;
+const IDLE_POLL_INTERVAL_MS = 250;
 
 type Panel = 'none' | 'settings' | 'sections' | 'mapping';
+
+function formatDuration(seconds: number): string {
+  if (!Number.isFinite(seconds) || seconds < 0) return '--:--';
+  const rounded = Math.round(seconds);
+  const hours = Math.floor(rounded / 3600);
+  const minutes = Math.floor((rounded % 3600) / 60);
+  const remainingSeconds = rounded % 60;
+  return hours > 0
+    ? `${hours}:${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`
+    : `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+}
 
 export function PrompterPage({
   scriptId,
@@ -35,30 +49,53 @@ export function PrompterPage({
   const [script, setScript] = useState<Script | null>(null);
   const [settings, setSettings] = useState<PrompterSettings | null>(null);
   const [missing, setMissing] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
-    void Promise.all([getScript(scriptId), getSettings()]).then(([loadedScript, loadedSettings]) => {
-      if (!loadedScript) {
-        setMissing(true);
-        return;
-      }
-      setScript(loadedScript);
-      setSettings(loadedSettings);
-    });
+    let cancelled = false;
+    setScript(null);
+    setSettings(null);
+    setMissing(false);
+    setLoadError(false);
+    void Promise.all([getScript(scriptId), getSettings()])
+      .then(([loadedScript, loadedSettings]) => {
+        if (cancelled) return;
+        if (!loadedScript) {
+          setMissing(true);
+          return;
+        }
+        setScript(loadedScript);
+        setSettings(loadedSettings);
+      })
+      .catch(() => {
+        if (!cancelled) setLoadError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [scriptId]);
+
+  if (loadError) {
+    return (
+      <div className={styles.missing} role="alert">
+        <p>This script could not be opened. Check available device storage and try again.</p>
+        <button type="button" onClick={() => navigate('#/')}>Back to scripts</button>
+      </div>
+    );
+  }
 
   if (missing) {
     return (
       <div className={styles.missing}>
-        <p>Este guion ya no existe.</p>
+        <p>This script no longer exists.</p>
         <button type="button" onClick={() => navigate('#/')}>
-          Volver a guiones
+          Back to scripts
         </button>
       </div>
     );
   }
 
-  if (!script || !settings) return null;
+  if (!script || !settings) return <div className={styles.missing} role="status">Opening script…</div>;
 
   return <Prompter script={script} initialSettings={settings} navigate={navigate} />;
 }
@@ -85,6 +122,7 @@ function Prompter({
   const [sectionIdx, setSectionIdx] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
   const [gamepadConnected, setGamepadConnected] = useState(false);
+  const [storageError, setStorageError] = useState<string | null>(null);
 
   const viewportRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -97,6 +135,14 @@ function Prompter({
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedPositionRef = useRef(script.lastPosition ?? 0);
   const dragRef = useRef<{ y: number; moved: boolean; startedAt: number } | null>(null);
+  const settingsDirtyRef = useRef(false);
+  const settingsSaveRef = useRef<Promise<boolean>>(Promise.resolve(true));
+  const wakeLoopRef = useRef<() => void>(() => undefined);
+  const elapsedRef = useRef<HTMLSpanElement>(null);
+  const remainingRef = useRef<HTMLSpanElement>(null);
+  const lastTimeDisplayRef = useRef('');
+  const renderedPositionRef = useRef(Number.NaN);
+  const exitingRef = useRef(false);
 
   const engineRef = useRef<ScrollEngine | null>(null);
   if (!engineRef.current) {
@@ -118,16 +164,40 @@ function Prompter({
     controllerRef.current!.setMapping(settings.controllerMapping);
   }, [settings.controllerMapping]);
 
-  // Persistencia de ajustes con debounce.
+  const persistSettings = useCallback((): Promise<boolean> => {
+    if (!settingsDirtyRef.current) return settingsSaveRef.current;
+    const snapshot = settingsRef.current;
+    const operation = settingsSaveRef.current.then(async () => {
+      try {
+        await saveSettings(snapshot);
+        if (settingsRef.current === snapshot) settingsDirtyRef.current = false;
+        return true;
+      } catch {
+        setStorageError('Settings could not be saved. Check available device storage.');
+        return false;
+      }
+    });
+    settingsSaveRef.current = operation;
+    return operation;
+  }, []);
+
+  // Persist settings after a short idle period and once more when leaving the route.
   useEffect(() => {
     if (settings === initialSettings) return;
-    const timer = setTimeout(() => void saveSettings(settings), 400);
+    const timer = setTimeout(() => void persistSettings(), 400);
     return () => clearTimeout(timer);
-  }, [settings, initialSettings]);
+  }, [settings, initialSettings, persistSettings]);
+
+  useEffect(
+    () => () => {
+      void persistSettings();
+    },
+    [persistSettings]
+  );
 
   const showSectionToast = useCallback(
     (idx: number) => {
-      const title = sections[idx]?.title || `Sección ${idx + 1}`;
+      const title = sections[idx]?.title || `Section ${idx + 1}`;
       setToast(title);
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
       toastTimerRef.current = setTimeout(() => setToast(null), TOAST_MS);
@@ -138,30 +208,47 @@ function Prompter({
   const jumpToSection = useCallback(
     (idx: number) => {
       const target = stepSection(idx, 0, sections.length);
-      // Salto directo, sin animación larga; conserva play/pause y velocidad.
-      engineRef.current!.seek(sectionOffsetsRef.current[target] ?? 0);
+      const readingLine = (viewportRef.current?.clientHeight ?? 0) * READING_LINE_FRACTION;
+      // Place the section heading on the reading line instead of under the top controls.
+      engineRef.current!.seek((sectionOffsetsRef.current[target] ?? 0) - readingLine);
       sectionIdxRef.current = target;
       setSectionIdx(target);
       showSectionToast(target);
+      wakeLoopRef.current();
     },
     [sections.length, showSectionToast]
   );
 
   const togglePlay = useCallback(() => {
     const engine = engineRef.current!;
+    if (!engine.state.playing && engine.state.position >= engine.maxPosition - 1) engine.seek(0);
     engine.state.playing = !engine.state.playing;
     setPlaying(engine.state.playing);
+    wakeLoopRef.current();
   }, []);
 
   const exitToScripts = useCallback(() => {
-    void savePosition(script.id, engineRef.current!.state.position).finally(() =>
-      navigate('#/')
-    );
-  }, [script.id, navigate]);
+    if (exitingRef.current) return;
+    exitingRef.current = true;
+    void Promise.allSettled([
+      savePosition(script.id, engineRef.current!.state.position),
+      persistSettings()
+    ]).finally(() => navigate('#/'));
+  }, [script.id, navigate, persistSettings]);
+
+  const editScript = useCallback(() => {
+    if (exitingRef.current) return;
+    exitingRef.current = true;
+    void Promise.allSettled([
+      savePosition(script.id, engineRef.current!.state.position),
+      persistSettings()
+    ]).finally(() => navigate(editorHash(script.id)));
+  }, [navigate, persistSettings, script.id]);
 
   const updateSetting = useCallback((key: 'speed' | 'fontSize' | 'horizontalMargin', value: number) => {
     const limit =
       key === 'speed' ? SPEED_LIMITS : key === 'fontSize' ? FONT_LIMITS : MARGIN_LIMITS;
+    settingsDirtyRef.current = true;
     setSettingsState((prev) => ({ ...prev, [key]: clampToLimit(value, limit) }));
   }, []);
 
@@ -236,11 +323,35 @@ function Prompter({
     return () => observer.disconnect();
   }, [sections, blocks]);
 
-  // Bucle principal: gamepad + motor de scroll + detección de sección, sin
-  // re-render de React por frame (transform directo sobre el DOM).
+  // Gamepad + scrolling. When paused without a controller this drops to a low
+  // polling rate to avoid spending battery on a permanent 60 fps loop.
   useEffect(() => {
     let rafId = 0;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let scheduled = false;
+
+    const requestSoon = () => {
+      if (scheduled) return;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      scheduled = true;
+      rafId = requestAnimationFrame(loop);
+    };
+    const scheduleNext = () => {
+      if (
+        engineRef.current!.state.playing ||
+        gamepadConnectedRef.current ||
+        dragRef.current
+      ) {
+        requestSoon();
+      } else {
+        timeoutId = setTimeout(requestSoon, IDLE_POLL_INTERVAL_MS);
+      }
+    };
     const loop = (now: number) => {
+      scheduled = false;
       const engine = engineRef.current!;
       const frame = controllerRef.current!.update(getActiveGamepad(), now);
       if (frame.connected !== gamepadConnectedRef.current) {
@@ -256,8 +367,13 @@ function Prompter({
         engine.setManual(0, 0);
       }
       const position = engine.tick(now);
-      if (contentRef.current) {
+      if (contentRef.current && position !== renderedPositionRef.current) {
         contentRef.current.style.transform = `translate3d(0, ${-position}px, 0)`;
+        renderedPositionRef.current = position;
+      }
+      if (engine.state.playing && position >= engine.maxPosition) {
+        engine.state.playing = false;
+        setPlaying(false);
       }
       const readingLine = (viewportRef.current?.clientHeight ?? 0) * READING_LINE_FRACTION;
       const idx = currentSectionIndex(sectionOffsetsRef.current, position, readingLine);
@@ -266,14 +382,29 @@ function Prompter({
         setSectionIdx(idx);
         showSectionToast(idx);
       }
-      rafId = requestAnimationFrame(loop);
+      const timeDisplay = `${Math.round(position)}:${Math.round(engine.maxPosition)}:${settingsRef.current.speed}`;
+      if (timeDisplay !== lastTimeDisplayRef.current) {
+        lastTimeDisplayRef.current = timeDisplay;
+        const speed = settingsRef.current.speed;
+        if (elapsedRef.current) elapsedRef.current.textContent = formatDuration(position / speed);
+        if (remainingRef.current) {
+          remainingRef.current.textContent = formatDuration((engine.maxPosition - position) / speed);
+        }
+      }
+      scheduleNext();
     };
-    rafId = requestAnimationFrame(loop);
-    const onVisibility = () => engineRef.current!.resetClock();
+    wakeLoopRef.current = requestSoon;
+    requestSoon();
+    const onVisibility = () => {
+      engineRef.current!.resetClock();
+      requestSoon();
+    };
     document.addEventListener('visibilitychange', onVisibility);
     return () => {
       cancelAnimationFrame(rafId);
+      if (timeoutId) clearTimeout(timeoutId);
       document.removeEventListener('visibilitychange', onVisibility);
+      wakeLoopRef.current = () => undefined;
     };
   }, [showSectionToast]);
 
@@ -307,6 +438,7 @@ function Prompter({
     if (panel !== 'none') return;
     dragRef.current = { y: e.clientY, moved: false, startedAt: performance.now() };
     e.currentTarget.setPointerCapture(e.pointerId);
+    wakeLoopRef.current();
   };
   const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
@@ -316,6 +448,7 @@ function Prompter({
     drag.y = e.clientY;
     const engine = engineRef.current!;
     engine.seek(engine.state.position - dy);
+    wakeLoopRef.current();
   };
   const onPointerUp = () => {
     const drag = dragRef.current;
@@ -377,6 +510,15 @@ function Prompter({
         </div>
       )}
 
+      {storageError && (
+        <div className={styles.storageError} role="alert">
+          <span>{storageError}</span>
+          <button type="button" onClick={() => setStorageError(null)}>
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {controlsVisible && (
         <>
           <header className={styles.topBar}>
@@ -384,9 +526,10 @@ function Prompter({
               type="button"
               data-testid="back-to-scripts"
               className={styles.iconButton}
+              aria-label="Back to scripts"
               onClick={exitToScripts}
             >
-              ‹
+              <Icon name="back" />
             </button>
             <span className={styles.title}>{script.title}</span>
             <span className={styles.sectionIndicator} data-testid="section-indicator">
@@ -396,18 +539,39 @@ function Prompter({
               className={gamepadConnected ? styles.padOn : styles.padOff}
               data-testid="gamepad-status"
               data-connected={gamepadConnected}
-              title={gamepadConnected ? 'Mando conectado' : 'Sin mando'}
+              role="status"
+              aria-label={gamepadConnected ? 'Controller connected' : 'No controller connected'}
+              title={gamepadConnected ? 'Controller connected' : 'No controller'}
             >
-              ●
+              <Icon name="gamepad" />
             </span>
+            <button
+              type="button"
+              className={styles.iconButton}
+              data-testid="edit-script"
+              aria-label="Edit script"
+              onClick={editScript}
+            >
+              <Icon name="edit" />
+            </button>
           </header>
 
-          <footer className={styles.bottomBar}>
-            {!gamepadConnected && (
-              <p className={styles.padHint}>Mando: conéctalo y presiona un botón para activarlo</p>
-            )}
+          <footer className={styles.bottomBar} data-testid="bottom-controls">
+            <div className={styles.controlMetaRow}>
+              {!gamepadConnected && (
+                <p className={styles.padHint}>Connect a controller and press any button to activate it</p>
+              )}
+              <p
+                className={styles.timeEstimate}
+                title="Estimated reading time at the current speed"
+                aria-label="Estimated elapsed and remaining reading time"
+              >
+                <span className={styles.elapsedTime}>E <span ref={elapsedRef}>00:00</span></span>
+                <span className={styles.remainingTime}>R <span ref={remainingRef}>--:--</span></span>
+              </p>
+            </div>
             <div className={styles.speedRow}>
-              <span aria-hidden="true">–</span>
+              <span className={styles.speedLabel}>Speed</span>
               <input
                 type="range"
                 data-testid="speed-quick-slider"
@@ -416,9 +580,8 @@ function Prompter({
                 step={SPEED_LIMITS.step}
                 value={settings.speed}
                 onChange={(e) => updateSetting('speed', Number(e.target.value))}
-                aria-label="Velocidad"
+                aria-label="Speed"
               />
-              <span aria-hidden="true">+</span>
               <span className={styles.speedValue} data-testid="speed-quick-value">
                 {settings.speed}
               </span>
@@ -428,19 +591,22 @@ function Prompter({
                 type="button"
                 className={styles.iconButton}
                 data-testid="reset-position"
-                aria-label="Volver al inicio"
-                onClick={() => engineRef.current!.seek(0)}
+                aria-label="Back to start"
+                onClick={() => {
+                  engineRef.current!.seek(0);
+                  wakeLoopRef.current();
+                }}
               >
-                ⏮
+                <Icon name="reset" />
               </button>
               <button
                 type="button"
                 className={styles.iconButton}
                 data-testid="section-prev"
-                aria-label="Sección anterior"
+                aria-label="Previous section"
                 onClick={() => applyAction('prevSection')}
               >
-                ↑§
+                <Icon name="previousSection" />
               </button>
               <button
                 type="button"
@@ -449,34 +615,35 @@ function Prompter({
                 data-playing={playing}
                 onClick={togglePlay}
               >
-                {playing ? 'PAUSA' : 'INICIAR'}
+                <Icon name={playing ? 'pause' : 'play'} />
+                {playing ? 'PAUSE' : 'START'}
               </button>
               <button
                 type="button"
                 className={styles.iconButton}
                 data-testid="section-next"
-                aria-label="Sección siguiente"
+                aria-label="Next section"
                 onClick={() => applyAction('nextSection')}
               >
-                ↓§
+                <Icon name="nextSection" />
               </button>
               <button
                 type="button"
                 className={styles.iconButton}
                 data-testid="sections-toggle"
-                aria-label="Secciones"
+                aria-label="Sections"
                 onClick={() => setPanel((p) => (p === 'sections' ? 'none' : 'sections'))}
               >
-                ☰
+                <Icon name="list" />
               </button>
               <button
                 type="button"
                 className={styles.iconButton}
                 data-testid="settings-toggle"
-                aria-label="Ajustes"
+                aria-label="Settings"
                 onClick={() => setPanel((p) => (p === 'settings' ? 'none' : 'settings'))}
               >
-                ⚙
+                <Icon name="settings" />
               </button>
             </div>
           </footer>
@@ -505,7 +672,10 @@ function Prompter({
       {panel === 'mapping' && (
         <MappingEditor
           mapping={settings.controllerMapping}
-          onChange={(mapping) => setSettingsState((prev) => ({ ...prev, controllerMapping: mapping }))}
+          onChange={(mapping) => {
+            settingsDirtyRef.current = true;
+            setSettingsState((prev) => ({ ...prev, controllerMapping: mapping }));
+          }}
           onClose={() => setPanel('settings')}
         />
       )}

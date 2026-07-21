@@ -4,7 +4,7 @@ const KNOWN_EXTENSIONS = /\.(md|markdown|txt)$/i;
 
 export function titleFromFileName(fileName: string): string {
   const title = fileName.replace(KNOWN_EXTENSIONS, '').trim();
-  return title || 'Sin título';
+  return title || 'Untitled';
 }
 
 export function formatFromFileName(fileName: string): ScriptFormat {
@@ -43,7 +43,7 @@ export async function readImportedFiles(files: File[]): Promise<ImportOutcome[]>
           format: formatFromFileName(file.name)
         };
       } catch {
-        return { ok: false, fileName: file.name, error: 'No se pudo leer el archivo' };
+        return { ok: false, fileName: file.name, error: 'The file could not be read' };
       }
     })
   );

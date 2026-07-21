@@ -5,6 +5,7 @@ import {
   SPEED_LIMITS,
   type Limit
 } from '../../features/settings/settings';
+import { useModalFocus } from '../../app/useModalFocus';
 import styles from './PrompterPage.module.css';
 
 type SettingKey = 'speed' | 'fontSize' | 'horizontalMargin';
@@ -31,7 +32,7 @@ function SettingRow({
         type="button"
         className={styles.stepButton}
         data-testid={`${testId}-minus`}
-        aria-label={`Reducir ${label}`}
+        aria-label={`Decrease ${label}`}
         onClick={() => onChange(value - limit.step)}
       >
         −
@@ -50,7 +51,7 @@ function SettingRow({
         type="button"
         className={styles.stepButton}
         data-testid={`${testId}-plus`}
-        aria-label={`Aumentar ${label}`}
+        aria-label={`Increase ${label}`}
         onClick={() => onChange(value + limit.step)}
       >
         +
@@ -74,17 +75,22 @@ export function SettingsPanel({
   onOpenMapping: () => void;
   onClose: () => void;
 }) {
+  const dialogRef = useModalFocus<HTMLDivElement>(onClose);
   return (
     <div className={styles.panelBackdrop} onClick={onClose}>
       <div
+        ref={dialogRef}
         className={styles.panel}
         role="dialog"
-        aria-label="Ajustes"
+        aria-modal="true"
+        aria-labelledby="settings-title"
         data-testid="settings-panel"
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
       >
+        <h2 id="settings-title" className={styles.panelTitle}>Settings</h2>
         <SettingRow
-          label="Velocidad"
+          label="Speed"
           testId="speed"
           value={settings.speed}
           limit={SPEED_LIMITS}
@@ -92,7 +98,7 @@ export function SettingsPanel({
           onChange={(v) => onChange('speed', v)}
         />
         <SettingRow
-          label="Tamaño"
+          label="Text size"
           testId="font"
           value={settings.fontSize}
           limit={FONT_LIMITS}
@@ -100,7 +106,7 @@ export function SettingsPanel({
           onChange={(v) => onChange('fontSize', v)}
         />
         <SettingRow
-          label="Márgenes"
+          label="Margins"
           testId="margin"
           value={settings.horizontalMargin}
           limit={MARGIN_LIMITS}
@@ -109,10 +115,10 @@ export function SettingsPanel({
         />
         <div className={styles.panelActions}>
           <button type="button" data-testid="open-mapping" onClick={onOpenMapping}>
-            Mando…
+            Controller…
           </button>
           <button type="button" data-testid="settings-close" onClick={onClose}>
-            Cerrar
+            Done
           </button>
         </div>
       </div>

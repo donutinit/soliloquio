@@ -1,15 +1,35 @@
 import { useCallback, useEffect, useState } from 'react';
 
-export type Route = { page: 'scripts' } | { page: 'prompter'; scriptId: string };
+export type Route =
+  | { page: 'scripts'; editScriptId?: string }
+  | { page: 'prompter'; scriptId: string };
 
 export function parseHash(hash: string): Route {
-  const match = /^#\/prompter\/([^/]+)/.exec(hash);
-  if (match) return { page: 'prompter', scriptId: decodeURIComponent(match[1]) };
+  const prompterMatch = /^#\/prompter\/([^/]+)$/.exec(hash);
+  if (prompterMatch) {
+    try {
+      return { page: 'prompter', scriptId: decodeURIComponent(prompterMatch[1]) };
+    } catch {
+      return { page: 'scripts' };
+    }
+  }
+  const editMatch = /^#\/edit\/([^/]+)$/.exec(hash);
+  if (editMatch) {
+    try {
+      return { page: 'scripts', editScriptId: decodeURIComponent(editMatch[1]) };
+    } catch {
+      return { page: 'scripts' };
+    }
+  }
   return { page: 'scripts' };
 }
 
 export function prompterHash(scriptId: string): string {
   return `#/prompter/${encodeURIComponent(scriptId)}`;
+}
+
+export function editorHash(scriptId: string): string {
+  return `#/edit/${encodeURIComponent(scriptId)}`;
 }
 
 /** Navegación cliente mínima basada en hash: dos páginas, sin recargas. */

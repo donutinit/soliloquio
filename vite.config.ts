@@ -11,7 +11,8 @@ export default defineConfig({
       manifest: {
         name: 'Teleprompter',
         short_name: 'Prompter',
-        description: 'Teleprompter local, sin cuentas y sin conexión',
+        description: 'A private, offline teleprompter with controller support',
+        lang: 'en',
         display: 'standalone',
         orientation: 'any',
         start_url: '/',

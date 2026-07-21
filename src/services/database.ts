@@ -77,7 +77,7 @@ export async function duplicateScript(
   const copy: Script = {
     ...original,
     id: newId(),
-    title: `${original.title} (copia)`,
+    title: `${original.title} (copy)`,
     createdAt: now,
     updatedAt: now,
     lastPosition: undefined
@@ -96,6 +96,19 @@ export async function saveSettings(
   database: TeleprompterDB = db
 ): Promise<void> {
   await database.kv.put({ key: 'settings', value: normalizeSettings(settings) });
+}
+
+/** Merges a backup into the local library and restores its settings atomically. */
+export async function restoreBackup(
+  scripts: Script[],
+  settings: PrompterSettings,
+  database: TeleprompterDB = db
+): Promise<void> {
+  await database.transaction('rw', database.scripts, database.kv, async () => {
+    await database.scripts.bulkPut(scripts);
+    await database.kv.put({ key: 'settings', value: normalizeSettings(settings) });
+    await database.kv.put({ key: 'seeded', value: true });
+  });
 }
 
 /** Siembra los guiones de ejemplo solo en el primer arranque. */

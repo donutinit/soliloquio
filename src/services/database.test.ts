@@ -10,6 +10,7 @@ import {
   listScripts,
   savePosition,
   saveSettings,
+  restoreBackup,
   seedSampleScripts,
   updateScript
 } from './database';
@@ -50,7 +51,7 @@ describe('guiones', () => {
     const original = await createScript({ title: 'Base', content: 'x', format: 'text' }, db);
     await savePosition(original.id, 123, db);
     const copy = await duplicateScript(original.id, db);
-    expect(copy?.title).toBe('Base (copia)');
+    expect(copy?.title).toBe('Base (copy)');
     expect(copy?.content).toBe('x');
     expect(copy?.lastPosition).toBeUndefined();
     expect(copy?.id).not.toBe(original.id);
@@ -75,6 +76,26 @@ describe('ajustes', () => {
     const loaded = await getSettings(db);
     expect(loaded.speed).toBe(90);
     expect(loaded.fontSize).toBeLessThanOrEqual(120); // recortado al máximo
+  });
+});
+
+describe('backup restore', () => {
+  it('merges scripts and restores settings in one transaction', async () => {
+    const database = freshDb();
+    const existing = await createScript({ title: 'Existing', content: 'x', format: 'text' }, database);
+    const restored = {
+      id: 'restored',
+      title: 'Restored',
+      content: '# Hello',
+      format: 'markdown' as const,
+      createdAt: 1,
+      updatedAt: 2
+    };
+    await restoreBackup([restored], { ...defaultSettings(), speed: 95 }, database);
+    expect((await listScripts(database)).map((script) => script.id)).toEqual(
+      expect.arrayContaining([existing.id, restored.id])
+    );
+    expect((await getSettings(database)).speed).toBe(95);
   });
 });
 

@@ -85,6 +85,11 @@ export class GamepadController {
     const onShort = (name: ControllerButton, action: GamepadAction) => {
       if (events[name].shortPress) actions.push(action);
     };
+    // Buttons without a hold action must still work when the user presses them
+    // for longer than the short-press threshold.
+    const onRelease = (name: ControllerButton, action: GamepadAction) => {
+      if (events[name].released) actions.push(action);
+    };
     const onStep = (name: ControllerButton, action: GamepadAction) => {
       const e = events[name];
       if (e.shortPress || e.holdStart || e.repeat) actions.push(action);
@@ -92,14 +97,14 @@ export class GamepadController {
 
     onShort('cross', 'togglePlay');
     onShort('triangle', 'resetToStart');
-    onShort('circle', 'backToScripts');
-    onShort('square', 'toggleControls');
-    onShort('l1', 'prevSection');
-    onShort('r1', 'nextSection');
+    onRelease('circle', 'backToScripts');
+    onRelease('square', 'toggleControls');
+    onRelease('l1', 'prevSection');
+    onRelease('r1', 'nextSection');
     onShort('l2', 'speedDown');
     onShort('r2', 'speedUp');
-    onShort('options', 'toggleSettings');
-    onShort('share', 'toggleSections');
+    onRelease('options', 'toggleSettings');
+    onRelease('share', 'toggleSections');
     onStep('dpadUp', 'fontUp');
     onStep('dpadDown', 'fontDown');
     onStep('dpadLeft', 'marginDown');

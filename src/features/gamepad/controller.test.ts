@@ -53,6 +53,15 @@ describe('GamepadController', () => {
     expect(released.manualVelocity).toBe(0);
   });
 
+  it('a long press still triggers buttons that have no hold action', () => {
+    const controller = new GamepadController({ ...DEFAULT_DUALSHOCK_MAPPING });
+    const pressed = fakePad({ buttons: { 5: { pressed: true, value: 1 } } });
+    controller.update(pressed, 0);
+    controller.update(pressed, HOLD_THRESHOLD_MS + 10);
+    const released = controller.update(fakePad({}), HOLD_THRESHOLD_MS + 100);
+    expect(released.actions).toContain('nextSection');
+  });
+
   it('un gatillo analógico mantenido escala la velocidad manual', () => {
     const controller = new GamepadController({ ...DEFAULT_DUALSHOCK_MAPPING });
     const half = fakePad({ buttons: { 7: { pressed: true, value: 0.56 } } });

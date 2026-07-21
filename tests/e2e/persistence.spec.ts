@@ -8,12 +8,12 @@ test('guiones, ajustes y posición sobreviven a recargar la página', async ({ p
   await page.getByTestId('new-script').click();
   await page.getByTestId('editor-title').fill('Persistente');
   await page.getByTestId('editor-content').fill('Contenido que debe sobrevivir.');
-  await expect(page.getByTestId('save-status')).toHaveText('Guardado');
+  await expect(page.getByTestId('save-status')).toHaveText('Saved');
   await page.getByTestId('editor-close').click();
   await expect(cardByTitle(page, 'Persistente')).toBeVisible();
 
   // Cambiar un ajuste desde el prompter.
-  await openScriptInPrompter(page, 'Bienvenida al teleprompter');
+  await openScriptInPrompter(page, 'Welcome to Teleprompter');
   await page.getByTestId('settings-toggle').click();
   await page.getByTestId('font-plus').click();
   await expect(page.getByTestId('font-value')).toHaveText('54px');
@@ -33,7 +33,7 @@ test('guiones, ajustes y posición sobreviven a recargar la página', async ({ p
   await page.reload();
   await expect(cardByTitle(page, 'Persistente')).toBeVisible();
 
-  await openScriptInPrompter(page, 'Bienvenida al teleprompter');
+  await openScriptInPrompter(page, 'Welcome to Teleprompter');
   await page.getByTestId('settings-toggle').click();
   await expect(page.getByTestId('font-value')).toHaveText('54px');
   await page.getByTestId('settings-close').click();
@@ -41,4 +41,18 @@ test('guiones, ajustes y posición sobreviven a recargar la página', async ({ p
   // La posición de lectura se restauró (con tolerancia por redondeo).
   const restored = await prompterOffset(page);
   expect(restored).toBeGreaterThan(position - 5);
+});
+
+test('a setting changed immediately before leaving is persisted', async ({ page }) => {
+  await page.goto('/');
+  await openScriptInPrompter(page, 'Welcome to Teleprompter');
+  await page.getByTestId('settings-toggle').click();
+  await page.getByTestId('font-plus').click();
+  await page.getByTestId('settings-close').click();
+  await page.getByTestId('back-to-scripts').click();
+  await expect(page.getByTestId('new-script')).toBeVisible();
+
+  await openScriptInPrompter(page, 'Welcome to Teleprompter');
+  await page.getByTestId('settings-toggle').click();
+  await expect(page.getByTestId('font-value')).toHaveText('54px');
 });

@@ -1,67 +1,120 @@
 # Teleprompter
 
-PWA de teleprompter pensada para iPhone/Safari: sin backend, sin cuentas, sin telemetría.
-Los guiones y las preferencias viven únicamente en el navegador (IndexedDB). Funciona
-offline tras la primera carga y se puede controlar con un DualShock 4.
+An offline-first teleprompter PWA designed for iPhone and Safari. It has no backend, accounts,
+or analytics. Scripts and preferences live only in the browser through IndexedDB, and playback
+can be controlled with a DualShock 4 or another standard gamepad.
 
-**URL pública:** https://tele.vondiego.com
+**Public URL:** https://tele.vondiego.com
 
-## Desarrollo (sin npm en el host)
+## Development without local npm
 
-Este proyecto se desarrolla sin Node/npm instalados en la máquina de trabajo:
+This project is maintained without Node or npm on the development host:
 
-- **Validación**: todo (typecheck, lint, Vitest, build, Playwright) corre en GitHub Actions
-  en cada push/PR (`.github/workflows/ci.yml`).
-- **Lockfile**: `package-lock.json` se genera con el workflow manual `lockfile.yml`
-  (workflow_dispatch → descarga el artifact → commit).
-- Si tienes Docker local, puedes probar con un contenedor efímero:
+- **Validation:** typecheck, lint, Vitest, build, and Playwright run in GitHub Actions on every
+  push and pull request through `.github/workflows/ci.yml`.
+- **Lockfile:** regenerate `package-lock.json` with the manual `lockfile.yml` workflow, download
+  its artifact, and commit the result.
+- If Docker is available elsewhere, an optional local check is:
   `docker run --rm -it -v "$PWD":/app -w /app node:22-alpine sh -c "npm ci && npm test -- --run"`
-  (opcional, nunca obligatorio).
 
-### Estructura
+### Project structure
 
-```
+```text
 src/
-  app/            App, router hash (#/ y #/prompter/:id)
-  pages/          ScriptsPage (lista/editor), PrompterPage (lectura)
-  features/       markdown (aplanado), sections, prompter (motor de scroll),
-                  gamepad (mapeo, corto/mantenido), settings, import, scripts
-  services/       database (Dexie/IndexedDB), pwa (SW), wakeLock
-tests/e2e/        Playwright (Chromium)
-deploy/           compose.yaml para el servidor
-scripts/          generate-icons.mjs (iconos PWA), deploy-shaolin.sh
+  app/            App shell, hash router, modal focus management
+  components/     Shared code-native icon system
+  pages/          Script library/editor and teleprompter
+  features/       Markdown, sections, scrolling, gamepad, settings, import, backup
+  services/       IndexedDB, PWA registration, screen wake lock
+tests/e2e/        Playwright coverage for Chromium
+deploy/           Server Compose file
+scripts/          PWA icon generation and shaolin deployment
 ```
 
-## Imagen Docker (GHCR)
+## Using the app
 
-CI publica una imagen multi-arch (`linux/amd64`, `linux/arm64`) en
-`ghcr.io/donutinit/teleprompter` con etiquetas `latest`, `sha-<commit>` y semver para tags
-`v*`. Build multi-stage: `node:22-alpine` (build) → `caddy:2-alpine` sirviendo solo `dist/`
-en el puerto 80, con `/healthz` y encabezados de seguridad básicos. El Service Worker,
-el manifest y el documento se sirven con `no-cache` para que las actualizaciones de la
-PWA se detecten; los assets con hash son inmutables.
+### Install on iPhone
 
-El paquete GHCR debe ser **público** (pull anónimo). Si un `docker pull` sin credenciales
-falla: GitHub → Profile → Packages → `teleprompter` → Settings → Change visibility → Public.
+1. Open `https://tele.vondiego.com` in Safari.
+2. Tap Share, then **Add to Home Screen**.
+3. Open the installed app for a full-screen, offline experience.
 
-## Despliegue en `shaolin`
+### Scripts and backups
 
-El servidor solo corre la imagen final (nunca compila ni clona el código). Proyecto
-Compose propio en `~/docker/teleprompter` con `deploy/compose.yaml` y un `.env`:
+- Create a Markdown script with the plus button.
+- Import `.md`, `.markdown`, `.txt`, or a Teleprompter `.json` backup.
+- Markdown headings create navigable sections. Plain-text scripts can be converted to Markdown
+  from their options menu.
+- Export one script from its options menu or create a complete JSON backup from the download
+  button in the library header.
+- Restoring a backup merges its scripts into the current library and restores its preferences.
 
-```
-TELEPROMPTER_IMAGE=ghcr.io/donutinit/teleprompter:sha-<commit>
-```
+Everything remains in IndexedDB on the current device. Clearing site data removes the library,
+so keep regular backups. iOS may purge Safari site data after prolonged inactivity; an installed
+home-screen PWA is generally more resilient.
 
-Se despliega siempre por **tag inmutable de SHA**, no por `latest`:
+### Reading controls
+
+- Press **START** to begin automatic scrolling and **PAUSE** to stop.
+- Drag the text for manual scrolling.
+- Tap the reading surface to hide or show controls.
+- Use Settings to change speed, text size, margins, or controller mapping.
+- The `E` and `R` values estimate elapsed and remaining reading time at the current speed.
+- The app requests a screen wake lock while the prompter is open and reacquires it after returning
+  from the background when the browser allows it.
+
+## DualShock 4
+
+Pair the controller in iOS Bluetooth settings by holding **PS + Share** until the light bar
+flashes. Once the prompter is open, press any button so Safari exposes the controller.
+
+| Control | Short press | Hold |
+|---|---|---|
+| Cross | Play/pause | Scroll down |
+| Triangle | Return to start | Scroll up |
+| Circle | Return to Scripts | — |
+| Square | Show/hide controls | — |
+| L1 / R1 | Previous/next section | Same action on release |
+| L2 / R2 | Decrease/increase speed | Proportional scroll up/down |
+| D-pad up/down | Increase/decrease text size | Repeat |
+| D-pad left/right | Decrease/increase margins | Repeat |
+| Right stick Y | Fine scroll | — |
+| Left stick Y | Fast scroll | — |
+| Options | Settings | Same action on release |
+| Share | Section browser | Same action on release |
+
+Gamepad button ordering can vary by browser. Use **Settings → Controller → Diagnostics** to inspect
+raw input and remap actions. Assigning a button already in use swaps the two mappings so active
+actions remain unique.
+
+## Safari and iOS notes
+
+- Safari exposes a controller only after a button is pressed while the page is in the foreground.
+- Screen Wake Lock requires a supported browser and may be denied in Low Power Mode.
+- Final validation on iOS Safari and a physical DualShock 4 still requires real hardware. CI uses
+  Chromium and a simulated Gamepad API.
+
+## Container image
+
+CI publishes a multi-architecture image for `linux/amd64` and `linux/arm64` to
+`ghcr.io/donutinit/teleprompter`. Images receive `latest`, immutable `sha-<commit>`, and semantic
+version tags. The build uses `node:22-alpine` and serves only the final `dist/` directory from
+`caddy:2-alpine`.
+
+The document, manifest, and service worker use `no-cache`; hashed assets are immutable. The image
+package must remain public so deployment can pull it anonymously.
+
+## Deployment to `shaolin`
+
+The server only runs the final image. It never builds or clones the repository. Deploy an
+immutable SHA that has passed CI with:
 
 ```bash
 ./scripts/deploy-shaolin.sh
 ```
 
-El script comprueba que el CI del commit actual está en verde, prueba el pull anónimo,
-hace preflight (Docker, disco, puerto 45543), respalda `compose.yaml`/`.env` con
-timestamp y actualiza **solo** el servicio:
+The script verifies CI, checks the anonymous registry pull and server preconditions, creates
+timestamped configuration backups, and updates only the `teleprompter` service:
 
 ```bash
 docker compose --project-name teleprompter --file compose.yaml config --quiet
@@ -69,30 +122,25 @@ docker compose --project-name teleprompter --file compose.yaml pull teleprompter
 docker compose --project-name teleprompter --file compose.yaml up -d --no-deps teleprompter
 ```
 
-Nunca `docker compose down`, `prune`, `--remove-orphans` ni tocar otros servicios del
-servidor.
+Never run `docker compose down`, any `prune`, `--remove-orphans`, or commands that affect other
+services on the host.
 
 ### Rollback
 
-Los archivos previos quedan como `compose.yaml.bak.<timestamp>` y `.env.bak.<timestamp>`
-en `~/docker/teleprompter`. Si el contenedor no arranca o `/healthz` no responde en el
-45543:
+Restore a previous timestamped `.env` backup, then update only this service and verify health:
 
 ```bash
 ssh shaolin
 cd ~/docker/teleprompter
-cp .env.bak.<timestamp> .env        # apunta a la imagen anterior
+cp .env.bak.<timestamp> .env
 docker compose --project-name teleprompter --file compose.yaml up -d --no-deps teleprompter
 curl --fail http://127.0.0.1:45543/healthz
 ```
 
-No borres la imagen nueva ni toques otros contenedores.
+## Reverse proxy
 
-## Reverse proxy (nginx externo)
-
-El TLS lo termina una instancia de **nginx ya existente fuera de shaolin** que apunta
-`tele.vondiego.com` al puerto publicado en la LAN. No hay que configurar nada en shaolin
-más allá de publicar el 45543. Snippet de referencia:
+TLS terminates on an existing external nginx instance that proxies `tele.vondiego.com` to the
+published port on `shaolin`. No proxy changes are needed during normal application deployment.
 
 ```nginx
 server {
@@ -106,61 +154,13 @@ server {
 }
 ```
 
-Para instalar la PWA en iPhone el dominio debe servirse por **HTTPS** (lo hace nginx).
-
-## Instalar la PWA en iPhone
-
-1. Abre `https://tele.vondiego.com` en Safari.
-2. Botón compartir → **Añadir a pantalla de inicio**.
-3. Abre la app desde el icono: pantalla completa, funciona offline y conserva tus guiones.
-
-## DualShock 4
-
-1. Ajustes de iOS → Bluetooth. En el mando, mantén **PS + Share** hasta que la barra
-   parpadee; emparéjalo.
-2. Dentro del prompter, **presiona cualquier botón** para que Safari exponga el mando
-   (indicador verde en la barra superior).
-
-Mapeo por defecto (editable en Ajustes → Mando…, con modo diagnóstico):
-
-| Control | Pulsación corta | Mantenido |
-|---|---|---|
-| Cross | play/pausa | bajar continuo |
-| Triangle | volver al inicio | subir continuo |
-| Circle | volver a Guiones | — |
-| Square | mostrar/ocultar controles | — |
-| L1 / R1 | sección anterior / siguiente | — |
-| L2 / R2 | −/+ velocidad | subir / bajar continuo (proporcional) |
-| D-pad ↑↓ | +/− tamaño de fuente | repetición |
-| D-pad ←→ | −/+ márgenes | repetición |
-| Stick derecho Y | scroll fino | Stick izquierdo Y: scroll rápido |
-| Options | ajustes | Share: navegador de secciones |
-
-El orden de botones del Gamepad API varía según navegador; si algo no responde, usa
-**Ajustes → Mando… → Diagnóstico** y reasigna.
-
-## Limitaciones de Safari iOS
-
-- El mando solo aparece tras presionar un botón con la página en primer plano.
-- Wake Lock (pantalla encendida) requiere iOS 16.4+; si falla, sube el tiempo de
-  autobloqueo en Ajustes.
-- Si no abres la PWA durante ~7 días, iOS puede purgar datos de sitios web de Safari;
-  la app instalada en pantalla de inicio es más estable. Haz copia de tus guiones.
-- La validación final de Safari iOS y de un DualShock 4 físico requiere hardware real;
-  CI cubre Chromium y una simulación del Gamepad API.
-
-## Copia de seguridad de datos locales
-
-Todo vive en IndexedDB del navegador. Para respaldar un guion, ábrelo en el editor y
-copia el texto (o mantén los originales `.md`/`.txt` que importaste). Borrar los datos
-del sitio en Safari elimina todos los guiones.
-
 ## Troubleshooting
 
-- **La app no actualiza**: cierra y reabre; cuando haya versión nueva aparece el botón
-  «Actualizar». El documento y el SW se sirven con `no-cache`.
-- **`/healthz` no responde**: `ssh shaolin docker ps` y
-  `docker logs teleprompter-teleprompter-1`; usa el rollback de arriba.
-- **Pull anónimo falla**: el paquete GHCR dejó de ser público (ver arriba).
-- **El mando no responde**: presiona un botón dentro del prompter; revisa el modo
-  diagnóstico; reinicia Bluetooth del iPhone.
+- **The app does not update:** close and reopen it; when a new version is ready, use the Update
+  banner.
+- **A save fails:** keep the editor open, free device storage if needed, and retry. Navigation from
+  the editor is blocked until the latest content is safely stored.
+- **The controller does not respond:** press a button in the foreground, open Diagnostics, and
+  remap browser-specific button indexes.
+- **`/healthz` fails:** inspect only the teleprompter container and use the rollback procedure.
+- **Anonymous pull fails:** confirm that the GHCR package is still public.

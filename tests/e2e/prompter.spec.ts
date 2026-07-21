@@ -3,7 +3,7 @@ import { openScriptInPrompter, prompterOffset } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
-  await openScriptInPrompter(page, 'Bienvenida al teleprompter');
+  await openScriptInPrompter(page, 'Welcome to Teleprompter');
 });
 
 test('reproduce y pausa el desplazamiento automático', async ({ page }) => {
@@ -53,4 +53,19 @@ test('vuelve al inicio y a la lista de guiones', async ({ page }) => {
 
   await page.getByTestId('back-to-scripts').click();
   await expect(page.getByTestId('new-script')).toBeVisible();
+});
+
+test('landscape controls stay compact and inside the viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 844, height: 390 });
+  const controls = await page.getByTestId('bottom-controls').boundingBox();
+  expect(controls).not.toBeNull();
+  expect(controls!.height).toBeLessThan(72);
+  expect(controls!.x).toBeGreaterThanOrEqual(0);
+  expect(controls!.x + controls!.width).toBeLessThanOrEqual(844);
+});
+
+test('opens the current script directly in the editor', async ({ page }) => {
+  await page.getByTestId('edit-script').click();
+  await expect(page.getByTestId('editor-title')).toHaveValue('Welcome to Teleprompter');
+  await expect(page.getByTestId('editor-content')).toHaveValue(/This sample script/);
 });

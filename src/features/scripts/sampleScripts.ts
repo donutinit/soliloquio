@@ -2,33 +2,33 @@ import type { Script } from '../../types';
 
 export const SAMPLE_SCRIPTS: Pick<Script, 'title' | 'content' | 'format'>[] = [
   {
-    title: 'Bienvenida al teleprompter',
+    title: 'Welcome to Teleprompter',
     format: 'markdown',
-    content: `# Bienvenida
+    content: `# Welcome
 
-Este es un guion de ejemplo. Puedes editarlo o eliminarlo cuando quieras.
+This sample script shows you the essentials. You can edit or delete it whenever you like.
 
-## Cómo usarlo
+## Start reading
 
-Pulsa play para que el texto avance solo. Ajusta velocidad, tamaño de letra y márgenes desde el panel de ajustes.
+Press START to move the text automatically. Open Settings to adjust speed, text size, and margins.
 
-## Secciones
+## Sections
 
-Cada encabezado del guion crea una sección. Salta entre secciones con los botones en pantalla o con L1 y R1 del mando.
+Every Markdown heading creates a section. Jump between sections with the on-screen controls or L1 and R1 on your controller.
 
-## Mando DualShock 4
+## DualShock 4
 
-Conecta un mando por Bluetooth y presiona un botón para activarlo. Cross reproduce o pausa, Triangle vuelve al inicio y los gatillos mueven el texto de forma manual.
+Connect a controller over Bluetooth and press any button to activate it. Cross starts or pauses, Triangle returns to the beginning, and the triggers move the text manually.
 `
   },
   {
-    title: 'Notas rápidas',
+    title: 'Quick notes',
     format: 'text',
-    content: `Este guion es texto plano, sin encabezados, así que forma una única sección.
+    content: `This is a plain-text script without headings, so it has one section.
 
-Importa tus propios guiones en formato Markdown o texto desde la pantalla de guiones.
+Import your own Markdown or text files from the Scripts screen.
 
-Todo se guarda en tu dispositivo: no hay cuentas, servidores ni telemetría.
+Everything stays on your device. There are no accounts, servers, or analytics. Create regular backups from the download button.
 `
   }
 ];

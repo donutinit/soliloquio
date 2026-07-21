@@ -19,7 +19,7 @@ describe('titleFromFileName', () => {
 
   it('no toca extensiones desconocidas y nunca deja el título vacío', () => {
     expect(titleFromFileName('datos.csv')).toBe('datos.csv');
-    expect(titleFromFileName('.md')).toBe('Sin título');
+    expect(titleFromFileName('.md')).toBe('Untitled');
   });
 });
 
@@ -87,7 +87,7 @@ describe('readImportedFiles', () => {
     expect(outcomes[1]).toEqual({
       ok: false,
       fileName: 'malo.txt',
-      error: 'No se pudo leer el archivo'
+      error: 'The file could not be read'
     });
   });
 });

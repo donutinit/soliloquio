@@ -2,11 +2,16 @@
   --bg: #0b0d10;
   --surface: #16181d;
   --surface-2: #1f2229;
-  --border: #2a2e37;
+  --border: #303641;
+  --border-strong: #566171;
   --text: #e8eaed;
   --text-dim: #9aa0a8;
-  --accent: #4c8dff;
-  --danger: #e5534b;
+  --text-muted: #7d8590;
+  --accent: #1769d2;
+  --link: #79aaff;
+  --focus: #8ab4ff;
+  --danger: #ff716b;
+  --success: #56d364;
   color-scheme: dark;
 }
 
@@ -39,6 +44,17 @@ button {
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+}
+
+button:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.55;
 }
 
 input,

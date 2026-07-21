@@ -6,7 +6,7 @@ const CROSS = 0;
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(installFakeGamepad);
   await page.goto('/');
-  await openScriptInPrompter(page, 'Bienvenida al teleprompter');
+  await openScriptInPrompter(page, 'Welcome to Teleprompter');
 });
 
 test('detecta el mando simulado', async ({ page }) => {

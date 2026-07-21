@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { cardByTitle, openScriptInPrompter } from './helpers';
 
@@ -76,4 +77,24 @@ test('el .txt importado no interpreta Markdown', async ({ page }) => {
   await expect(
     page.locator('[data-block-type="text"]', { hasText: '# Esto no es un encabezado' })
   ).toBeVisible();
+});
+
+test('exports and restores a complete JSON backup', async ({ page }) => {
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByTestId('backup-button').click();
+  const download = await downloadPromise;
+  const backupPath = await download.path();
+  expect(backupPath).toBeTruthy();
+
+  await cardByTitle(page, 'Quick notes').getByTestId('card-menu').click();
+  await page.getByTestId('menu-delete').click();
+  await page.getByTestId('menu-delete').click();
+  await expect(cardByTitle(page, 'Quick notes')).toHaveCount(0);
+
+  await page.getByTestId('import-input').setInputFiles({
+    name: 'backup.json',
+    mimeType: 'application/json',
+    buffer: await readFile(backupPath!)
+  });
+  await expect(cardByTitle(page, 'Quick notes')).toBeVisible();
 });
