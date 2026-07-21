@@ -21,14 +21,13 @@ async function findRegistration(): Promise<ServiceWorkerRegistration | null> {
 
   return new Promise((resolve) => {
     let settled = false;
-    let timer: ReturnType<typeof setTimeout> | undefined;
     const finish = (registration: ServiceWorkerRegistration | null) => {
       if (settled) return;
       settled = true;
-      if (timer) clearTimeout(timer);
+      clearTimeout(timer);
       resolve(registration);
     };
-    timer = setTimeout(() => finish(null), REGISTRATION_WAIT_MS);
+    const timer = setTimeout(() => finish(null), REGISTRATION_WAIT_MS);
     void navigator.serviceWorker.ready.then(
       (registration) => finish(registration),
       () => finish(null)
