@@ -55,7 +55,7 @@ test('el markdown importado se aplana: headings sí, resto texto plano', async (
   await expect(page.locator('[data-block-type="text"]', { hasText: 'logo del programa' })).toBeVisible();
 });
 
-test('los headings son negrita monospace, algo más pequeños que el texto', async ({ page }) => {
+test('los headings son negrita monospace, a un tercio del texto', async ({ page }) => {
   await page.getByTestId('import-input').setInputFiles([fixture('guion-prueba.md')]);
   await openScriptInPrompter(page, 'guion-prueba');
 
@@ -72,9 +72,8 @@ test('los headings son negrita monospace, algo más pequeños que el texto', asy
         .backgroundColor
     };
   });
-  // Nunca más grandes que el texto normal; aquí, un poco más pequeños.
-  expect(styles.headingSize).toBeLessThan(styles.textSize);
-  expect(styles.headingSize).toBeGreaterThan(styles.textSize * 0.7);
+  // Un tercio del tamaño del texto de lectura: marcan sección sin robar espacio.
+  expect(styles.headingSize).toBeCloseTo(styles.textSize / 3, 0);
   expect(Number(styles.headingWeight)).toBeGreaterThanOrEqual(700);
   expect(styles.headingFamily.toLowerCase()).toContain('mono');
   // Prompter en blanco puro sobre negro puro.
