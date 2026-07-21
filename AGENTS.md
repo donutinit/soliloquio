@@ -109,9 +109,9 @@ The Playwright configuration starts `npm run preview`; do not start a second pre
 Unit tests live beside source as `*.test.ts`. Add E2E tests only for important user workflows and
 prefer stable roles/test IDs over CSS selectors.
 
-Some development hosts intentionally have no Node, npm, or Docker. Do not install tooling unless
-the user explicitly authorizes it. In that environment, GitHub Actions in `.github/workflows/ci.yml`
-is the authoritative validation path:
+The primary development computer intentionally has no Node, npm, or Docker. Never install or try
+to run them on that computer. Do not use substitute runtimes or package managers there either.
+GitHub Actions in `.github/workflows/ci.yml` is the authoritative validation path:
 
 1. Make the scoped change and inspect the diff.
 2. Run `git diff --check`.
