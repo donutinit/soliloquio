@@ -9,3 +9,7 @@ test-results/
 *.local
 .DS_Store
 IMG_*.PNG
+
+# Contexto local para agentes de IA (infra privada, nunca subir)
+CLAUDE.local.md
+AGENTS.local.md
