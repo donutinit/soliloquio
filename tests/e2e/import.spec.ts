@@ -1,5 +1,4 @@
 import { expect, test } from '@playwright/test';
-import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { cardByTitle, openScriptInPrompter } from './helpers';
 
@@ -81,16 +80,26 @@ test('el .txt importado no interpreta Markdown', async ({ page }) => {
 
 test('exports and restores a complete JSON backup', async ({ page }) => {
   await page.evaluate(() => {
+    const target = window as typeof window & { __backupText?: string };
     Object.defineProperties(navigator, {
-      share: { configurable: true, value: undefined },
-      canShare: { configurable: true, value: undefined }
+      share: {
+        configurable: true,
+        value: async (data: ShareData) => {
+          target.__backupText = data.files?.[0] ? await data.files[0].text() : '';
+        }
+      },
+      canShare: { configurable: true, value: () => true }
     });
   });
-  const downloadPromise = page.waitForEvent('download');
   await page.getByTestId('backup-button').click();
-  const download = await downloadPromise;
-  const backupPath = await download.path();
-  expect(backupPath).toBeTruthy();
+  await expect
+    .poll(() =>
+      page.evaluate(() => (window as typeof window & { __backupText?: string }).__backupText)
+    )
+    .toContain('teleprompter-backup');
+  const backupText = await page.evaluate(
+    () => (window as typeof window & { __backupText: string }).__backupText
+  );
 
   await cardByTitle(page, 'Quick notes').getByTestId('card-menu').click();
   await page.getByTestId('menu-delete').click();
@@ -100,7 +109,7 @@ test('exports and restores a complete JSON backup', async ({ page }) => {
   await page.getByTestId('import-input').setInputFiles({
     name: 'backup.json',
     mimeType: 'application/json',
-    buffer: await readFile(backupPath!)
+    buffer: Buffer.from(backupText)
   });
   await expect(cardByTitle(page, 'Quick notes')).toBeVisible();
 });
