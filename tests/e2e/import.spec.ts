@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { cardByTitle, openScriptInPrompter } from './helpers';
 
@@ -79,27 +80,23 @@ test('el .txt importado no interpreta Markdown', async ({ page }) => {
 });
 
 test('exports and restores a complete JSON backup', async ({ page }) => {
-  await page.evaluate(() => {
-    const target = window as typeof window & { __backupText?: string };
+  await page.addInitScript(() => {
     Object.defineProperties(navigator, {
-      share: {
-        configurable: true,
-        value: async (data: ShareData) => {
-          target.__backupText = data.files?.[0] ? await data.files[0].text() : '';
-        }
-      },
-      canShare: { configurable: true, value: () => true }
+      share: { configurable: true, value: undefined },
+      canShare: { configurable: true, value: undefined }
     });
   });
+  await page.reload();
+  expect(await page.evaluate(() => Boolean(navigator.share))).toBe(false);
+
+  const downloadPromise = page.waitForEvent('download', { timeout: 5_000 });
   await page.getByTestId('backup-button').click();
-  await expect
-    .poll(() =>
-      page.evaluate(() => (window as typeof window & { __backupText?: string }).__backupText)
-    )
-    .toContain('teleprompter-backup');
-  const backupText = await page.evaluate(
-    () => (window as typeof window & { __backupText: string }).__backupText
-  );
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/^teleprompter-backup-.*\.json$/);
+  const downloadPath = await download.path();
+  expect(downloadPath).not.toBeNull();
+  const backup = await readFile(downloadPath!);
+  expect(backup.toString()).toContain('teleprompter-backup');
 
   await cardByTitle(page, 'Quick notes').getByTestId('card-menu').click();
   await page.getByTestId('menu-delete').click();
@@ -109,21 +106,7 @@ test('exports and restores a complete JSON backup', async ({ page }) => {
   await page.getByTestId('import-input').setInputFiles({
     name: 'backup.json',
     mimeType: 'application/json',
-    buffer: Buffer.from(backupText)
+    buffer: backup
   });
   await expect(cardByTitle(page, 'Quick notes')).toBeVisible();
-});
-
-test('downloads a backup when Web Share is unavailable', async ({ page }) => {
-  await page.evaluate(() => {
-    Object.defineProperties(navigator, {
-      share: { configurable: true, value: undefined },
-      canShare: { configurable: true, value: undefined }
-    });
-  });
-  expect(await page.evaluate(() => Boolean(navigator.share))).toBe(false);
-  const downloadPromise = page.waitForEvent('download', { timeout: 5_000 });
-  await page.getByTestId('backup-button').click();
-  const download = await downloadPromise;
-  expect(download.suggestedFilename()).toMatch(/^teleprompter-backup-.*\.json$/);
 });

@@ -187,7 +187,6 @@ export function ScriptsPage({
         <div className={styles.headerActions}>
           <button
             type="button"
-            data-testid="backup-button"
             className={styles.headerIconButton}
             aria-label="Help"
             title="Help"
@@ -207,6 +206,7 @@ export function ScriptsPage({
           </button>
           <button
             type="button"
+            data-testid="backup-button"
             className={styles.headerIconButton}
             aria-label="Export full backup"
             title="Export backup"
