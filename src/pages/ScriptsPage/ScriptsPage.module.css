@@ -330,11 +330,52 @@
 }
 
 .settingsSection,
+.updateSection,
 .dangerZone {
   padding: 14px;
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--surface);
+}
+
+.updateSection {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px 14px;
+}
+
+.updateSection h3,
+.updateSection p {
+  margin: 0;
+}
+
+.updateSection h3 {
+  margin-bottom: 3px;
+  font-size: 15px;
+}
+
+.updateSection p {
+  color: var(--text-dim);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.updateButton {
+  min-width: 112px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 11px;
+  background: var(--surface-2);
+  color: var(--link);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.updateStatus {
+  grid-column: 1 / -1;
+  color: var(--text) !important;
 }
 
 .appSettingRow {
@@ -577,7 +618,12 @@
     grid-template-columns: 1fr;
   }
 
-  .appSettingRow select {
+  .updateSection {
+    grid-template-columns: 1fr;
+  }
+
+  .appSettingRow select,
+  .updateButton {
     width: 100%;
   }
 }

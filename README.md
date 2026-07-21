@@ -68,6 +68,8 @@ home-screen PWA is generally more resilient.
   from the background when the browser allows it.
 - App Settings also provides a confirmed factory reset that atomically erases local scripts and
   preferences, then restores the original samples and defaults.
+- App Settings includes an **Update app** button that bypasses the normal detection interval,
+  checks the service worker directly against the server, and installs a newer version immediately.
 
 ## DualShock 4
 
@@ -164,7 +166,7 @@ server {
 
 - **The app does not update:** updates apply automatically — the app checks on launch, when it
   returns to the foreground, and every minute while open, then reloads itself. If it seems stale,
-  bring it to the foreground or reopen it and wait a few seconds.
+  open App Settings and tap **Update app** to force an immediate server check.
 - **A save fails:** keep the editor open, free device storage if needed, and retry. Navigation from
   the editor is blocked until the latest content is safely stored.
 - **The controller does not respond:** press a button in the foreground, open Diagnostics, and

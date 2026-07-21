@@ -4,18 +4,33 @@ import { COUNTDOWN_LIMITS } from '../../features/settings/settings';
 import { useModalFocus } from '../../app/useModalFocus';
 import styles from './ScriptsPage.module.css';
 
+export type AppUpdateState =
+  | 'idle'
+  | 'checking'
+  | 'up-to-date'
+  | 'updating'
+  | 'unsupported'
+  | 'not-ready'
+  | 'error';
+
 export function AppSettingsPanel({
   settings,
   error,
+  updateState,
+  updateError,
   busy,
   onCountdownChange,
+  onCheckForUpdate,
   onFactoryReset,
   onClose
 }: {
   settings: PrompterSettings;
   error: string | null;
+  updateState: AppUpdateState;
+  updateError: string | null;
   busy: boolean;
   onCountdownChange: (seconds: number) => void;
+  onCheckForUpdate: () => void;
   onFactoryReset: () => void;
   onClose: () => void;
 }) {
@@ -64,6 +79,39 @@ export function AppSettingsPanel({
             </select>
           </div>
           {error && <p className={styles.settingsError} role="alert">{error}</p>}
+        </section>
+
+        <section className={styles.updateSection}>
+          <div>
+            <h3>App update</h3>
+            <p>Check the server now and install the newest available version.</p>
+          </div>
+          <button
+            type="button"
+            className={styles.updateButton}
+            data-testid="check-for-update"
+            disabled={busy || updateState === 'checking' || updateState === 'updating'}
+            onClick={onCheckForUpdate}
+          >
+            {updateState === 'checking'
+              ? 'Checking…'
+              : updateState === 'updating'
+                ? 'Updating…'
+                : 'Update app'}
+          </button>
+          {updateState !== 'idle' && updateState !== 'checking' && (
+            <p className={styles.updateStatus} data-testid="update-status" role="status">
+              {updateState === 'up-to-date'
+                ? 'You already have the latest version.'
+                : updateState === 'updating'
+                  ? 'Update found. Reloading the app…'
+                  : updateState === 'unsupported'
+                    ? 'Update checks are not supported in this browser.'
+                    : updateState === 'not-ready'
+                      ? 'The update service is still starting. Try again in a moment.'
+                      : updateError ?? 'The update check failed.'}
+            </p>
+          )}
         </section>
 
         <section className={styles.dangerZone}>

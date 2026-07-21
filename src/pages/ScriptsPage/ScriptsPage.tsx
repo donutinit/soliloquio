@@ -19,10 +19,11 @@ import {
   parseBackup
 } from '../../features/export/backup';
 import { prompterHash } from '../../app/router';
+import { checkForPWAUpdate } from '../../services/pwa';
 import { useModalFocus } from '../../app/useModalFocus';
 import { Icon } from '../../components/Icon';
 import { ScriptEditor } from './ScriptEditor';
-import { AppSettingsPanel } from './AppSettingsPanel';
+import { AppSettingsPanel, type AppUpdateState } from './AppSettingsPanel';
 import { HelpPanel } from './HelpPanel';
 import styles from './ScriptsPage.module.css';
 
@@ -80,6 +81,8 @@ export function ScriptsPage({
   const [appSettings, setAppSettings] = useState<PrompterSettings | null>(null);
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [settingsSaving, setSettingsSaving] = useState(false);
+  const [updateState, setUpdateState] = useState<AppUpdateState>('idle');
+  const [updateError, setUpdateError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const appSettingsSaveRef = useRef<Promise<void>>(Promise.resolve());
 
@@ -183,6 +186,8 @@ export function ScriptsPage({
     setBusy(true);
     setOperationError(null);
     setSettingsError(null);
+    setUpdateState('idle');
+    setUpdateError(null);
     try {
       setAppSettings(await getSettings());
       setSettingsOpen(true);
@@ -231,6 +236,19 @@ export function ScriptsPage({
       setSettingsError('The app could not be reset. No partial reset was kept.');
     } finally {
       setBusy(false);
+    }
+  };
+
+  const handleCheckForUpdate = async () => {
+    setUpdateState('checking');
+    setUpdateError(null);
+    await appSettingsSaveRef.current.catch(() => undefined);
+    try {
+      const result = await checkForPWAUpdate();
+      setUpdateState(result);
+    } catch {
+      setUpdateState('error');
+      setUpdateError('Could not check for updates. Check your connection and try again.');
     }
   };
 
@@ -470,8 +488,11 @@ export function ScriptsPage({
         <AppSettingsPanel
           settings={appSettings}
           error={settingsError}
-          busy={busy || settingsSaving}
+          updateState={updateState}
+          updateError={updateError}
+          busy={busy || settingsSaving || updateState === 'checking'}
           onCountdownChange={(seconds) => void updateCountdown(seconds)}
+          onCheckForUpdate={() => void handleCheckForUpdate()}
           onFactoryReset={() => void handleFactoryReset()}
           onClose={closeAppSettings}
         />

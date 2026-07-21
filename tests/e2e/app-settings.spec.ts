@@ -5,6 +5,20 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/');
 });
 
+test('checks for an app update manually from settings', async ({ page }) => {
+  await page.evaluate(() => navigator.serviceWorker.ready.then(() => undefined));
+  await page.getByTestId('app-settings-button').click();
+
+  const updateButton = page.getByTestId('check-for-update');
+  await expect(updateButton).toHaveText('Update app');
+  await updateButton.click();
+
+  await expect(page.getByTestId('update-status')).toHaveText(
+    'You already have the latest version.'
+  );
+  await expect(updateButton).toBeEnabled();
+});
+
 test('keeps the countdown off by default and runs it only before a fresh start', async ({ page }) => {
   await page.getByTestId('app-settings-button').click();
   await expect(page.getByTestId('countdown-setting')).toHaveValue('0');
