@@ -55,6 +55,7 @@ const RELEASED: ButtonLike = { pressed: false, value: 0 };
  */
 export class GamepadController {
   private machines = new Map<GamepadAction, HoldButton>();
+  private suppressed = new Set<GamepadAction>();
   private hadPad = false;
 
   constructor(private bindings: GamepadBindings) {
@@ -65,6 +66,18 @@ export class GamepadController {
     this.bindings = bindings;
   }
 
+  /**
+   * Descarta el estado en curso. El siguiente frame vuelve a cebar: cualquier
+   * pulsación aún mantenida (la que despertó el mando en Safari, la que cerró
+   * un panel navegando, la que abrió este guion) queda suprimida hasta que se
+   * suelte, en vez de disparar su acción al soltarse.
+   */
+  reset(): void {
+    this.resetMachines();
+    this.suppressed.clear();
+    this.hadPad = false;
+  }
+
   private resetMachines(): void {
     for (const action of GAMEPAD_ACTIONS) this.machines.set(action, new HoldButton());
   }
@@ -72,13 +85,9 @@ export class GamepadController {
   update(pad: Gamepad | null | undefined, nowMs: number): GamepadFrame {
     if (!pad) {
       // Al desconectar, descarta pulsaciones a medias sin disparar acciones.
-      if (this.hadPad) {
-        this.resetMachines();
-        this.hadPad = false;
-      }
+      if (this.hadPad) this.reset();
       return { actions: [], manualVelocity: 0, connected: false };
     }
-    this.hadPad = true;
 
     const button = (action: GamepadAction): ButtonLike =>
       pad.buttons[this.bindings[action]] ?? RELEASED;
@@ -87,9 +96,22 @@ export class GamepadController {
       return b.pressed || triggerValue(b) > 0;
     };
 
+    if (!this.hadPad) {
+      this.hadPad = true;
+      for (const action of GAMEPAD_ACTIONS) {
+        if (isPressed(action)) this.suppressed.add(action);
+      }
+      return { actions: [], manualVelocity: 0, connected: true };
+    }
+
     const events = {} as Record<GamepadAction, HoldButtonEvents>;
     for (const action of GAMEPAD_ACTIONS) {
-      events[action] = this.machines.get(action)!.update(isPressed(action), nowMs);
+      let pressed = isPressed(action);
+      if (this.suppressed.has(action)) {
+        if (pressed) pressed = false;
+        else this.suppressed.delete(action);
+      }
+      events[action] = this.machines.get(action)!.update(pressed, nowMs);
     }
 
     const actions: GamepadAction[] = [];

@@ -72,10 +72,25 @@ home-screen PWA is generally more resilient.
 - App Settings includes an **Update app** button that bypasses the normal detection interval,
   checks the service worker directly against the server, and installs a newer version immediately.
 
-## DualShock 4
+## Controllers
 
-Pair the controller in iOS Bluetooth settings by holding **PS + Share** until the light bar
-flashes. Once the prompter is open, press any button so Safari exposes the controller.
+Pair a Bluetooth controller in iOS settings (for a DualShock 4, hold **PS + Share** until the
+light bar flashes). Once the app is open, press any button so the browser exposes the
+controller. The app identifies the controller family (PlayStation, Xbox, Nintendo, 8BitDo)
+from its reported id and shows matching button names in the Gamepad panel. Detection is
+best-effort: some controllers announce themselves as Xbox in XInput mode, and unknown devices
+fall back to numbered buttons.
+
+### App navigation
+
+A connected controller can drive the whole app: the d-pad or left stick moves the focus, the
+south button (Cross/A) activates the focused control, and the east button (Circle/B) closes
+the open panel. While a prompter panel (Settings or Sections) is open, the controller
+navigates that panel instead of triggering reader actions; sliders adjust with d-pad
+left/right. These navigation buttons are fixed. On iOS, opening the file import picker still
+requires a direct tap.
+
+### Reader actions
 
 Every reader action can be assigned to any controller button from **App Settings → Gamepad →
 Configure**: tap an action, then press the button you want for it. The default layout is:

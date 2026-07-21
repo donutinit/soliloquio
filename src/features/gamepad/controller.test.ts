@@ -34,16 +34,23 @@ describe('asignaciones por defecto', () => {
   });
 });
 
+/** Controller con el frame de cebado ya consumido (mando conectado en reposo). */
+function primedController(bindings = { ...DEFAULT_GAMEPAD_BINDINGS }): GamepadController {
+  const controller = new GamepadController(bindings);
+  controller.update(fakePad({}), -100);
+  return controller;
+}
+
 describe('GamepadController', () => {
   it('pulsación corta del botón de play emite togglePlay', () => {
-    const controller = new GamepadController({ ...DEFAULT_GAMEPAD_BINDINGS });
+    const controller = primedController();
     controller.update(fakePad({ buttons: { 0: { pressed: true, value: 1 } } }), 0);
     const frame = controller.update(fakePad({}), 100);
     expect(frame.actions).toContain('togglePlay');
   });
 
   it('mantener el botón de play no emite togglePlay y genera velocidad manual', () => {
-    const controller = new GamepadController({ ...DEFAULT_GAMEPAD_BINDINGS });
+    const controller = primedController();
     const pressed = fakePad({ buttons: { 0: { pressed: true, value: 1 } } });
     controller.update(pressed, 0);
     const held = controller.update(pressed, HOLD_THRESHOLD_MS + 10);
@@ -54,7 +61,7 @@ describe('GamepadController', () => {
   });
 
   it('a long press still triggers actions that have no hold behavior', () => {
-    const controller = new GamepadController({ ...DEFAULT_GAMEPAD_BINDINGS });
+    const controller = primedController();
     const pressed = fakePad({ buttons: { 5: { pressed: true, value: 1 } } });
     controller.update(pressed, 0);
     controller.update(pressed, HOLD_THRESHOLD_MS + 10);
@@ -63,7 +70,7 @@ describe('GamepadController', () => {
   });
 
   it('un gatillo analógico mantenido escala la velocidad manual', () => {
-    const controller = new GamepadController({ ...DEFAULT_GAMEPAD_BINDINGS });
+    const controller = primedController();
     const half = fakePad({ buttons: { 7: { pressed: true, value: 0.56 } } });
     controller.update(half, 0);
     const frame = controller.update(half, HOLD_THRESHOLD_MS + 10);
@@ -71,7 +78,7 @@ describe('GamepadController', () => {
   });
 
   it('respeta una acción reasignada a otro botón', () => {
-    const controller = new GamepadController({
+    const controller = primedController({
       ...DEFAULT_GAMEPAD_BINDINGS,
       togglePlay: 5,
       nextSection: 0
@@ -83,7 +90,7 @@ describe('GamepadController', () => {
   });
 
   it('la acción mantenida sigue a la acción reasignada, no al botón original', () => {
-    const controller = new GamepadController({
+    const controller = primedController({
       ...DEFAULT_GAMEPAD_BINDINGS,
       togglePlay: 5,
       nextSection: 0
@@ -94,8 +101,34 @@ describe('GamepadController', () => {
     expect(held.manualVelocity).toBe(DEFAULT_MANUAL_SCROLL_SPEED);
   });
 
-  it('al desconectar el mando no dispara acciones pendientes', () => {
+  it('una pulsación en curso al conectar queda suprimida hasta soltarse', () => {
+    // Cubre la pulsación que despierta el mando en Safari y la que cerró un
+    // panel o abrió el guion navegando: no debe disparar su acción al soltarse.
     const controller = new GamepadController({ ...DEFAULT_GAMEPAD_BINDINGS });
+    const pressed = fakePad({ buttons: { 0: { pressed: true, value: 1 } } });
+    controller.update(pressed, 0);
+    const held = controller.update(pressed, HOLD_THRESHOLD_MS + 10);
+    expect(held.manualVelocity).toBe(0);
+    const released = controller.update(fakePad({}), HOLD_THRESHOLD_MS + 100);
+    expect(released.actions).toEqual([]);
+    // La siguiente pulsación ya funciona con normalidad.
+    controller.update(pressed, HOLD_THRESHOLD_MS + 200);
+    const after = controller.update(fakePad({}), HOLD_THRESHOLD_MS + 300);
+    expect(after.actions).toContain('togglePlay');
+  });
+
+  it('reset() vuelve a cebar y descarta la pulsación mantenida', () => {
+    const controller = primedController();
+    const pressed = fakePad({ buttons: { 0: { pressed: true, value: 1 } } });
+    controller.update(pressed, 0);
+    controller.reset();
+    controller.update(pressed, 50);
+    const released = controller.update(fakePad({}), 150);
+    expect(released.actions).toEqual([]);
+  });
+
+  it('al desconectar el mando no dispara acciones pendientes', () => {
+    const controller = primedController();
     controller.update(fakePad({ buttons: { 0: { pressed: true, value: 1 } } }), 0);
     const frame = controller.update(null, 100);
     expect(frame.connected).toBe(false);
@@ -106,8 +139,7 @@ describe('GamepadController', () => {
   });
 
   it('los sticks aportan scroll fino y rápido con zona muerta', () => {
-    const controller = new GamepadController({ ...DEFAULT_GAMEPAD_BINDINGS });
-    controller.update(fakePad({}), 0);
+    const controller = primedController();
     expect(controller.update(fakePad({ axes: [0, 0.1, 0, 0.1] }), 16).manualVelocity).toBe(0);
     const fine = controller.update(fakePad({ axes: [0, 0, 0, 1] }), 32).manualVelocity;
     const fast = controller.update(fakePad({ axes: [0, 1, 0, 0] }), 48).manualVelocity;

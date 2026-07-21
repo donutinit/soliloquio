@@ -7,6 +7,11 @@ import { buildSections, currentSectionIndex, stepSection } from '../../features/
 import { ScrollEngine } from '../../features/prompter/scrollEngine';
 import { GamepadController, getActiveGamepad, type GamepadAction } from '../../features/gamepad/controller';
 import {
+  gamepadIconName,
+  identifyController,
+  type ControllerFamily
+} from '../../features/gamepad/controllerIdentity';
+import {
   FONT_LIMITS,
   MARGIN_LIMITS,
   SPEED_LIMITS,
@@ -121,6 +126,7 @@ function Prompter({
   const [sectionIdx, setSectionIdx] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
   const [gamepadConnected, setGamepadConnected] = useState(false);
+  const [padFamily, setPadFamily] = useState<ControllerFamily>('generic');
   const [storageError, setStorageError] = useState<string | null>(null);
 
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -128,6 +134,8 @@ function Prompter({
   const blockElsRef = useRef<(HTMLElement | null)[]>([]);
   const sectionOffsetsRef = useRef<number[]>([]);
   const sectionIdxRef = useRef(0);
+  const panelRef = useRef<Panel>('none');
+  panelRef.current = panel;
   const gamepadConnectedRef = useRef(false);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -163,6 +171,12 @@ function Prompter({
   useEffect(() => {
     controllerRef.current!.setBindings(settings.controllerBindings);
   }, [settings.controllerBindings]);
+
+  // Al cerrar un panel, descarta la pulsación que lo cerró: su release ya no
+  // debe disparar la acción del lector asignada a ese botón.
+  useEffect(() => {
+    if (panel === 'none') controllerRef.current!.reset();
+  }, [panel]);
 
   const persistSettings = useCallback((): Promise<boolean> => {
     if (!settingsDirtyRef.current) return settingsSaveRef.current;
@@ -417,14 +431,22 @@ function Prompter({
     const loop = (now: number) => {
       scheduled = false;
       const engine = engineRef.current!;
-      const frame = controllerRef.current!.update(getActiveGamepad(), now);
+      const pad = getActiveGamepad();
+      const frame = controllerRef.current!.update(pad, now);
       if (frame.connected !== gamepadConnectedRef.current) {
         gamepadConnectedRef.current = frame.connected;
         setGamepadConnected(frame.connected);
+        setPadFamily(pad ? identifyController(pad.id).family : 'generic');
       }
-      for (const action of frame.actions) applyActionRef.current(action);
-      const direction = Math.sign(frame.manualVelocity) as -1 | 0 | 1;
-      engine.setManual(direction, Math.abs(frame.manualVelocity));
+      // Con un panel abierto, el mando navega el panel (hook global): las
+      // acciones del lector y el scroll manual quedan suspendidos.
+      if (panelRef.current === 'none') {
+        for (const action of frame.actions) applyActionRef.current(action);
+        const direction = Math.sign(frame.manualVelocity) as -1 | 0 | 1;
+        engine.setManual(direction, Math.abs(frame.manualVelocity));
+      } else {
+        engine.setManual(0, 0);
+      }
       const position = engine.tick(now);
       if (contentRef.current && position !== renderedPositionRef.current) {
         contentRef.current.style.transform = `translate3d(0, ${-position}px, 0)`;
@@ -603,7 +625,7 @@ function Prompter({
               aria-label={gamepadConnected ? 'Controller connected' : 'No controller connected'}
               title={gamepadConnected ? 'Controller connected' : 'No controller'}
             >
-              <Icon name="gamepad" />
+              <Icon name={gamepadConnected ? gamepadIconName(padFamily) : 'gamepad'} />
             </span>
             <button
               type="button"

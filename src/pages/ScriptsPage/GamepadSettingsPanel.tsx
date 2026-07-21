@@ -2,6 +2,11 @@ import { useEffect, useState } from 'react';
 import { DEFAULT_GAMEPAD_BINDINGS, type GamepadAction, type GamepadBindings } from '../../types';
 import { getActiveGamepad } from '../../features/gamepad/controller';
 import {
+  gamepadIconName,
+  identifyController,
+  type ControllerFamily
+} from '../../features/gamepad/controllerIdentity';
+import {
   ACTION_GROUPS,
   actionLabel,
   assignBinding,
@@ -11,7 +16,11 @@ import { useModalFocus } from '../../app/useModalFocus';
 import { Icon } from '../../components/Icon';
 import styles from './ScriptsPage.module.css';
 
-type Diagnostics = { buttons: { pressed: boolean; value: number }[]; axes: number[] } | null;
+type Diagnostics = {
+  id: string;
+  buttons: { pressed: boolean; value: number }[];
+  axes: number[];
+} | null;
 
 const LISTEN_POLL_MS = 50;
 const STATUS_POLL_MS = 500;
@@ -30,7 +39,9 @@ export function GamepadSettingsPanel({
 }) {
   const [listening, setListening] = useState<GamepadAction | null>(null);
   const [feedback, setFeedback] = useState('');
-  const [padId, setPadId] = useState<string | null>(null);
+  const [padName, setPadName] = useState<string | null>(null);
+  // Última familia conocida: las etiquetas no vuelven a PlayStation al desconectar.
+  const [family, setFamily] = useState<ControllerFamily>('playstation');
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [diagnostics, setDiagnostics] = useState<Diagnostics>(null);
 
@@ -38,7 +49,13 @@ export function GamepadSettingsPanel({
   useEffect(() => {
     const read = () => {
       const pad = getActiveGamepad();
-      setPadId(pad ? pad.id : null);
+      if (!pad) {
+        setPadName(null);
+        return;
+      }
+      const identity = identifyController(pad.id);
+      setPadName(identity.name);
+      setFamily(identity.family);
     };
     read();
     const interval = setInterval(read, STATUS_POLL_MS);
@@ -57,15 +74,15 @@ export function GamepadSettingsPanel({
       onChange(result.bindings);
       setFeedback(
         result.swappedWith
-          ? `${actionLabel(listening)} is now ${buttonLabel(index)}; ${actionLabel(
+          ? `${actionLabel(listening)} is now ${buttonLabel(index, family)}; ${actionLabel(
               result.swappedWith
-            )} moved to ${buttonLabel(bindings[listening])}.`
-          : `${actionLabel(listening)} is now ${buttonLabel(index)}.`
+            )} moved to ${buttonLabel(bindings[listening], family)}.`
+          : `${actionLabel(listening)} is now ${buttonLabel(index, family)}.`
       );
       setListening(null);
     }, LISTEN_POLL_MS);
     return () => clearInterval(interval);
-  }, [listening, bindings, onChange]);
+  }, [listening, bindings, family, onChange]);
 
   // Modo diagnóstico: estado crudo de botones y ejes.
   useEffect(() => {
@@ -78,6 +95,7 @@ export function GamepadSettingsPanel({
       setDiagnostics(
         pad
           ? {
+              id: pad.id,
               buttons: pad.buttons.map((b) => ({ pressed: b.pressed, value: b.value })),
               axes: [...pad.axes]
             }
@@ -105,6 +123,7 @@ export function GamepadSettingsPanel({
       aria-modal="true"
       aria-labelledby="gamepad-settings-title"
       data-testid="gamepad-settings-panel"
+      data-gamepad-nav-suspend={listening ? 'true' : undefined}
       tabIndex={-1}
     >
       <header className={styles.gamepadHeader}>
@@ -133,12 +152,12 @@ export function GamepadSettingsPanel({
       </header>
 
       <div
-        className={padId ? styles.gamepadStatusOn : styles.gamepadStatusOff}
+        className={padName ? styles.gamepadStatusOn : styles.gamepadStatusOff}
         data-testid="gamepad-settings-status"
         role="status"
       >
-        <Icon name="gamepad" />
-        <span>{padId ?? 'No controller detected. Connect one and press any button.'}</span>
+        <Icon name={padName ? gamepadIconName(family) : 'gamepad'} />
+        <span>{padName ?? 'No controller detected. Connect one and press any button.'}</span>
       </div>
 
       <p className={styles.gamepadHint} aria-live="polite">
@@ -174,7 +193,7 @@ export function GamepadSettingsPanel({
                     {hint && <span className={styles.gamepadActionHint}>{hint}</span>}
                   </span>
                   <span className={styles.gamepadChip} data-testid={`bind-${action}-value`}>
-                    {listening === action ? 'Press…' : buttonLabel(bindings[action])}
+                    {listening === action ? 'Press…' : buttonLabel(bindings[action], family)}
                   </span>
                 </button>
               </li>
@@ -200,6 +219,7 @@ export function GamepadSettingsPanel({
         <div className={styles.gamepadDiagnostics} data-testid="gamepad-diagnostics">
           {diagnostics ? (
             <>
+              <p>Id: {diagnostics.id}</p>
               <p>
                 Buttons:{' '}
                 {diagnostics.buttons

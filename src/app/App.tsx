@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRoute } from './router';
+import { useGamepadNavigation } from './useGamepadNavigation';
 import { ScriptsPage } from '../pages/ScriptsPage/ScriptsPage';
 import { PrompterPage } from '../pages/PrompterPage/PrompterPage';
 import { getSettings, seedSampleScripts } from '../services/database';
@@ -11,6 +12,8 @@ export function App() {
   const [route, navigate] = useRoute();
   const [ready, setReady] = useState(false);
   const [initializationError, setInitializationError] = useState(false);
+
+  useGamepadNavigation(route.page === 'prompter' ? 'prompter' : 'scripts');
 
   useEffect(() => {
     void seedSampleScripts()

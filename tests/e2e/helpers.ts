@@ -22,10 +22,10 @@ export async function prompterOffset(page: Page): Promise<number> {
   });
 }
 
-export const installFakeGamepad = () => {
+export const installFakeGamepad = (padId?: string) => {
   type FakeButton = { pressed: boolean; touched: boolean; value: number };
   const pad = {
-    id: 'Fake DualShock 4',
+    id: padId ?? 'Fake DualShock 4',
     index: 0,
     connected: true,
     mapping: 'standard',

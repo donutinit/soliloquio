@@ -5,6 +5,10 @@ export type IconName =
   | 'download'
   | 'edit'
   | 'gamepad'
+  | 'gamepadNintendo'
+  | 'gamepadPlaystation'
+  | 'gamepadRetro'
+  | 'gamepadXbox'
   | 'help'
   | 'list'
   | 'more'
@@ -37,6 +41,37 @@ const paths: Record<IconName, ReactNode> = {
     <>
       <path d="M7.5 9h-2A3.5 3.5 0 0 0 2 12.5v2A3.5 3.5 0 0 0 5.5 18c1.4 0 2.2-1 3-2h7c.8 1 1.6 2 3 2a3.5 3.5 0 0 0 3.5-3.5v-2A3.5 3.5 0 0 0 18.5 9h-2" />
       <path d="M8 13H5m1.5-1.5v3M16 12h.01M18 14h.01M9 6h6l1.5 3h-9Z" />
+    </>
+  ),
+  // Variantes por familia: mismo cuerpo, distinto detalle facial derecho.
+  gamepadNintendo: (
+    <>
+      <path d="M7.5 9h-2A3.5 3.5 0 0 0 2 12.5v2A3.5 3.5 0 0 0 5.5 18c1.4 0 2.2-1 3-2h7c.8 1 1.6 2 3 2a3.5 3.5 0 0 0 3.5-3.5v-2A3.5 3.5 0 0 0 18.5 9h-2" />
+      <path d="M8 13H5m1.5-1.5v3M9 6h6l1.5 3h-9Z" />
+      <circle cx="15.8" cy="13.8" r="1" />
+      <circle cx="18.4" cy="11.6" r="1" />
+    </>
+  ),
+  gamepadPlaystation: (
+    <>
+      <path d="M7.5 9h-2A3.5 3.5 0 0 0 2 12.5v2A3.5 3.5 0 0 0 5.5 18c1.4 0 2.2-1 3-2h7c.8 1 1.6 2 3 2a3.5 3.5 0 0 0 3.5-3.5v-2A3.5 3.5 0 0 0 18.5 9h-2" />
+      <path d="M8 13H5m1.5-1.5v3M9 6h6l1.5 3h-9Z" />
+      <path d="m15 13 1.7 1.7m0-1.7L15 14.7" />
+      <circle cx="18.6" cy="11.7" r="1" />
+    </>
+  ),
+  gamepadRetro: (
+    <>
+      <rect x="2.5" y="8" width="19" height="9.5" rx="2" />
+      <path d="M8 12.75H5m1.5-1.5v3M11.5 12h1.5" />
+      <path d="M15.7 14h.01M18.5 11.8h.01" />
+    </>
+  ),
+  gamepadXbox: (
+    <>
+      <path d="M7.5 9h-2A3.5 3.5 0 0 0 2 12.5v2A3.5 3.5 0 0 0 5.5 18c1.4 0 2.2-1 3-2h7c.8 1 1.6 2 3 2a3.5 3.5 0 0 0 3.5-3.5v-2A3.5 3.5 0 0 0 18.5 9h-2" />
+      <path d="M8 13H5m1.5-1.5v3M9 6h6l1.5 3h-9Z" />
+      <path d="M17 11h.01M15.4 12.7h.01M18.6 12.7h.01M17 14.4h.01" />
     </>
   ),
   help: (

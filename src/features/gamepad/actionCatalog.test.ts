@@ -16,6 +16,24 @@ describe('buttonLabel', () => {
     expect(buttonLabel(15)).toBe('D-pad Right');
     expect(buttonLabel(25)).toBe('Button 25');
   });
+
+  it('usa la serigrafía de cada familia para el mismo índice físico', () => {
+    expect(buttonLabel(0, 'playstation')).toBe('Cross');
+    expect(buttonLabel(0, 'xbox')).toBe('A');
+    expect(buttonLabel(0, 'nintendo')).toBe('B');
+    expect(buttonLabel(0, '8bitdo')).toBe('B');
+    expect(buttonLabel(4, 'xbox')).toBe('LB');
+    expect(buttonLabel(6, 'nintendo')).toBe('ZL');
+    expect(buttonLabel(9, 'xbox')).toBe('Menu');
+    expect(buttonLabel(9, '8bitdo')).toBe('Start');
+    expect(buttonLabel(13, 'xbox')).toBe('D-pad Down');
+  });
+
+  it('la familia genérica y los índices extra numeran el botón', () => {
+    expect(buttonLabel(0, 'generic')).toBe('Button 0');
+    expect(buttonLabel(17, 'generic')).toBe('Button 17');
+    expect(buttonLabel(25, 'xbox')).toBe('Button 25');
+  });
 });
 
 describe('assignBinding', () => {

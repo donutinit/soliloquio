@@ -1,4 +1,5 @@
 import { GAMEPAD_ACTIONS, type GamepadAction, type GamepadBindings } from '../../types';
+import type { ControllerFamily } from './controllerIdentity';
 
 export type ActionInfo = {
   action: GamepadAction;
@@ -51,30 +52,86 @@ export const ACTION_GROUPS: ActionGroup[] = [
   }
 ];
 
-/** Nombres DualShock del layout estándar del Gamepad API, por índice físico. */
-const STANDARD_BUTTON_LABELS = [
-  'Cross',
-  'Circle',
-  'Square',
-  'Triangle',
-  'L1',
-  'R1',
-  'L2',
-  'R2',
-  'Share',
-  'Options',
-  'L3',
-  'R3',
-  'D-pad Up',
-  'D-pad Down',
-  'D-pad Left',
-  'D-pad Right',
-  'PS',
-  'Touchpad'
-];
+const DPAD_LABELS = ['D-pad Up', 'D-pad Down', 'D-pad Left', 'D-pad Right'];
 
-export function buttonLabel(index: number): string {
-  return STANDARD_BUTTON_LABELS[index] ?? `Button ${index}`;
+/**
+ * Etiquetas por familia para los 18 botones del layout estándar del Gamepad
+ * API, en orden de índice físico. La posición es la misma en todos los mandos;
+ * solo cambia la serigrafía (en Nintendo/8BitDo, A/B y X/Y van cruzadas).
+ */
+const FAMILY_BUTTON_LABELS: Partial<Record<ControllerFamily, string[]>> = {
+  playstation: [
+    'Cross',
+    'Circle',
+    'Square',
+    'Triangle',
+    'L1',
+    'R1',
+    'L2',
+    'R2',
+    'Share',
+    'Options',
+    'L3',
+    'R3',
+    ...DPAD_LABELS,
+    'PS',
+    'Touchpad'
+  ],
+  xbox: [
+    'A',
+    'B',
+    'X',
+    'Y',
+    'LB',
+    'RB',
+    'LT',
+    'RT',
+    'View',
+    'Menu',
+    'LS',
+    'RS',
+    ...DPAD_LABELS,
+    'Xbox',
+    'Share'
+  ],
+  nintendo: [
+    'B',
+    'A',
+    'Y',
+    'X',
+    'L',
+    'R',
+    'ZL',
+    'ZR',
+    'Minus',
+    'Plus',
+    'LS',
+    'RS',
+    ...DPAD_LABELS,
+    'Home',
+    'Capture'
+  ],
+  '8bitdo': [
+    'B',
+    'A',
+    'Y',
+    'X',
+    'L',
+    'R',
+    'L2',
+    'R2',
+    'Select',
+    'Start',
+    'LS',
+    'RS',
+    ...DPAD_LABELS,
+    'Home',
+    'Star'
+  ]
+};
+
+export function buttonLabel(index: number, family: ControllerFamily = 'playstation'): string {
+  return FAMILY_BUTTON_LABELS[family]?.[index] ?? `Button ${index}`;
 }
 
 export type AssignResult = {

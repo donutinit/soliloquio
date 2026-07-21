@@ -16,11 +16,26 @@ async function openGamepadSettings(page: import('@playwright/test').Page): Promi
 
 test('muestra todas las acciones con sus botones por defecto', async ({ page }) => {
   await openGamepadSettings(page);
+  await expect(page.getByTestId('gamepad-settings-status')).toContainText('PlayStation controller');
   await expect(page.getByTestId('bind-togglePlay-value')).toHaveText('Cross');
   await expect(page.getByTestId('bind-nextSection-value')).toHaveText('R1');
   await expect(page.getByTestId('bind-speedUp-value')).toHaveText('R2');
   await expect(page.getByTestId('bind-marginUp-value')).toHaveText('D-pad Right');
   await expect(page.getByTestId('bind-backToScripts-value')).toHaveText('Circle');
+});
+
+test('con un mando Xbox adapta el nombre y la serigrafía de los botones', async ({ page }) => {
+  await page.addInitScript(
+    installFakeGamepad,
+    'Xbox Wireless Controller (STANDARD GAMEPAD Vendor: 045e Product: 0b13)'
+  );
+  await page.goto('/');
+  await openGamepadSettings(page);
+  await expect(page.getByTestId('gamepad-settings-status')).toContainText('Xbox controller');
+  await expect(page.getByTestId('bind-togglePlay-value')).toHaveText('A');
+  await expect(page.getByTestId('bind-nextSection-value')).toHaveText('RB');
+  await expect(page.getByTestId('bind-toggleSections-value')).toHaveText('View');
+  await expect(page.getByTestId('bind-marginUp-value')).toHaveText('D-pad Right');
 });
 
 test('reasignar a un botón ocupado intercambia las dos acciones y persiste', async ({ page }) => {
