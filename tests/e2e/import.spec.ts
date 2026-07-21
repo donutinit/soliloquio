@@ -55,7 +55,7 @@ test('el markdown importado se aplana: headings sí, resto texto plano', async (
   await expect(page.locator('[data-block-type="text"]', { hasText: 'logo del programa' })).toBeVisible();
 });
 
-test('los headings son negrita monospace, a un tercio del texto', async ({ page }) => {
+test('los headings son negrita sans subrayada, a un tercio del texto', async ({ page }) => {
   await page.getByTestId('import-input').setInputFiles([fixture('guion-prueba.md')]);
   await openScriptInPrompter(page, 'guion-prueba');
 
@@ -67,6 +67,7 @@ test('los headings son negrita monospace, a un tercio del texto', async ({ page 
       textSize: parseFloat(getComputedStyle(text).fontSize),
       headingWeight: getComputedStyle(heading).fontWeight,
       headingFamily: getComputedStyle(heading).fontFamily,
+      headingDecoration: getComputedStyle(heading).textDecorationLine,
       headingColor: getComputedStyle(heading).color,
       background: getComputedStyle(document.querySelector('[data-testid="prompter-page"]')!)
         .backgroundColor
@@ -75,7 +76,8 @@ test('los headings son negrita monospace, a un tercio del texto', async ({ page 
   // Un tercio del tamaño del texto de lectura: marcan sección sin robar espacio.
   expect(styles.headingSize).toBeCloseTo(styles.textSize / 3, 0);
   expect(Number(styles.headingWeight)).toBeGreaterThanOrEqual(700);
-  expect(styles.headingFamily.toLowerCase()).toContain('mono');
+  expect(styles.headingFamily.toLowerCase()).toContain('noto sans');
+  expect(styles.headingDecoration).toBe('underline');
   // Prompter en blanco puro sobre negro puro.
   expect(styles.headingColor).toBe('rgb(255, 255, 255)');
   expect(styles.background).toBe('rgb(0, 0, 0)');
