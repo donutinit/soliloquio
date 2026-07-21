@@ -56,9 +56,8 @@ export async function checkForPWAUpdate(): Promise<PWAUpdateResult> {
 
 /**
  * Auto-update: cuando se detecta una versión nueva se aplica de inmediato y la
- * página se recarga sola (la posición de lectura se guarda en `pagehide`, así
- * que no se pierde). La detección ocurre al abrir la app, al volver a primer
- * plano y periódicamente mientras está abierta.
+ * página se recarga sola. La detección ocurre al abrir la app, al volver a
+ * primer plano y periódicamente mientras está abierta.
  */
 export function setupPWA(): void {
   if (setupStarted) return;

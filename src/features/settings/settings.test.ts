@@ -7,7 +7,8 @@ import {
   clampToLimit,
   defaultSettings,
   normalizeBindings,
-  normalizeSettings
+  normalizeSettings,
+  SETTINGS_SCHEMA_VERSION
 } from './settings';
 import { DEFAULT_GAMEPAD_BINDINGS, GAMEPAD_ACTIONS } from '../../types';
 
@@ -29,6 +30,10 @@ describe('clampToLimit', () => {
 });
 
 describe('normalizeSettings', () => {
+  it('uses schema version 3 for controller-guide bindings', () => {
+    expect(SETTINGS_SCHEMA_VERSION).toBe(3);
+  });
+
   it('completa ajustes ausentes con los valores por defecto', () => {
     expect(normalizeSettings(undefined)).toEqual(defaultSettings());
     expect(normalizeSettings({})).toEqual(defaultSettings());
@@ -65,6 +70,35 @@ describe('normalizeSettings', () => {
     });
     expect(normalized.controllerBindings.togglePlay).toBe(9);
     expect(normalized.controllerBindings.toggleSettings).toBe(0);
+  });
+
+  it('migra asignaciones v2 reservando Share para la guía y R3 para secciones', () => {
+    const v2Bindings = {
+      ...DEFAULT_GAMEPAD_BINDINGS,
+      toggleSections: 8
+    } as Record<string, number>;
+    delete v2Bindings.toggleControllerGuide;
+
+    const normalized = normalizeSettings({ controllerBindings: v2Bindings });
+    expect(normalized.controllerBindings.toggleControllerGuide).toBe(8);
+    expect(normalized.controllerBindings.toggleSections).toBe(11);
+    const values = GAMEPAD_ACTIONS.map((action) => normalized.controllerBindings[action]);
+    expect(new Set(values).size).toBe(values.length);
+  });
+
+  it('reserves Share for the guide when a custom v2 mapping used it elsewhere', () => {
+    const v2Bindings = {
+      ...DEFAULT_GAMEPAD_BINDINGS,
+      toggleSettings: 8,
+      toggleSections: 9
+    } as Record<string, number>;
+    delete v2Bindings.toggleControllerGuide;
+
+    const normalized = normalizeSettings({ controllerBindings: v2Bindings });
+    expect(normalized.controllerBindings.toggleControllerGuide).toBe(8);
+    expect(normalized.controllerBindings.toggleSettings).not.toBe(8);
+    const values = GAMEPAD_ACTIONS.map((action) => normalized.controllerBindings[action]);
+    expect(new Set(values).size).toBe(values.length);
   });
 
   it('resuelve duplicados de forma determinista sin dejar acciones repetidas', () => {

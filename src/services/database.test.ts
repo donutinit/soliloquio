@@ -1,4 +1,5 @@
 import 'fake-indexeddb/auto';
+import Dexie from 'dexie';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   TeleprompterDB,
@@ -9,27 +10,43 @@ import {
   getSettings,
   listScripts,
   resetToFactoryDefaults,
-  savePosition,
   saveSettings,
   restoreBackup,
   seedSampleScripts,
   updateScript
 } from './database';
 import { defaultSettings } from '../features/settings/settings';
+import type { Script } from '../types';
 
 let counter = 0;
-const dbs: TeleprompterDB[] = [];
+const dbs: Dexie[] = [];
+
+type UntrustedScriptRecord = {
+  id: string;
+  title?: unknown;
+  content?: unknown;
+  format?: unknown;
+  createdAt?: unknown;
+  updatedAt?: unknown;
+  lastPosition?: unknown;
+  recoveryData?: unknown;
+};
+
+function freshDbName(): string {
+  return `test-${Date.now()}-${counter++}`;
+}
 
 function freshDb(): TeleprompterDB {
-  const db = new TeleprompterDB(`test-${Date.now()}-${counter++}`);
+  const db = new TeleprompterDB(freshDbName());
   dbs.push(db);
   return db;
 }
 
 afterEach(async () => {
-  for (const db of dbs.splice(0)) {
-    await db.delete();
-  }
+  const openDatabases = dbs.splice(0);
+  const names = new Set(openDatabases.map((database) => database.name));
+  for (const database of openDatabases) database.close();
+  for (const name of names) await Dexie.delete(name);
 });
 
 describe('guiones', () => {
@@ -47,24 +64,119 @@ describe('guiones', () => {
     expect(await listScripts(db)).toHaveLength(0);
   });
 
-  it('duplica un guion con título «(copia)» y sin posición previa', async () => {
+  it('duplica un guion con título «(copy)» y solo campos canónicos', async () => {
     const db = freshDb();
     const original = await createScript({ title: 'Base', content: 'x', format: 'text' }, db);
-    await savePosition(original.id, 123, db);
+    await db.table<UntrustedScriptRecord, string>('scripts').put({
+      ...original,
+      lastPosition: 123,
+      recoveryData: { preserved: true }
+    });
     const copy = await duplicateScript(original.id, db);
     expect(copy?.title).toBe('Base (copy)');
     expect(copy?.content).toBe('x');
-    expect(copy?.lastPosition).toBeUndefined();
+    expect(copy).not.toHaveProperty('lastPosition');
+    expect(copy).not.toHaveProperty('recoveryData');
     expect(copy?.id).not.toBe(original.id);
   });
 
-  it('persiste la posición de lectura sin tocar updatedAt', async () => {
+  it('normaliza registros no confiables sin ocultar los que carecen de updatedAt', async () => {
     const db = freshDb();
-    const script = await createScript({ title: 'A', content: 'b', format: 'text' }, db);
-    await savePosition(script.id, 456.5, db);
-    const loaded = await getScript(script.id, db);
-    expect(loaded?.lastPosition).toBe(456.5);
-    expect(loaded?.updatedAt).toBe(script.updatedAt);
+    const current = await createScript({ title: 'Current', content: 'ok', format: 'text' }, db);
+    const rawTable = db.table<UntrustedScriptRecord, string>('scripts');
+    await rawTable.put({
+      id: 'recovered',
+      title: 42,
+      content: '# Still recoverable',
+      format: 'unknown',
+      createdAt: 'yesterday',
+      lastPosition: 456.5,
+      recoveryData: { originalTitle: 42 }
+    });
+
+    expect(await getScript('recovered', db)).toEqual({
+      id: 'recovered',
+      title: 'Untitled',
+      content: '# Still recoverable',
+      format: 'markdown',
+      createdAt: 0,
+      updatedAt: 0
+    });
+    expect((await listScripts(db)).map((script) => script.id)).toEqual([
+      current.id,
+      'recovered'
+    ]);
+
+    // Normalizar la lectura no destruye información que pudiera recuperarse manualmente.
+    expect(await rawTable.get('recovered')).toMatchObject({
+      title: 42,
+      lastPosition: 456.5,
+      recoveryData: { originalTitle: 42 }
+    });
+  });
+
+  it('normaliza fechas fuera del rango de Date y omite identificadores vacíos', async () => {
+    const db = freshDb();
+    const rawTable = db.table<UntrustedScriptRecord, string>('scripts');
+    await rawTable.bulkPut([
+      {
+        id: 'invalid-date',
+        title: 'Still readable',
+        content: 'Content',
+        format: 'text',
+        createdAt: 10,
+        updatedAt: Number.MAX_VALUE
+      },
+      {
+        id: '   ',
+        title: 'Cannot be routed',
+        content: 'Content',
+        format: 'text',
+        createdAt: 20,
+        updatedAt: 20
+      }
+    ]);
+
+    expect(await getScript('invalid-date', db)).toMatchObject({
+      createdAt: 10,
+      updatedAt: 10
+    });
+    expect((await listScripts(db)).map((script) => script.id)).toEqual(['invalid-date']);
+  });
+
+  it('migra la base v1 retirando lastPosition sin alterar el resto del guion', async () => {
+    const name = freshDbName();
+    const legacy = new Dexie(name);
+    dbs.push(legacy);
+    legacy.version(1).stores({ scripts: 'id, updatedAt, title', kv: 'key' });
+    const legacyScript: Script & { lastPosition?: number; recoveryData: { keep: string } } = {
+      id: 'legacy',
+      title: 'Legacy',
+      content: 'Do not lose this',
+      format: 'text',
+      createdAt: 10,
+      updatedAt: 20,
+      lastPosition: 999,
+      recoveryData: { keep: 'yes' }
+    };
+    await legacy.table<typeof legacyScript, string>('scripts').put(legacyScript);
+    legacy.close();
+
+    const migrated = new TeleprompterDB(name);
+    dbs.push(migrated);
+    expect(await getScript('legacy', migrated)).toEqual({
+      id: 'legacy',
+      title: 'Legacy',
+      content: 'Do not lose this',
+      format: 'text',
+      createdAt: 10,
+      updatedAt: 20
+    });
+    const stored = await migrated
+      .table<typeof legacyScript, string>('scripts')
+      .get('legacy');
+    expect(stored).not.toHaveProperty('lastPosition');
+    expect(stored?.recoveryData).toEqual({ keep: 'yes' });
   });
 });
 
@@ -84,19 +196,23 @@ describe('backup restore', () => {
   it('merges scripts and restores settings in one transaction', async () => {
     const database = freshDb();
     const existing = await createScript({ title: 'Existing', content: 'x', format: 'text' }, database);
-    const restored = {
+    const restored: Script & { lastPosition: number } = {
       id: 'restored',
       title: 'Restored',
       content: '# Hello',
-      format: 'markdown' as const,
+      format: 'markdown',
       createdAt: 1,
-      updatedAt: 2
+      updatedAt: 2,
+      lastPosition: 300
     };
     await restoreBackup([restored], { ...defaultSettings(), speed: 95 }, database);
     expect((await listScripts(database)).map((script) => script.id)).toEqual(
       expect.arrayContaining([existing.id, restored.id])
     );
     expect((await getSettings(database)).speed).toBe(95);
+    expect(
+      await database.table<UntrustedScriptRecord, string>('scripts').get(restored.id)
+    ).not.toHaveProperty('lastPosition');
   });
 });
 

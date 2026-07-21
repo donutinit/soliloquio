@@ -7,7 +7,6 @@ export type Script = {
   format: ScriptFormat;
   createdAt: number;
   updatedAt: number;
-  lastPosition?: number;
 };
 
 export type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6;
@@ -56,6 +55,7 @@ export type GamepadAction =
   | 'marginDown'
   | 'marginUp'
   | 'toggleSettings'
+  | 'toggleControllerGuide'
   | 'toggleSections';
 
 /** Orden canónico: también decide la prioridad al resolver duplicados. */
@@ -73,6 +73,7 @@ export const GAMEPAD_ACTIONS: readonly GamepadAction[] = [
   'marginDown',
   'marginUp',
   'toggleSettings',
+  'toggleControllerGuide',
   'toggleSections'
 ];
 
@@ -93,7 +94,8 @@ export const DEFAULT_GAMEPAD_BINDINGS: GamepadBindings = {
   marginDown: DEFAULT_DUALSHOCK_MAPPING.dpadLeft,
   marginUp: DEFAULT_DUALSHOCK_MAPPING.dpadRight,
   toggleSettings: DEFAULT_DUALSHOCK_MAPPING.options,
-  toggleSections: DEFAULT_DUALSHOCK_MAPPING.share
+  toggleControllerGuide: DEFAULT_DUALSHOCK_MAPPING.share,
+  toggleSections: DEFAULT_DUALSHOCK_MAPPING.rightStickButton
 };
 
 export type PrompterSettings = {

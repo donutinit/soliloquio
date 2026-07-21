@@ -26,6 +26,10 @@ describe('buttonLabel', () => {
     expect(buttonLabel(6, 'nintendo')).toBe('ZL');
     expect(buttonLabel(9, 'xbox')).toBe('Menu');
     expect(buttonLabel(9, '8bitdo')).toBe('Start');
+    expect(buttonLabel(8, 'playstation')).toBe('Share / Create');
+    expect(buttonLabel(8, 'xbox')).toBe('View');
+    expect(buttonLabel(8, 'nintendo')).toBe('Minus');
+    expect(buttonLabel(8, '8bitdo')).toBe('Select');
     expect(buttonLabel(13, 'xbox')).toBe('D-pad Down');
   });
 
@@ -71,5 +75,6 @@ describe('assignBinding', () => {
 describe('actionLabel', () => {
   it('devuelve la etiqueta visible de una acción', () => {
     expect(actionLabel('togglePlay')).toBe('Play / Pause');
+    expect(actionLabel('toggleControllerGuide')).toBe('Controller guide');
   });
 });

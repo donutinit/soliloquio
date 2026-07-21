@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
 import type { PrompterSettings, Script } from '../../types';
-import { getScript, getSettings, savePosition, saveSettings } from '../../services/database';
+import { getScript, getSettings, saveSettings } from '../../services/database';
+import { applyKeepScreenAwake } from '../../services/keepAwake';
 import { scriptToBlocks } from '../../features/markdown/flatten';
 import { buildSections, currentSectionIndex, stepSection } from '../../features/sections/sections';
 import { ScrollEngine } from '../../features/prompter/scrollEngine';
@@ -19,6 +20,7 @@ import {
 } from '../../features/settings/settings';
 import { SettingsPanel } from './SettingsPanel';
 import { SectionNav } from './SectionNav';
+import { ControllerGuide } from './ControllerGuide';
 import { editorHash } from '../../app/router';
 import { Icon } from '../../components/Icon';
 import styles from './PrompterPage.module.css';
@@ -26,10 +28,9 @@ import styles from './PrompterPage.module.css';
 /** Línea de lectura: fracción del alto del viewport donde se considera que se lee. */
 const READING_LINE_FRACTION = 0.4;
 const TOAST_MS = 1500;
-const POSITION_SAVE_INTERVAL_MS = 2000;
 const IDLE_POLL_INTERVAL_MS = 250;
 
-type Panel = 'none' | 'settings' | 'sections';
+type Panel = 'none' | 'settings' | 'sections' | 'controllerGuide';
 
 function formatDuration(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return '--:--';
@@ -126,7 +127,7 @@ function Prompter({
   const [sectionIdx, setSectionIdx] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
   const [gamepadConnected, setGamepadConnected] = useState(false);
-  const [padFamily, setPadFamily] = useState<ControllerFamily>('generic');
+  const [padFamily, setPadFamily] = useState<ControllerFamily>('playstation');
   const [storageError, setStorageError] = useState<string | null>(null);
 
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -137,11 +138,11 @@ function Prompter({
   const panelRef = useRef<Panel>('none');
   panelRef.current = panel;
   const gamepadConnectedRef = useRef(false);
+  const padIdRef = useRef<string | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const countdownRef = useRef<number | null>(null);
   const hasStartedRef = useRef(false);
-  const lastSavedPositionRef = useRef(script.lastPosition ?? 0);
   const dragRef = useRef<{ y: number; moved: boolean; startedAt: number } | null>(null);
   const settingsDirtyRef = useRef(false);
   const settingsSaveRef = useRef<Promise<boolean>>(Promise.resolve(true));
@@ -151,12 +152,13 @@ function Prompter({
   const lastTimeDisplayRef = useRef('');
   const renderedPositionRef = useRef(Number.NaN);
   const exitingRef = useRef(false);
+  const manualWakeActiveRef = useRef(false);
 
   const engineRef = useRef<ScrollEngine | null>(null);
   if (!engineRef.current) {
     const engine = new ScrollEngine();
     engine.state.baseSpeed = initialSettings.speed;
-    engine.state.position = script.lastPosition ?? 0;
+    engine.state.position = 0;
     engineRef.current = engine;
   }
   const controllerRef = useRef<GamepadController | null>(null);
@@ -253,6 +255,10 @@ function Prompter({
   }, [clearCountdown]);
 
   const togglePlay = useCallback(() => {
+    // A gamepad action does not emit a DOM click, so explicitly retry a wake
+    // lock here after a transient browser denial or an iOS lifecycle release.
+    applyKeepScreenAwake(settingsRef.current.keepScreenAwake);
+
     if (countdownRef.current !== null) {
       clearCountdown();
       return;
@@ -280,6 +286,7 @@ function Prompter({
         if (current === null) return;
         if (current <= 1) {
           clearCountdown();
+          applyKeepScreenAwake(settingsRef.current.keepScreenAwake);
           hasStartedRef.current = true;
           engine.state.playing = true;
           setPlaying(true);
@@ -308,19 +315,19 @@ function Prompter({
   const exitToScripts = useCallback(() => {
     if (exitingRef.current) return;
     exitingRef.current = true;
-    void Promise.allSettled([
-      savePosition(script.id, engineRef.current!.state.position),
-      persistSettings()
-    ]).finally(() => navigate('#/'));
-  }, [script.id, navigate, persistSettings]);
+    void persistSettings().then((saved) => {
+      if (saved) navigate('#/');
+      else exitingRef.current = false;
+    });
+  }, [navigate, persistSettings]);
 
   const editScript = useCallback(() => {
     if (exitingRef.current) return;
     exitingRef.current = true;
-    void Promise.allSettled([
-      savePosition(script.id, engineRef.current!.state.position),
-      persistSettings()
-    ]).finally(() => navigate(editorHash(script.id)));
+    void persistSettings().then((saved) => {
+      if (saved) navigate(editorHash(script.id));
+      else exitingRef.current = false;
+    });
   }, [navigate, persistSettings, script.id]);
 
   const updateSetting = useCallback((key: 'speed' | 'fontSize' | 'horizontalMargin', value: number) => {
@@ -372,6 +379,9 @@ function Prompter({
           break;
         case 'toggleSettings':
           setPanel((p) => (p === 'settings' ? 'none' : 'settings'));
+          break;
+        case 'toggleControllerGuide':
+          setPanel((p) => (p === 'controllerGuide' ? 'none' : 'controllerGuide'));
           break;
         case 'toggleSections':
           setPanel((p) => (p === 'sections' ? 'none' : 'sections'));
@@ -433,11 +443,20 @@ function Prompter({
       const engine = engineRef.current!;
       const pad = getActiveGamepad();
       const frame = controllerRef.current!.update(pad, now);
+      const padId = pad?.id ?? null;
+      if (padId !== padIdRef.current) {
+        padIdRef.current = padId;
+        if (pad) setPadFamily(identifyController(pad.id).family);
+      }
       if (frame.connected !== gamepadConnectedRef.current) {
         gamepadConnectedRef.current = frame.connected;
         setGamepadConnected(frame.connected);
-        setPadFamily(pad ? identifyController(pad.id).family : 'generic');
       }
+      const manualWakeActive = panelRef.current === 'none' && Math.abs(frame.manualVelocity) > 0;
+      if (manualWakeActive && !manualWakeActiveRef.current) {
+        applyKeepScreenAwake(settingsRef.current.keepScreenAwake);
+      }
+      manualWakeActiveRef.current = manualWakeActive;
       // Con un panel abierto, el mando navega el panel (hook global): las
       // acciones del lector y el scroll manual quedan suspendidos.
       if (panelRef.current === 'none') {
@@ -489,28 +508,10 @@ function Prompter({
     };
   }, [showSectionToast]);
 
-  // Guardado periódico de la posición + al salir.
-  useEffect(() => {
-    const save = () => {
-      const position = engineRef.current!.state.position;
-      if (Math.abs(position - lastSavedPositionRef.current) > 1) {
-        lastSavedPositionRef.current = position;
-        void savePosition(script.id, position);
-      }
-    };
-    const interval = setInterval(save, POSITION_SAVE_INTERVAL_MS);
-    window.addEventListener('pagehide', save);
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('pagehide', save);
-      save();
-    };
-  }, [script.id]);
-
-
   // Scroll manual táctil + tap para mostrar/ocultar controles.
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (panel !== 'none') return;
+    applyKeepScreenAwake(settingsRef.current.keepScreenAwake);
     dragRef.current = { y: e.clientY, moved: false, startedAt: performance.now() };
     e.currentTarget.setPointerCapture(e.pointerId);
     wakeLoopRef.current();
@@ -601,9 +602,8 @@ function Prompter({
         </div>
       )}
 
-      {controlsVisible && (
-        <>
-          <header className={styles.topBar}>
+      {controlsVisible && !playing && (
+          <header className={styles.topBar} data-testid="top-controls">
             <button
               type="button"
               data-testid="back-to-scripts"
@@ -617,16 +617,20 @@ function Prompter({
             <span className={styles.sectionIndicator} data-testid="section-indicator">
               {sectionIdx + 1} / {sections.length}
             </span>
-            <span
+            <span className={styles.visuallyHidden} role="status">
+              {gamepadConnected ? 'Controller connected' : 'No controller connected'}
+            </span>
+            <button
+              type="button"
               className={gamepadConnected ? styles.padOn : styles.padOff}
               data-testid="gamepad-status"
               data-connected={gamepadConnected}
-              role="status"
               aria-label={gamepadConnected ? 'Controller connected' : 'No controller connected'}
               title={gamepadConnected ? 'Controller connected' : 'No controller'}
+              onClick={() => setPanel('controllerGuide')}
             >
               <Icon name={gamepadConnected ? gamepadIconName(padFamily) : 'gamepad'} />
-            </span>
+            </button>
             <button
               type="button"
               className={styles.iconButton}
@@ -637,7 +641,9 @@ function Prompter({
               <Icon name="edit" />
             </button>
           </header>
+      )}
 
+      {controlsVisible && (
           <footer className={styles.bottomBar} data-testid="bottom-controls">
             <div className={styles.controlMetaRow}>
               {!gamepadConnected && (
@@ -727,7 +733,6 @@ function Prompter({
               </button>
             </div>
           </footer>
-        </>
       )}
 
       {panel === 'settings' && (
@@ -745,6 +750,14 @@ function Prompter({
             jumpToSection(idx);
             setPanel('none');
           }}
+          onClose={() => setPanel('none')}
+        />
+      )}
+      {panel === 'controllerGuide' && (
+        <ControllerGuide
+          bindings={settings.controllerBindings}
+          family={padFamily}
+          connected={gamepadConnected}
           onClose={() => setPanel('none')}
         />
       )}

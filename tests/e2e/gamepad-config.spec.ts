@@ -34,7 +34,8 @@ test('con un mando Xbox adapta el nombre y la serigrafía de los botones', async
   await expect(page.getByTestId('gamepad-settings-status')).toContainText('Xbox controller');
   await expect(page.getByTestId('bind-togglePlay-value')).toHaveText('A');
   await expect(page.getByTestId('bind-nextSection-value')).toHaveText('RB');
-  await expect(page.getByTestId('bind-toggleSections-value')).toHaveText('View');
+  await expect(page.getByTestId('bind-toggleControllerGuide-value')).toHaveText('View');
+  await expect(page.getByTestId('bind-toggleSections-value')).toHaveText('RS');
   await expect(page.getByTestId('bind-marginUp-value')).toHaveText('D-pad Right');
 });
 

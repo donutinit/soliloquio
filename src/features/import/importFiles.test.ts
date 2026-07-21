@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   formatFromFileName,
   isSupportedScriptFile,
+  MAX_SCRIPT_IMPORT_FILES,
+  MAX_SCRIPT_IMPORT_FILE_BYTES,
+  MAX_SCRIPT_IMPORT_TOTAL_BYTES,
   readImportedFiles,
   stripFrontmatter,
   titleFromFileName
@@ -97,8 +100,106 @@ describe('readImportedFiles', () => {
     expect(outcomes[1]).toEqual({
       ok: false,
       fileName: 'malo.txt',
+      code: 'read-failed',
       error: 'The file could not be read'
     });
+  });
+
+  it('lee secuencialmente para acotar el pico de memoria', async () => {
+    const started: string[] = [];
+    let finishFirst = (content: string): void => {
+      throw new Error(`The first file did not start reading: ${content}`);
+    };
+    const first = new File(['uno'], 'uno.txt', { type: 'text/plain' });
+    const second = new File(['dos'], 'dos.txt', { type: 'text/plain' });
+    Object.defineProperty(first, 'text', {
+      value: () => {
+        started.push('uno');
+        return new Promise<string>((resolve) => {
+          finishFirst = resolve;
+        });
+      }
+    });
+    Object.defineProperty(second, 'text', {
+      value: () => {
+        started.push('dos');
+        return Promise.resolve('dos');
+      }
+    });
+
+    const reading = readImportedFiles([first, second]);
+    expect(started).toEqual(['uno']);
+    finishFirst('uno');
+
+    expect((await reading).map((outcome) => outcome.ok)).toEqual([true, true]);
+    expect(started).toEqual(['uno', 'dos']);
+  });
+
+  it('rechaza un archivo demasiado grande antes de leerlo', async () => {
+    let readAttempted = false;
+    const file = new File(['small fixture'], 'huge.md', { type: 'text/markdown' });
+    Object.defineProperties(file, {
+      size: { value: MAX_SCRIPT_IMPORT_FILE_BYTES + 1 },
+      text: {
+        value: () => {
+          readAttempted = true;
+          return Promise.resolve('content');
+        }
+      }
+    });
+
+    expect(await readImportedFiles([file])).toEqual([
+      {
+        ok: false,
+        fileName: 'huge.md',
+        code: 'file-too-large',
+        error: 'Script files must be 5 MB or smaller'
+      }
+    ]);
+    expect(readAttempted).toBe(false);
+  });
+
+  it('limita el tamaño acumulado aunque cada archivo individual sea válido', async () => {
+    const fileSize = MAX_SCRIPT_IMPORT_FILE_BYTES;
+    const files = Array.from({ length: MAX_SCRIPT_IMPORT_TOTAL_BYTES / fileSize + 1 }, (_, index) => {
+      const file = new File(['x'], `${index}.txt`, { type: 'text/plain' });
+      Object.defineProperty(file, 'size', { value: fileSize });
+      return file;
+    });
+
+    const outcomes = await readImportedFiles(files);
+    expect(outcomes.slice(0, -1).every((outcome) => outcome.ok)).toBe(true);
+    expect(outcomes.at(-1)).toMatchObject({ ok: false, code: 'batch-too-large' });
+  });
+
+  it('devuelve un resultado claro para cada archivo que excede el máximo del lote', async () => {
+    const files = Array.from(
+      { length: MAX_SCRIPT_IMPORT_FILES + 2 },
+      (_, index) => new File([''], `${index}.txt`, { type: 'text/plain' })
+    );
+    const outcomes = await readImportedFiles(files);
+
+    expect(outcomes).toHaveLength(files.length);
+    expect(outcomes[MAX_SCRIPT_IMPORT_FILES]).toMatchObject({
+      ok: false,
+      code: 'too-many-files'
+    });
+    expect(outcomes[MAX_SCRIPT_IMPORT_FILES + 1]).toMatchObject({
+      ok: false,
+      code: 'too-many-files'
+    });
+  });
+
+  it('does not let unsupported files consume the script-file allowance', async () => {
+    const unsupported = Array.from(
+      { length: MAX_SCRIPT_IMPORT_FILES },
+      (_, index) => new File([''], `${index}.png`, { type: 'image/png' })
+    );
+    const valid = new File(['kept'], 'kept.txt', { type: 'text/plain' });
+    const outcomes = await readImportedFiles([...unsupported, valid]);
+
+    expect(outcomes.slice(0, -1).every((outcome) => !outcome.ok)).toBe(true);
+    expect(outcomes.at(-1)).toMatchObject({ ok: true, fileName: 'kept.txt' });
   });
 
   it('rejects unsupported files selected by an unfiltered native picker', async () => {
@@ -108,6 +209,7 @@ describe('readImportedFiles', () => {
     expect(outcome).toEqual({
       ok: false,
       fileName: 'photo.png',
+      code: 'unsupported-type',
       error: 'Choose a Markdown (.md, .markdown), plain-text (.txt), or backup (.json) file'
     });
   });

@@ -15,7 +15,7 @@ This project is maintained without Node or npm on the development host:
 - **Lockfile:** regenerate `package-lock.json` with the manual `lockfile.yml` workflow, download
   its artifact, and commit the result.
 - If Docker is available elsewhere, an optional local check is:
-  `docker run --rm -it -v "$PWD":/app -w /app node:22-alpine sh -c "npm ci && npm test -- --run"`
+  `docker run --rm -it -v "$PWD":/app -w /app node:24-alpine sh -c "npm ci && npm test -- --run"`
 
 ### Project structure
 
@@ -45,6 +45,8 @@ scripts/          PWA icon generation and shaolin deployment
 - Import `.md`, `.markdown`, `.txt`, or a Teleprompter `.json` backup.
 - The import control is a directly tappable native file picker for reliable use in installed iOS
   web apps; file extensions are validated safely after selection.
+- A selection can contain up to 50 script files, with a 5 MB limit per script and a 20 MB
+  combined limit. Teleprompter JSON backups have a separate 25 MB limit.
 - Markdown headings create navigable sections. Plain-text scripts can be converted to Markdown
   from their options menu.
 - Export one script from its options menu or create a complete JSON backup from the download
@@ -58,6 +60,9 @@ home-screen PWA is generally more resilient.
 ### Reading controls
 
 - Press **START** to begin automatic scrolling and **PAUSE** to stop.
+- Automatic scrolling hides the script header until playback pauses or reaches the end; the
+  playback controls remain available.
+- Scripts always open at the beginning; reading position is not stored between sessions.
 - Set an optional 0–10 second start countdown from App Settings. It is off by default and does
   not run when resuming from pause.
 - Drag the text for manual scrolling.
@@ -85,8 +90,8 @@ fall back to numbered buttons.
 
 A connected controller can drive the whole app: the d-pad or left stick moves the focus, the
 south button (Cross/A) activates the focused control, and the east button (Circle/B) closes
-the open panel. While a prompter panel (Settings or Sections) is open, the controller
-navigates that panel instead of triggering reader actions; sliders adjust with d-pad
+the open panel. While a prompter panel (Settings, Sections, or Controller Guide) is open, the
+controller navigates that panel instead of triggering reader actions; sliders adjust with d-pad
 left/right. These navigation buttons are fixed. On iOS, opening the file import picker still
 requires a direct tap.
 
@@ -107,8 +112,9 @@ Configure**: tap an action, then press the button you want for it. The default l
 | D-pad left/right | Decrease/increase margins | Repeat |
 | Right stick Y | Fine scroll | — |
 | Left stick Y | Fast scroll | — |
-| Options | Settings | Same action on release |
-| Share | Section browser | Same action on release |
+| Options / Menu / Plus / Start | Settings | Same action on release |
+| Share / Create / View / Minus / Select | Controller guide | Same action on release |
+| R3 / RS | Section browser | Same action on release |
 
 Hold behaviors (manual scrolling, step repeats) follow the action to its assigned button; stick
 axes always scroll. Gamepad button ordering can vary by browser — the panel's **Diagnostics**
@@ -125,9 +131,9 @@ active actions remain unique, and **Reset** restores the default layout.
 ## Container image
 
 CI publishes a multi-architecture image for `linux/amd64` and `linux/arm64` to
-`ghcr.io/donutinit/teleprompter`. Images receive `latest`, immutable `sha-<commit>`, and semantic
-version tags. The build uses `node:22-alpine` and serves only the final `dist/` directory from
-`caddy:2-alpine`.
+`ghcr.io/donutinit/teleprompter`. Images receive `latest`, commit-addressed `sha-<commit>`, and
+semantic version tags. The build uses `node:24-alpine` and serves only the final `dist/`
+directory from `caddy:2-alpine`.
 
 The document, manifest, and service worker use `no-cache`; hashed assets are immutable. The image
 package must remain public so deployment can pull it anonymously.
@@ -135,7 +141,7 @@ package must remain public so deployment can pull it anonymously.
 ## Deployment to `shaolin`
 
 The server only runs the final image. It never builds or clones the repository. Deploy an
-immutable SHA that has passed CI with:
+image pinned to the full-commit SHA tag whose exact CI run has passed with:
 
 ```bash
 ./scripts/deploy-shaolin.sh

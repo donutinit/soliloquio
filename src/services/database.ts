@@ -4,6 +4,9 @@ import { defaultSettings, normalizeSettings } from '../features/settings/setting
 import { SAMPLE_SCRIPTS } from '../features/scripts/sampleScripts';
 
 type KvEntry = { key: string; value: unknown };
+type LegacyScript = Script & { lastPosition?: unknown };
+
+const SCRIPT_STORE_SCHEMA = 'id, updatedAt, title';
 
 export class TeleprompterDB extends Dexie {
   scripts!: EntityTable<Script, 'id'>;
@@ -13,9 +16,22 @@ export class TeleprompterDB extends Dexie {
     super(name);
     // Migraciones: añadir aquí nuevas versiones con upgrade() sin borrar datos.
     this.version(1).stores({
-      scripts: 'id, updatedAt, title',
+      scripts: SCRIPT_STORE_SCHEMA,
       kv: 'key'
     });
+    this.version(2)
+      .stores({
+        scripts: SCRIPT_STORE_SCHEMA,
+        kv: 'key'
+      })
+      .upgrade((transaction) =>
+        transaction
+          .table<LegacyScript, string>('scripts')
+          .toCollection()
+          .modify((script) => {
+            delete script.lastPosition;
+          })
+      );
   }
 }
 
@@ -23,6 +39,43 @@ export const db = new TeleprompterDB();
 
 function newId(): string {
   return crypto.randomUUID();
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function validTimestamp(value: unknown): number | undefined {
+  if (
+    typeof value !== 'number' ||
+    value < 0 ||
+    !Number.isFinite(new Date(value).getTime())
+  ) {
+    return undefined;
+  }
+  return value;
+}
+
+/**
+ * Convierte datos persistidos no confiables a la forma pública de Script.
+ * La normalización de lectura no reescribe el registro fuente: un valor
+ * inesperado sigue disponible en IndexedDB para una recuperación posterior.
+ */
+function normalizeScript(value: unknown): Script | undefined {
+  if (!isRecord(value) || typeof value.id !== 'string' || value.id.trim() === '') return undefined;
+
+  const rawCreatedAt = validTimestamp(value.createdAt);
+  const rawUpdatedAt = validTimestamp(value.updatedAt);
+  const createdAt = rawCreatedAt ?? rawUpdatedAt ?? 0;
+
+  return {
+    id: value.id,
+    title: typeof value.title === 'string' ? value.title : 'Untitled',
+    content: typeof value.content === 'string' ? value.content : '',
+    format: value.format === 'text' ? 'text' : 'markdown',
+    createdAt,
+    updatedAt: rawUpdatedAt ?? createdAt
+  };
 }
 
 function factoryScripts(now = Date.now()): Script[] {
@@ -35,14 +88,26 @@ function factoryScripts(now = Date.now()): Script[] {
 }
 
 export async function listScripts(database: TeleprompterDB = db): Promise<Script[]> {
-  return database.scripts.orderBy('updatedAt').reverse().toArray();
+  const scripts: Script[] = [];
+  // `orderBy('updatedAt')` omite silenciosamente registros sin ese índice.
+  // Recorremos toda la tabla para poder recuperar también datos antiguos o dañados.
+  for (const stored of await database.scripts.toArray()) {
+    const script = normalizeScript(stored);
+    if (script) scripts.push(script);
+  }
+  return scripts.sort(
+    (left, right) =>
+      right.updatedAt - left.updatedAt ||
+      right.createdAt - left.createdAt ||
+      (left.id < right.id ? -1 : left.id > right.id ? 1 : 0)
+  );
 }
 
 export async function getScript(
   id: string,
   database: TeleprompterDB = db
 ): Promise<Script | undefined> {
-  return database.scripts.get(id);
+  return normalizeScript(await database.scripts.get(id));
 }
 
 export async function createScript(
@@ -63,15 +128,6 @@ export async function updateScript(
   await database.scripts.update(id, { ...changes, updatedAt: Date.now() });
 }
 
-/** Guarda la posición de lectura sin tocar updatedAt. */
-export async function savePosition(
-  id: string,
-  lastPosition: number,
-  database: TeleprompterDB = db
-): Promise<void> {
-  await database.scripts.update(id, { lastPosition });
-}
-
 export async function deleteScript(id: string, database: TeleprompterDB = db): Promise<void> {
   await database.scripts.delete(id);
 }
@@ -80,16 +136,16 @@ export async function duplicateScript(
   id: string,
   database: TeleprompterDB = db
 ): Promise<Script | undefined> {
-  const original = await database.scripts.get(id);
+  const original = normalizeScript(await database.scripts.get(id));
   if (!original) return undefined;
   const now = Date.now();
   const copy: Script = {
-    ...original,
     id: newId(),
     title: `${original.title} (copy)`,
+    content: original.content,
+    format: original.format,
     createdAt: now,
-    updatedAt: now,
-    lastPosition: undefined
+    updatedAt: now
   };
   await database.scripts.add(copy);
   return copy;
@@ -113,8 +169,15 @@ export async function restoreBackup(
   settings: PrompterSettings,
   database: TeleprompterDB = db
 ): Promise<void> {
+  const normalizedScripts: Script[] = [];
+  for (const script of scripts) {
+    const normalized = normalizeScript(script);
+    if (!normalized) throw new Error('The backup contains invalid scripts.');
+    normalizedScripts.push(normalized);
+  }
+
   await database.transaction('rw', database.scripts, database.kv, async () => {
-    await database.scripts.bulkPut(scripts);
+    await database.scripts.bulkPut(normalizedScripts);
     await database.kv.put({ key: 'settings', value: normalizeSettings(settings) });
     await database.kv.put({ key: 'seeded', value: true });
   });

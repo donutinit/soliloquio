@@ -21,6 +21,28 @@ describe('Teleprompter backups', () => {
     expect(parseBackup(JSON.stringify(backup))).toEqual(backup);
   });
 
+  it('accepts legacy and unknown script fields but returns only canonical data', () => {
+    const backup = makeBackup([script], defaultSettings(), '2026-01-01T00:00:00Z');
+    const parsed = parseBackup(
+      JSON.stringify({
+        ...backup,
+        scripts: [{ ...script, lastPosition: 480.5, futureMetadata: { source: 'legacy' } }]
+      })
+    );
+
+    expect(parsed.scripts).toEqual([script]);
+    expect(parsed.scripts[0]).not.toHaveProperty('lastPosition');
+    expect(parsed.scripts[0]).not.toHaveProperty('futureMetadata');
+  });
+
+  it('does not emit retired reading-position data in new backups', () => {
+    const legacyRuntimeScript = { ...script, lastPosition: 480.5 };
+    const backup = makeBackup([legacyRuntimeScript], defaultSettings());
+
+    expect(backup.scripts).toEqual([script]);
+    expect(backup.scripts[0]).not.toHaveProperty('lastPosition');
+  });
+
   it('rejects unknown and malformed files', () => {
     expect(() => parseBackup('nope')).toThrow('valid JSON');
     expect(() => parseBackup('{"kind":"something-else"}')).toThrow('not a supported');
@@ -28,5 +50,16 @@ describe('Teleprompter backups', () => {
     expect(() => parseBackup(JSON.stringify({ ...backup, scripts: [{ title: 'broken' }] }))).toThrow(
       'invalid scripts'
     );
+    expect(() =>
+      parseBackup(
+        JSON.stringify({
+          ...backup,
+          scripts: [{ ...script, updatedAt: Number.MAX_VALUE }]
+        })
+      )
+    ).toThrow('invalid scripts');
+    expect(() =>
+      parseBackup(JSON.stringify({ ...backup, scripts: [{ ...script, id: '  ' }] }))
+    ).toThrow('invalid scripts');
   });
 });

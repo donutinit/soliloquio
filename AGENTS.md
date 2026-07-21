@@ -73,14 +73,15 @@ The stack is React 18, strict TypeScript, Vite, Dexie, Vitest, Playwright, and
 
 - IndexedDB is the source of truth. There is no server copy to recover from.
 - Preserve atomic backup restore and factory reset transactions.
-- Keep reading-position saves from changing the script's `updatedAt` ordering.
+- Do not persist per-script reading positions. Every script opens at the start.
 - Backup format changes must remain backwards compatible or include explicit versioned migration.
-- Import accepts `.md`, `.markdown`, `.txt`, and Teleprompter `.json` backups. Validate both the
+- Import accepts `.md`, `.markdown`, `.txt`, and Teleprompter `.json` backups. Limit a selection
+  to 50 script files, 5 MB each and 20 MB combined; limit each backup to 25 MB. Validate both the
   extension and parsed content, and give file-specific errors.
 - Keep the PWA usable offline. Do not make startup, editing, or playback depend on a network call.
 - Service-worker checks must bypass stale HTTP caches. Preserve checks on startup/registration,
   foreground return, and the periodic interval, plus the manual check in App Settings.
-- When an update reloads the page, preserve pending user data and reading position first.
+- When an update reloads the page, preserve pending user data first.
 
 ### Gamepad and prompter behavior
 
@@ -140,7 +141,7 @@ without npm.
 Pushing `main` publishes multi-architecture GHCR images after CI succeeds; it does not authorize a
 production deployment. Deploy only when the user explicitly asks.
 
-- Deploy only an immutable `sha-<full-commit>` image whose exact CI run is green.
+- Deploy only a commit-addressed `sha-<full-commit>` image whose exact CI run is green.
 - Use `./scripts/deploy-shaolin.sh`; do not hand-roll a parallel deployment path.
 - The remote host only runs the built image. Never build, clone source, or install development tools
   there.
@@ -148,7 +149,7 @@ production deployment. Deploy only when the user explicitly asks.
 - Never run `docker compose down`, `prune`, `--remove-orphans`, restart Docker/the host, or touch
   unrelated containers and services.
 - After deployment, verify container health, `/healthz`, the app root, the manifest, and the running
-  immutable image. Use the documented backup-based rollback if health checks fail.
+  pinned image. Use the documented backup-based rollback if health checks fail.
 
 ## Definition of done
 

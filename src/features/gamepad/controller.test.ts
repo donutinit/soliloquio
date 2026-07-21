@@ -27,10 +27,12 @@ function fakePad(overrides: {
 describe('asignaciones por defecto', () => {
   it('cubren todas las acciones con índices únicos', () => {
     const values = GAMEPAD_ACTIONS.map((action) => DEFAULT_GAMEPAD_BINDINGS[action]);
-    expect(values).toHaveLength(14);
-    expect(new Set(values).size).toBe(14);
+    expect(values).toHaveLength(15);
+    expect(new Set(values).size).toBe(15);
     expect(DEFAULT_GAMEPAD_BINDINGS.togglePlay).toBe(0);
     expect(DEFAULT_GAMEPAD_BINDINGS.marginUp).toBe(15);
+    expect(DEFAULT_GAMEPAD_BINDINGS.toggleControllerGuide).toBe(8);
+    expect(DEFAULT_GAMEPAD_BINDINGS.toggleSections).toBe(11);
   });
 });
 
@@ -67,6 +69,16 @@ describe('GamepadController', () => {
     controller.update(pressed, HOLD_THRESHOLD_MS + 10);
     const released = controller.update(fakePad({}), HOLD_THRESHOLD_MS + 100);
     expect(released.actions).toContain('nextSection');
+  });
+
+  it('Share abre la guía al soltar y no abre la lista de secciones', () => {
+    const controller = primedController();
+    const pressed = fakePad({ buttons: { 8: { pressed: true, value: 1 } } });
+    controller.update(pressed, 0);
+    controller.update(pressed, HOLD_THRESHOLD_MS + 10);
+    const released = controller.update(fakePad({}), HOLD_THRESHOLD_MS + 100);
+    expect(released.actions).toContain('toggleControllerGuide');
+    expect(released.actions).not.toContain('toggleSections');
   });
 
   it('un gatillo analógico mantenido escala la velocidad manual', () => {

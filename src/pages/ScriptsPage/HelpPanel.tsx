@@ -29,7 +29,7 @@ export function HelpPanel({ onClose }: { onClose: () => void }) {
         </section>
         <section>
           <h3>Controller</h3>
-          <p>Connect it over Bluetooth, then press any button. Cross starts or pauses; L1/R1 change sections. Assign any action to any button in App settings → Gamepad. The d-pad also moves the focus anywhere in the app: south activates, east closes.</p>
+          <p>Connect it over Bluetooth, then press any button. The south face button starts or pauses; L1/LB and R1/RB change sections. Share, Create, View, Minus, or Select opens the controller guide. Assign any action to any button in App settings → Gamepad. The d-pad also moves focus: south activates and east closes.</p>
         </section>
         <section>
           <h3>Your data</h3>

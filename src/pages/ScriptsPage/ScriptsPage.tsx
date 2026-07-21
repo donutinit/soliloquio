@@ -11,7 +11,10 @@ import {
   saveSettings,
   updateScript
 } from '../../services/database';
-import { readImportedFiles } from '../../features/import/importFiles';
+import {
+  MAX_BACKUP_IMPORT_FILE_BYTES,
+  readImportedFiles
+} from '../../features/import/importFiles';
 import {
   exportBackupFile,
   exportScriptFile,
@@ -132,44 +135,82 @@ export function ScriptsPage({
     setNotice(null);
     const errors: string[] = [];
     let importedCount = 0;
+    let restoredBackup = false;
     try {
       const files = Array.from(fileList);
       const backupFiles = files.filter((file) => /\.json$/i.test(file.name));
       const scriptFiles = files.filter((file) => !/\.json$/i.test(file.name));
 
       for (const file of backupFiles) {
+        if (file.size > MAX_BACKUP_IMPORT_FILE_BYTES) {
+          errors.push(
+            `${file.name}: Backup files must be ${MAX_BACKUP_IMPORT_FILE_BYTES / (1024 * 1024)} MB or smaller.`
+          );
+          continue;
+        }
+
+        let raw: string;
         try {
-          const backup = parseBackup(await file.text());
+          raw = await file.text();
+        } catch {
+          errors.push(`${file.name}: The backup file could not be read.`);
+          continue;
+        }
+
+        let backup: ReturnType<typeof parseBackup>;
+        try {
+          backup = parseBackup(raw);
+        } catch (error) {
+          errors.push(
+            `${file.name}: ${error instanceof Error ? error.message : 'Invalid backup file.'}`
+          );
+          continue;
+        }
+
+        try {
           await restoreBackup(backup.scripts, backup.settings);
           importedCount += backup.scripts.length;
-        } catch (error) {
-          errors.push(`${file.name}: ${error instanceof Error ? error.message : 'Could not restore backup.'}`);
+          restoredBackup = true;
+        } catch {
+          errors.push(
+            `${file.name}: The backup could not be restored. Check available device storage and try again.`
+          );
         }
       }
-      if (backupFiles.length > 0) {
-        applyKeepScreenAwake((await getSettings()).keepScreenAwake);
+      if (restoredBackup) {
+        try {
+          applyKeepScreenAwake((await getSettings()).keepScreenAwake);
+        } catch {
+          errors.push('The backup was restored, but its screen setting could not be applied.');
+        }
       }
 
       const outcomes = await readImportedFiles(scriptFiles);
       for (const outcome of outcomes) {
         if (outcome.ok) {
-          await createScript({
-            title: outcome.title,
-            content: outcome.content,
-            format: outcome.format
-          });
-          importedCount += 1;
+          try {
+            await createScript({
+              title: outcome.title,
+              content: outcome.content,
+              format: outcome.format
+            });
+            importedCount += 1;
+          } catch {
+            errors.push(
+              `${outcome.fileName}: The imported script could not be saved. Check available device storage and try again.`
+            );
+          }
         } else {
           errors.push(`${outcome.fileName}: ${outcome.error}`);
         }
       }
-      await refresh();
       if (importedCount > 0) {
         setNotice(`${importedCount} ${importedCount === 1 ? 'script' : 'scripts'} imported.`);
       }
     } catch {
       setOperationError('The selected files could not be imported.');
     } finally {
+      await refresh();
       setImportErrors(errors);
       setBusy(false);
     }
@@ -309,6 +350,7 @@ export function ScriptsPage({
             className={styles.headerIconButton}
             aria-label="App settings"
             title="Settings"
+            disabled={busy}
             onClick={() => void openAppSettings()}
           >
             <Icon name="settings" />
@@ -317,12 +359,15 @@ export function ScriptsPage({
             data-testid="import-button"
             className={styles.importControl}
             title="Import"
+            aria-disabled={busy}
           >
             <Icon name="upload" />
             <input
               data-testid="import-input"
+              data-gamepad-nav-exclude
               type="file"
               multiple
+              disabled={busy}
               aria-label="Import scripts or backup"
               onChange={(event) => {
                 void handleImport(event.target.files);
@@ -336,6 +381,7 @@ export function ScriptsPage({
             className={styles.headerIconButton}
             aria-label="Export full backup"
             title="Export backup"
+            disabled={busy}
             onClick={() => void handleBackup()}
           >
             <Icon name="download" />
@@ -346,6 +392,7 @@ export function ScriptsPage({
             className={styles.primaryIconButton}
             aria-label="New script"
             title="New script"
+            disabled={busy}
             onClick={() => void handleNew()}
           >
             <Icon name="plus" />
@@ -405,6 +452,7 @@ export function ScriptsPage({
                 type="button"
                 className={styles.cardMain}
                 data-testid="open-prompter"
+                disabled={busy}
                 onClick={() => navigate(prompterHash(script.id))}
               >
                 <span className={styles.cardTitle} data-testid="card-title">{script.title}</span>
@@ -415,7 +463,9 @@ export function ScriptsPage({
                 type="button"
                 className={styles.cardMenuButton}
                 data-testid="card-menu"
+                data-gamepad-nav-exclude
                 aria-label={`Options for ${script.title}`}
+                disabled={busy}
                 onClick={() => openMenu(script.id)}
               >
                 <Icon name="more" />

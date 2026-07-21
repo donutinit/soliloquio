@@ -85,7 +85,7 @@ export function AppSettingsPanel({
           <div className={styles.appSettingRow}>
             <label htmlFor="keep-screen-awake">
               <strong>Keep screen awake</strong>
-              <span>Prevents the screen from sleeping anywhere in the app.</span>
+              <span>Keeps the display on anywhere in the app when the browser allows it.</span>
             </label>
             <input
               id="keep-screen-awake"

@@ -36,6 +36,7 @@ export const ACTION_TRIGGERS: Record<GamepadAction, ActionTrigger> = {
   prevSection: 'release',
   nextSection: 'release',
   toggleSettings: 'release',
+  toggleControllerGuide: 'release',
   toggleSections: 'release',
   fontUp: 'step',
   fontDown: 'step',

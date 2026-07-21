@@ -16,6 +16,12 @@ function isRangeInput(element: Element | null): element is HTMLInputElement {
   return element instanceof HTMLInputElement && element.type === 'range';
 }
 
+function isGamepadNavCandidate(element: HTMLElement): boolean {
+  if (element.closest('[data-gamepad-nav-exclude]')) return false;
+  const rect = element.getBoundingClientRect();
+  return rect.width > 0 && rect.height > 0;
+}
+
 /** Ajusta un slider respetando min/max/step y notifica al onChange de React. */
 function adjustRange(input: HTMLInputElement, direction: NavDirection): void {
   if (direction === 'right') input.stepUp();
@@ -69,10 +75,7 @@ export function useGamepadNavigation(mode: 'scripts' | 'prompter'): void {
 
         if (frame.moves.length > 0) {
           const candidates = Array.from(scope.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
-            (el) => {
-              const rect = el.getBoundingClientRect();
-              return rect.width > 0 && rect.height > 0;
-            }
+            isGamepadNavCandidate
           );
           const rects = candidates.map((el) => toNavRect(el.getBoundingClientRect()));
           for (const direction of frame.moves) {
@@ -92,14 +95,18 @@ export function useGamepadNavigation(mode: 'scripts' | 'prompter'): void {
 
         if (frame.confirm) {
           const active = document.activeElement;
-          if (active instanceof HTMLElement && scope.contains(active) && !isRangeInput(active)) {
+          if (
+            active instanceof HTMLElement &&
+            scope.contains(active) &&
+            isGamepadNavCandidate(active) &&
+            !isRangeInput(active)
+          ) {
             active.click();
-          } else if (!(active instanceof HTMLElement) || !scope.contains(active)) {
-            // Nada enfocado dentro del ámbito: Sur empieza a navegar.
-            const first = Array.from(scope.querySelectorAll<HTMLElement>(FOCUSABLE)).find((el) => {
-              const rect = el.getBoundingClientRect();
-              return rect.width > 0 && rect.height > 0;
-            });
+          } else {
+            // Nada elegible enfocado dentro del ámbito: Sur empieza a navegar.
+            const first = Array.from(scope.querySelectorAll<HTMLElement>(FOCUSABLE)).find(
+              isGamepadNavCandidate
+            );
             first?.focus({ preventScroll: true });
           }
         }

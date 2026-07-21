@@ -76,10 +76,8 @@
   max-width: min(80vw, 520px);
   border: 1px solid var(--border);
   border-radius: 12px;
-  background: rgb(31 34 41 / 92%);
+  background: rgb(31 34 41 / 97%);
   box-shadow: 0 10px 32px rgb(0 0 0 / 35%);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
 }
 
 .countdown {
@@ -169,9 +167,14 @@
 
 .padOn,
 .padOff {
-  width: 28px;
+  min-width: 44px;
+  min-height: 44px;
   display: grid;
   place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
 }
 
 .padOn svg,
@@ -189,25 +192,28 @@
 
 .bottomBar {
   position: fixed;
-  left: 50%;
+  right: 10px;
+  left: 10px;
   bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
   z-index: 30;
   width: min(570px, calc(100vw - 20px));
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  margin-inline: auto;
+  display: grid;
+  grid-template-columns: minmax(108px, 0.55fr) minmax(172px, 1fr);
+  grid-template-areas:
+    'meta speed'
+    'buttons buttons';
+  gap: 4px 10px;
   padding: 9px 13px;
-  transform: translateX(-50%);
-  border: 1px solid var(--border);
-  border-radius: 19px;
-  background: rgb(18 21 26 / 88%);
-  box-shadow: 0 14px 48px rgb(0 0 0 / 48%);
-  -webkit-backdrop-filter: blur(18px) saturate(135%);
-  backdrop-filter: blur(18px) saturate(135%);
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 22px;
+  background: rgb(18 21 26 / 97%);
+  box-shadow: 0 16px 44px rgb(0 0 0 / 52%), 0 1px 0 rgb(255 255 255 / 5%) inset;
   animation: controlsIn 140ms ease-out;
 }
 
 .controlMetaRow {
+  grid-area: meta;
   min-height: 18px;
   display: flex;
   align-items: center;
@@ -244,6 +250,7 @@
 }
 
 .speedRow {
+  grid-area: speed;
   min-width: 0;
   display: flex;
   align-items: center;
@@ -270,6 +277,7 @@
 }
 
 .buttonRow {
+  grid-area: buttons;
   display: grid;
   grid-template-columns: repeat(2, 44px) minmax(84px, 1fr) repeat(3, 44px);
   align-items: center;
@@ -293,7 +301,8 @@
 }
 
 .iconButton:active,
-.iconButton:hover {
+.padOn:active,
+.padOff:active {
   background: var(--surface-2);
 }
 
@@ -331,9 +340,7 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  background: rgb(0 0 0 / 58%);
-  -webkit-backdrop-filter: blur(3px);
-  backdrop-filter: blur(3px);
+  background: rgb(0 0 0 / 72%);
   animation: fadeIn 140ms ease-out;
 }
 
@@ -348,8 +355,8 @@
   padding: 16px 16px calc(env(safe-area-inset-bottom, 0px) + 16px);
   border: 1px solid var(--border);
   border-bottom: 0;
-  border-radius: 20px 20px 0 0;
-  background: color-mix(in srgb, var(--surface-2) 94%, transparent);
+  border-radius: 24px 24px 0 0;
+  background: var(--surface-2);
   box-shadow: 0 -18px 60px rgb(0 0 0 / 35%);
   animation: sheetUp 180ms ease-out;
 }
@@ -432,8 +439,7 @@
   text-align: left;
 }
 
-.sectionList button:active,
-.sectionList button:hover {
+.sectionList button:active {
   background: var(--surface);
 }
 
@@ -455,6 +461,251 @@
   line-height: 1.4;
 }
 
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.controllerGuide {
+  max-width: 940px;
+  max-height: min(92vh, calc(100dvh - env(safe-area-inset-top, 0px) - 12px));
+  overflow: hidden;
+  gap: 16px;
+}
+
+.controllerGuideHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.controllerGuideHeader p,
+.controllerGuideHeader h2 {
+  margin: 0;
+}
+
+.controllerGuideHeader p {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.controllerGuideHeader h2 {
+  margin-top: 2px;
+  font-size: clamp(20px, 4vw, 28px);
+}
+
+.controllerGuideHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.controllerGuideHeaderActions button {
+  min-width: 60px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--link);
+  font-size: 15px;
+  font-weight: 750;
+}
+
+.controllerLive,
+.controllerIdle {
+  padding: 5px 9px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.controllerLive {
+  color: var(--success);
+}
+
+.controllerIdle {
+  color: var(--text-muted);
+}
+
+.controllerGuideLayout {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+  gap: 18px;
+  overflow: hidden;
+}
+
+.controllerDiagramColumn {
+  min-width: 0;
+  align-self: center;
+}
+
+.controllerDiagram {
+  border: 1px solid rgb(255 255 255 / 8%);
+  border-radius: 22px;
+  background: linear-gradient(145deg, rgb(255 255 255 / 4%), transparent 60%);
+}
+
+.controllerDiagram svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  padding: 10px;
+  overflow: visible;
+}
+
+.controllerBody {
+  fill: #242932;
+  stroke: #596273;
+  stroke-width: 3;
+}
+
+.controllerSurface {
+  fill: #1a1e25;
+  stroke: #48505e;
+  stroke-width: 2;
+}
+
+.controllerControl,
+.controllerShoulder {
+  fill: none;
+  stroke: #9ba6b8;
+  stroke-linecap: round;
+  stroke-width: 7;
+}
+
+.controllerStick {
+  fill: #11141a;
+  stroke: #8994a5;
+  stroke-width: 5;
+}
+
+.controllerHome {
+  fill: #11141a;
+  stroke: #596273;
+  stroke-width: 3;
+}
+
+.controllerMarker {
+  fill: var(--accent);
+  stroke: #fff;
+  stroke-width: 2;
+}
+
+.controllerMarkerText {
+  fill: #fff;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.stickGuide {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.stickGuide span {
+  padding: 9px 10px;
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.stickGuide strong {
+  color: var(--link);
+}
+
+.controllerLegend {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  gap: 7px 10px;
+  margin: 0;
+  padding: 0 4px 0 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.controllerLegend li {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  padding: 7px 9px;
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.controllerLegendMarker {
+  width: 25px;
+  height: 25px;
+  flex: 0 0 25px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.controllerLegendText {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.controllerLegendText strong {
+  font-size: 13px;
+}
+
+.controllerLegendText span {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.controllerGuideNote {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .iconButton:hover,
+  .padOn:hover,
+  .padOff:hover,
+  .sectionList button:hover,
+  .controllerGuideHeaderActions button:hover {
+    background: var(--surface);
+  }
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
 }
@@ -469,6 +720,8 @@
 
 @media (max-width: 359px) {
   .bottomBar {
+    right: 4px;
+    left: 4px;
     width: calc(100vw - 8px);
     padding-right: 8px;
     padding-left: 8px;
@@ -510,6 +763,38 @@
   }
 }
 
+@media (max-width: 699px) {
+  .padHint {
+    display: none;
+  }
+
+  .controllerGuide {
+    overflow-y: auto;
+  }
+
+  .controllerGuideLayout {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+  }
+
+  .controllerLegend {
+    overflow: visible;
+  }
+}
+
+@media (max-width: 430px) {
+  .controllerLive,
+  .controllerIdle {
+    display: none;
+  }
+
+  .controllerLegend {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (orientation: landscape) and (max-height: 500px) {
   .content {
     padding-top: 42vh;
@@ -523,24 +808,15 @@
 
   .bottomBar {
     width: min(760px, calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 16px));
-    display: grid;
-    grid-template-columns: minmax(330px, 1.25fr) minmax(220px, 0.75fr);
-    grid-template-areas: 'buttons speed';
+    grid-template-columns: minmax(330px, 1.25fr) minmax(200px, 0.75fr) auto;
+    grid-template-areas: 'buttons speed meta';
     gap: 10px;
     padding: 6px 10px;
     border-radius: 17px;
   }
 
   .controlMetaRow {
-    position: absolute;
-    right: 12px;
-    bottom: calc(100% + 5px);
-    padding: 4px 8px;
-    border: 1px solid var(--border);
-    border-radius: 9px;
-    background: rgb(18 21 26 / 88%);
-    -webkit-backdrop-filter: blur(12px);
-    backdrop-filter: blur(12px);
+    grid-area: meta;
   }
 
   .padHint {
@@ -557,6 +833,21 @@
 
   .panel {
     max-height: 94vh;
+  }
+
+  .controllerGuide {
+    max-width: min(940px, calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
+    padding-right: calc(env(safe-area-inset-right, 0px) + 14px);
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
+    padding-left: calc(env(safe-area-inset-left, 0px) + 14px);
+  }
+
+  .controllerGuideLayout {
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 0.85fr);
+  }
+
+  .controllerDiagram svg {
+    max-height: 48vh;
   }
 }
 

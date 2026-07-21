@@ -12,21 +12,41 @@ export type TeleprompterBackup = {
   settings: PrompterSettings;
 };
 
-function isScript(value: unknown): value is Script {
-  if (!value || typeof value !== 'object') return false;
-  const script = value as Partial<Script>;
-  return (
-    typeof script.id === 'string' &&
-    typeof script.title === 'string' &&
-    typeof script.content === 'string' &&
-    (script.format === 'markdown' || script.format === 'text') &&
-    typeof script.createdAt === 'number' &&
-    Number.isFinite(script.createdAt) &&
-    typeof script.updatedAt === 'number' &&
-    Number.isFinite(script.updatedAt) &&
-    (script.lastPosition === undefined ||
-      (typeof script.lastPosition === 'number' && Number.isFinite(script.lastPosition)))
-  );
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isValidTimestamp(value: unknown): value is number {
+  return typeof value === 'number' && value >= 0 && Number.isFinite(new Date(value).getTime());
+}
+
+/**
+ * Validates a script at the backup boundary and copies only canonical fields.
+ * Version 1 backups may contain retired or future extra properties; accepting
+ * those properties keeps old files restorable without persisting them again.
+ */
+function parseScript(value: unknown): Script | undefined {
+  if (
+    !isRecord(value) ||
+    typeof value.id !== 'string' ||
+    value.id.trim() === '' ||
+    typeof value.title !== 'string' ||
+    typeof value.content !== 'string' ||
+    (value.format !== 'markdown' && value.format !== 'text') ||
+    !isValidTimestamp(value.createdAt) ||
+    !isValidTimestamp(value.updatedAt)
+  ) {
+    return undefined;
+  }
+
+  return {
+    id: value.id,
+    title: value.title,
+    content: value.content,
+    format: value.format,
+    createdAt: value.createdAt,
+    updatedAt: value.updatedAt
+  };
 }
 
 export function makeBackup(
@@ -38,7 +58,14 @@ export function makeBackup(
     kind: BACKUP_KIND,
     version: BACKUP_VERSION,
     exportedAt,
-    scripts,
+    scripts: scripts.map((script) => ({
+      id: script.id,
+      title: script.title,
+      content: script.content,
+      format: script.format,
+      createdAt: script.createdAt,
+      updatedAt: script.updatedAt
+    })),
     settings: normalizeSettings(settings)
   };
 }
@@ -50,20 +77,25 @@ export function parseBackup(raw: string): TeleprompterBackup {
   } catch {
     throw new Error('This is not valid JSON.');
   }
-  if (!parsed || typeof parsed !== 'object') throw new Error('Invalid backup file.');
-  const backup = parsed as Partial<TeleprompterBackup>;
-  if (backup.kind !== BACKUP_KIND || backup.version !== BACKUP_VERSION) {
+  if (!isRecord(parsed)) throw new Error('Invalid backup file.');
+  if (parsed.kind !== BACKUP_KIND || parsed.version !== BACKUP_VERSION) {
     throw new Error('This is not a supported Teleprompter backup.');
   }
-  if (!Array.isArray(backup.scripts) || !backup.scripts.every(isScript)) {
+  if (!Array.isArray(parsed.scripts)) {
     throw new Error('The backup contains invalid scripts.');
+  }
+  const scripts: Script[] = [];
+  for (const value of parsed.scripts) {
+    const script = parseScript(value);
+    if (!script) throw new Error('The backup contains invalid scripts.');
+    scripts.push(script);
   }
   return {
     kind: BACKUP_KIND,
     version: BACKUP_VERSION,
-    exportedAt: typeof backup.exportedAt === 'string' ? backup.exportedAt : '',
-    scripts: backup.scripts,
-    settings: normalizeSettings(backup.settings)
+    exportedAt: typeof parsed.exportedAt === 'string' ? parsed.exportedAt : '',
+    scripts,
+    settings: normalizeSettings(parsed.settings)
   };
 }
 

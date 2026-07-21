@@ -29,13 +29,16 @@ test('keeps the countdown off by default and runs it only before a fresh start',
   const playButton = page.getByTestId('play-pause');
   await playButton.click();
   await expect(page.getByTestId('startup-countdown')).toContainText('1');
+  await expect(page.getByTestId('top-controls')).toBeVisible();
   await expect(playButton).toHaveAttribute('data-playing', 'false');
   await expect(playButton).toHaveText(/CANCEL/);
   await expect(playButton).toHaveAttribute('data-playing', 'true', { timeout: 3_000 });
   await expect(page.getByTestId('startup-countdown')).toHaveCount(0);
+  await expect(page.getByTestId('top-controls')).toHaveCount(0);
 
   await playButton.click();
   await expect(playButton).toHaveAttribute('data-playing', 'false');
+  await expect(page.getByTestId('top-controls')).toBeVisible();
   await playButton.click();
   await expect(playButton).toHaveAttribute('data-playing', 'true');
   await expect(page.getByTestId('startup-countdown')).toHaveCount(0);

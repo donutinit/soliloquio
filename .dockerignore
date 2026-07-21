@@ -1,14 +1,37 @@
-node_modules
-dist
-dev-dist
-.git
-.github
-tests
-playwright-report
-test-results
-deploy
+# Dependencies, build output, and test artifacts
+node_modules/
+dist/
+dev-dist/
+coverage/
+playwright-report/
+test-results/
+tests/
+**/*.test.ts
+**/*.test.tsx
+
+# Version-control, CI, deployment, and repository-only documentation
+.git/
+.github/
+.gitignore
+deploy/
 scripts/deploy-shaolin.sh
+AGENTS.md
+CLAUDE.md
 README.md
+
+# Local configuration and secrets
+.env*
+.npmrc
+*.local
+AGENTS.local.md
+CLAUDE.local.md
+
+# Local reference images and editor/OS clutter
 IMG_*.PNG
-.env
-.env.*
+.claude/
+.idea/
+.vscode/
+.DS_Store
+*.swp
+*.swo
+*~

@@ -47,6 +47,7 @@ export const ACTION_GROUPS: ActionGroup[] = [
     actions: [
       { action: 'toggleControls', label: 'Show / hide controls' },
       { action: 'toggleSettings', label: 'Reader settings' },
+      { action: 'toggleControllerGuide', label: 'Controller guide' },
       { action: 'backToScripts', label: 'Exit to scripts' }
     ]
   }
@@ -69,7 +70,7 @@ const FAMILY_BUTTON_LABELS: Partial<Record<ControllerFamily, string[]>> = {
     'R1',
     'L2',
     'R2',
-    'Share',
+    'Share / Create',
     'Options',
     'L3',
     'R3',

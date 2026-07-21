@@ -7,6 +7,7 @@ const DPAD_DOWN = 13;
 const DPAD_RIGHT = 15;
 const SHARE = 8;
 const OPTIONS = 9;
+const R3 = 11;
 
 /** Espera a que el modo navegación esté activo y cebado antes de pulsar. */
 async function waitForNavReady(page: Page): Promise<void> {
@@ -43,7 +44,15 @@ test('el d-pad enfoca la biblioteca y Sur activa el elemento enfocado', async ({
   await card.getByTestId('open-prompter').focus();
   await expect(card).toHaveCSS('border-color', 'rgb(138, 180, 255)');
 
+  // The overflow menu remains available to touch/keyboard, but controller
+  // confirm must neither open it nor leave focus trapped on it.
+  await card.getByTestId('card-menu').focus();
+  await pressNav(page, SOUTH);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Help' })).toBeFocused();
+
   // Sur activa el elemento enfocado: con una tarjeta enfocada, abre el prompter.
+  await card.getByTestId('open-prompter').focus();
   await pressNav(page, SOUTH);
   await expect(page.getByTestId('prompter-page')).toBeVisible();
 });
@@ -62,7 +71,7 @@ test('dentro de un modal el foco queda atrapado y Este lo cierra', async ({ page
   await expect(page.getByTestId('app-settings-panel')).toHaveCount(0);
 });
 
-test('en el prompter con el panel de secciones abierto, el mando navega en vez de leer', async ({
+test('Share opens the controller guide and R3 opens section navigation', async ({
   page
 }) => {
   await openScriptInPrompter(page, 'Welcome to Teleprompter');
@@ -73,8 +82,26 @@ test('en el prompter con el panel de secciones abierto, el mando navega en vez d
   // Durante la lectura no hay modo navegación: el lector es dueño del mando.
   await expect(page.locator(':root')).not.toHaveAttribute('data-gamepad-nav-ready', 'true');
 
-  // Share abre el panel de secciones; el foco cae en la primera sección.
+  // Share/View/Minus/Select opens a controller-family-aware reference.
   await pressNav(page, SHARE);
+  await expect(page.getByTestId('controller-guide')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'PlayStation controls' })).toBeVisible();
+  await expect(page.getByTestId('controller-guide-toggleControllerGuide')).toContainText(
+    'Share / Create'
+  );
+  await expect(page.getByTestId('controller-guide-toggleSections')).toContainText('R3');
+  await waitForNavReady(page);
+  await expect(page.getByRole('button', { name: 'Done' })).toBeFocused();
+  await pressNav(page, DPAD_DOWN);
+  await expect
+    .poll(() => page.evaluate(() => document.activeElement?.getAttribute('data-testid') ?? ''))
+    .toMatch(/^controller-guide-/);
+
+  await pressNav(page, EAST);
+  await expect(page.getByTestId('controller-guide')).toHaveCount(0);
+
+  // R3 opens the section panel; focus lands on the first section.
+  await pressNav(page, R3);
   await expect(page.getByTestId('sections-panel')).toBeVisible();
   await expect(page.getByTestId('section-item').first()).toBeFocused();
   await waitForNavReady(page);

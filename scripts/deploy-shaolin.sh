@@ -21,7 +21,7 @@ REPO_LC="$(printf '%s' "$REPO" | tr '[:upper:]' '[:lower:]')"
 SHA="$(git rev-parse HEAD)"
 IMAGE="ghcr.io/${REPO_LC}:sha-${SHA}"
 say "Repo: $REPO  SHA: $SHA"
-say "Imagen inmutable: $IMAGE"
+say "Imagen vinculada al commit: $IMAGE"
 
 # --- Confirmar que el run de CI de este SHA pasó ---
 say "Comprobando CI para $SHA…"

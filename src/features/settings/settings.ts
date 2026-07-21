@@ -16,7 +16,7 @@ export const FONT_LIMITS: Limit = { min: 20, max: 120, step: 2, default: 52 };
 export const MARGIN_LIMITS: Limit = { min: 0, max: 25, step: 1, default: 4 };
 export const COUNTDOWN_LIMITS: Limit = { min: 0, max: 10, step: 1, default: 0 };
 
-export const SETTINGS_SCHEMA_VERSION = 2;
+export const SETTINGS_SCHEMA_VERSION = 3;
 
 /** Máximo índice de botón aceptado; cubre mandos no estándar con botones extra. */
 const MAX_BUTTON_INDEX = 31;
@@ -61,7 +61,8 @@ const LEGACY_ACTION_BUTTON: Record<GamepadAction, ControllerButton> = {
   marginDown: 'dpadLeft',
   marginUp: 'dpadRight',
   toggleSettings: 'options',
-  toggleSections: 'share'
+  toggleControllerGuide: 'share',
+  toggleSections: 'rightStickButton'
 };
 
 function legacyMappingToBindings(mapping: object): GamepadBindings {
@@ -87,6 +88,22 @@ export function normalizeBindings(raw: unknown, legacyMapping?: unknown): Gamepa
     for (const action of GAMEPAD_ACTIONS) {
       const value = (raw as Record<string, unknown>)[action];
       if (isButtonIndex(value)) candidate[action] = value;
+    }
+
+    // Settings saved before the controller guide existed have no key for it.
+    // Reserve the standard Share/View/Minus/Select button for the new guide,
+    // even if a custom v2 mapping had moved another action onto that button.
+    // The displaced action falls back to its own default and the uniqueness
+    // pass below resolves any secondary collision deterministically.
+    const rawGuideButton = (raw as Record<string, unknown>).toggleControllerGuide;
+    if (!isButtonIndex(rawGuideButton)) {
+      const guideButton = DEFAULT_GAMEPAD_BINDINGS.toggleControllerGuide;
+      for (const action of GAMEPAD_ACTIONS) {
+        if (action !== 'toggleControllerGuide' && candidate[action] === guideButton) {
+          candidate[action] = DEFAULT_GAMEPAD_BINDINGS[action];
+        }
+      }
+      candidate.toggleControllerGuide = guideButton;
     }
   } else if (legacyMapping && typeof legacyMapping === 'object') {
     Object.assign(candidate, legacyMappingToBindings(legacyMapping));

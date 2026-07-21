@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { cardByTitle, openScriptInPrompter, prompterOffset } from './helpers';
 
-test('guiones, ajustes y posición sobreviven a recargar la página', async ({ page }) => {
+test('scripts and settings persist while reading position resets', async ({ page }) => {
   await page.goto('/');
 
   // Crear un guion.
@@ -19,14 +19,14 @@ test('guiones, ajustes y posición sobreviven a recargar la página', async ({ p
   await expect(page.getByTestId('font-value')).toHaveText('54px');
   await page.getByTestId('settings-close').click();
 
-  // Avanzar y volver a la lista (guarda la posición).
+  // Advance, then leave the reader.
   await page.getByTestId('play-pause').click();
   await page.waitForTimeout(800);
   await page.getByTestId('play-pause').click();
   const position = await prompterOffset(page);
   expect(position).toBeGreaterThan(0);
   await page.getByTestId('back-to-scripts').click();
-  // Esperar a que la navegación (async tras guardar posición) llegue a #/.
+  // Settings are flushed before the navigation reaches #/.
   await expect(page.getByTestId('new-script')).toBeVisible();
 
   // Recargar: todo debe seguir ahí.
@@ -38,9 +38,9 @@ test('guiones, ajustes y posición sobreviven a recargar la página', async ({ p
   await expect(page.getByTestId('font-value')).toHaveText('54px');
   await page.getByTestId('settings-close').click();
 
-  // La posición de lectura se restauró (con tolerancia por redondeo).
+  // Opening the script again always begins at the start.
   const restored = await prompterOffset(page);
-  expect(restored).toBeGreaterThan(position - 5);
+  expect(restored).toBe(0);
 });
 
 test('a setting changed immediately before leaving is persisted', async ({ page }) => {

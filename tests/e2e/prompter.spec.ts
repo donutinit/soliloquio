@@ -9,9 +9,12 @@ test.beforeEach(async ({ page }) => {
 test('reproduce y pausa el desplazamiento automático', async ({ page }) => {
   const playButton = page.getByTestId('play-pause');
   await expect(playButton).toHaveAttribute('data-playing', 'false');
+  await expect(page.getByTestId('top-controls')).toBeVisible();
 
   await playButton.click();
   await expect(playButton).toHaveAttribute('data-playing', 'true');
+  await expect(page.getByTestId('top-controls')).toBeHidden();
+  await expect(page.getByTestId('bottom-controls')).toBeVisible();
   const start = await prompterOffset(page);
   await page.waitForTimeout(600);
   const moved = await prompterOffset(page);
@@ -19,6 +22,7 @@ test('reproduce y pausa el desplazamiento automático', async ({ page }) => {
 
   await playButton.click();
   await expect(playButton).toHaveAttribute('data-playing', 'false');
+  await expect(page.getByTestId('top-controls')).toBeVisible();
   const paused = await prompterOffset(page);
   await page.waitForTimeout(400);
   expect(Math.abs((await prompterOffset(page)) - paused)).toBeLessThan(1);
@@ -55,13 +59,24 @@ test('vuelve al inicio y a la lista de guiones', async ({ page }) => {
   await expect(page.getByTestId('new-script')).toBeVisible();
 });
 
-test('landscape controls stay compact and inside the viewport', async ({ page }) => {
+test('landscape controls and controller guide stay inside the viewport', async ({ page }) => {
   await page.setViewportSize({ width: 844, height: 390 });
   const controls = await page.getByTestId('bottom-controls').boundingBox();
   expect(controls).not.toBeNull();
   expect(controls!.height).toBeLessThan(72);
   expect(controls!.x).toBeGreaterThanOrEqual(0);
   expect(controls!.x + controls!.width).toBeLessThanOrEqual(844);
+
+  await page.getByTestId('gamepad-status').click();
+  const guide = await page.getByTestId('controller-guide').boundingBox();
+  expect(guide).not.toBeNull();
+  expect(guide!.x).toBeGreaterThanOrEqual(0);
+  expect(guide!.y).toBeGreaterThanOrEqual(0);
+  expect(guide!.x + guide!.width).toBeLessThanOrEqual(844);
+  expect(guide!.y + guide!.height).toBeLessThanOrEqual(390);
+  await expect(page.getByTestId('controller-diagram')).toBeVisible();
+  await expect(page.getByTestId('controller-diagram')).toBeInViewport();
+  await expect(page.getByTestId('controller-guide')).toContainText('Left stick · fast scroll');
 });
 
 test('opens the current script directly in the editor', async ({ page }) => {
