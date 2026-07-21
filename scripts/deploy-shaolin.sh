@@ -5,7 +5,8 @@
 set -Eeuo pipefail
 
 REMOTE_HOST="${REMOTE_HOST:-shaolin}"
-REMOTE_DIR="${REMOTE_DIR:-\$HOME/docker/teleprompter}"
+# Ruta relativa al home remoto (scp en modo SFTP no expande $HOME)
+REMOTE_DIR="${REMOTE_DIR:-docker/teleprompter}"
 PORT=45543
 
 say() { printf '\n==> %s\n' "$*"; }
