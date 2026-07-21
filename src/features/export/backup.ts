@@ -88,7 +88,10 @@ async function shareOrDownload(file: File): Promise<void> {
   const anchor = document.createElement('a');
   anchor.href = url;
   anchor.download = file.name;
+  anchor.hidden = true;
+  document.body.appendChild(anchor);
   anchor.click();
+  anchor.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
