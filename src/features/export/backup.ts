@@ -91,8 +91,12 @@ async function shareOrDownload(file: File): Promise<void> {
   anchor.hidden = true;
   document.body.appendChild(anchor);
   anchor.click();
-  anchor.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  // Safari and headless Chromium can cancel a blob navigation if the anchor is
+  // removed in the same task that triggered it.
+  setTimeout(() => {
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  }, 1000);
 }
 
 export function exportScriptFile(script: Script): Promise<void> {

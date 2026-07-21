@@ -113,3 +113,17 @@ test('exports and restores a complete JSON backup', async ({ page }) => {
   });
   await expect(cardByTitle(page, 'Quick notes')).toBeVisible();
 });
+
+test('downloads a backup when Web Share is unavailable', async ({ page }) => {
+  await page.evaluate(() => {
+    Object.defineProperties(navigator, {
+      share: { configurable: true, value: undefined },
+      canShare: { configurable: true, value: undefined }
+    });
+  });
+  expect(await page.evaluate(() => Boolean(navigator.share))).toBe(false);
+  const downloadPromise = page.waitForEvent('download', { timeout: 5_000 });
+  await page.getByTestId('backup-button').click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/^teleprompter-backup-.*\.json$/);
+});
