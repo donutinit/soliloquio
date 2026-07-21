@@ -179,13 +179,13 @@
   transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
 }
 
-/* Tarjeta enfocada con el mando: resalte propio además del anillo interior,
-   porque el overflow:hidden de la tarjeta recorta cualquier anillo exterior. */
+/* El aro de foco va dentro de la tarjeta: conserva una curva continua y evita
+   artefactos en las esquinas causados por una sombra exterior recortada. */
 :global([data-gamepad-nav]) .card:focus-within {
   border-color: var(--focus);
   transform: translateY(-1px);
   box-shadow:
-    0 0 0 1px var(--focus),
+    inset 0 0 0 1px var(--focus),
     0 14px 34px rgb(0 0 0 / 28%);
 }
 
@@ -193,7 +193,7 @@
 .card:has(:focus-visible) {
   border-color: var(--focus);
   box-shadow:
-    0 0 0 1px var(--focus),
+    inset 0 0 0 1px var(--focus),
     0 14px 34px rgb(0 0 0 / 28%);
 }
 

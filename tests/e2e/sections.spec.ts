@@ -11,7 +11,7 @@ test('navega entre secciones con los botones', async ({ page }) => {
 
   await page.getByTestId('section-next').click();
   await expect(page.getByTestId('section-indicator')).toHaveText('2 / 4');
-  await expect(page.getByTestId('section-toast')).toHaveText('Start reading');
+  await expect(page.getByTestId('section-toast')).toHaveCount(0);
   await expect.poll(() => prompterOffset(page)).toBeGreaterThan(0);
   const heading = await page
     .locator('[data-block-type="heading"]', { hasText: 'Start reading' })

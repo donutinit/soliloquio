@@ -43,6 +43,10 @@ test('el d-pad enfoca la biblioteca y Sur activa el elemento enfocado', async ({
   const card = cardByTitle(page, 'Welcome to Teleprompter');
   await card.getByTestId('open-prompter').focus();
   await expect(card).toHaveCSS('border-color', 'rgb(138, 180, 255)');
+  await expect(card).toHaveCSS(
+    'box-shadow',
+    /rgb\(138, 180, 255\) 0px 0px 0px 1px inset/
+  );
 
   // The overflow menu remains available to touch/keyboard, but controller
   // confirm must neither open it nor leave focus trapped on it.

@@ -27,7 +27,6 @@ import styles from './PrompterPage.module.css';
 
 /** Línea de lectura: fracción del alto del viewport donde se considera que se lee. */
 const READING_LINE_FRACTION = 0.4;
-const TOAST_MS = 1500;
 const IDLE_POLL_INTERVAL_MS = 250;
 
 type Panel = 'none' | 'settings' | 'sections' | 'controllerGuide';
@@ -125,7 +124,6 @@ function Prompter({
   const [controlsVisible, setControlsVisible] = useState(true);
   const [panel, setPanel] = useState<Panel>('none');
   const [sectionIdx, setSectionIdx] = useState(0);
-  const [toast, setToast] = useState<string | null>(null);
   const [gamepadConnected, setGamepadConnected] = useState(false);
   const [padFamily, setPadFamily] = useState<ControllerFamily>('playstation');
   const [storageError, setStorageError] = useState<string | null>(null);
@@ -139,7 +137,6 @@ function Prompter({
   panelRef.current = panel;
   const gamepadConnectedRef = useRef(false);
   const padIdRef = useRef<string | null>(null);
-  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const countdownRef = useRef<number | null>(null);
   const hasStartedRef = useRef(false);
@@ -211,16 +208,6 @@ function Prompter({
     [persistSettings]
   );
 
-  const showSectionToast = useCallback(
-    (idx: number) => {
-      const title = sections[idx]?.title || `Section ${idx + 1}`;
-      setToast(title);
-      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-      toastTimerRef.current = setTimeout(() => setToast(null), TOAST_MS);
-    },
-    [sections]
-  );
-
   const jumpToSection = useCallback(
     (idx: number) => {
       const target = stepSection(idx, 0, sections.length);
@@ -229,10 +216,9 @@ function Prompter({
       engineRef.current!.seek((sectionOffsetsRef.current[target] ?? 0) - readingLine);
       sectionIdxRef.current = target;
       setSectionIdx(target);
-      showSectionToast(target);
       wakeLoopRef.current();
     },
-    [sections.length, showSectionToast]
+    [sections.length]
   );
 
   const clearCountdown = useCallback(() => {
@@ -480,7 +466,6 @@ function Prompter({
       if (idx !== sectionIdxRef.current) {
         sectionIdxRef.current = idx;
         setSectionIdx(idx);
-        showSectionToast(idx);
       }
       const timeDisplay = `${Math.round(position)}:${Math.round(engine.maxPosition)}:${settingsRef.current.speed}`;
       if (timeDisplay !== lastTimeDisplayRef.current) {
@@ -506,7 +491,7 @@ function Prompter({
       document.removeEventListener('visibilitychange', onVisibility);
       wakeLoopRef.current = () => undefined;
     };
-  }, [showSectionToast]);
+  }, []);
 
   // Scroll manual táctil + tap para mostrar/ocultar controles.
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -579,12 +564,6 @@ function Prompter({
           )}
         </div>
       </div>
-
-      {toast && (
-        <div className={styles.toast} data-testid="section-toast" role="status">
-          {toast}
-        </div>
-      )}
 
       {countdown !== null && (
         <div className={styles.countdown} data-testid="startup-countdown" role="status" aria-live="assertive">
