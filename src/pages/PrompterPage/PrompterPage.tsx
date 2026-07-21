@@ -12,7 +12,6 @@ import {
   SPEED_LIMITS,
   clampToLimit
 } from '../../features/settings/settings';
-import { createWakeLock } from '../../services/wakeLock';
 import { SettingsPanel } from './SettingsPanel';
 import { SectionNav } from './SectionNav';
 import { MappingEditor } from './MappingEditor';
@@ -494,12 +493,6 @@ function Prompter({
     };
   }, [script.id]);
 
-  // Pantalla siempre encendida mientras el prompter está abierto.
-  useEffect(() => {
-    const wakeLock = createWakeLock();
-    void wakeLock.acquire();
-    return () => wakeLock.destroy();
-  }, []);
 
   // Scroll manual táctil + tap para mostrar/ocultar controles.
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {

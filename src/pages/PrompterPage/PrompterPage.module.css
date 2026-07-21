@@ -59,7 +59,7 @@
 .content .heading {
   margin-top: 1.2em;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
-  font-size: calc(var(--prompter-font-size, 52px) * 0.85);
+  font-size: calc(var(--prompter-font-size, 52px) / 3);
   font-weight: 800;
 }
 

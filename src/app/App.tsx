@@ -4,6 +4,7 @@ import { ScriptsPage } from '../pages/ScriptsPage/ScriptsPage';
 import { PrompterPage } from '../pages/PrompterPage/PrompterPage';
 import { seedSampleScripts } from '../services/database';
 import { setupPWA } from '../services/pwa';
+import { createWakeLock } from '../services/wakeLock';
 import styles from './App.module.css';
 
 export function App() {
@@ -18,6 +19,13 @@ export function App() {
       .finally(() => setReady(true));
     // Auto-update: aplica y recarga en cuanto haya versión nueva publicada.
     setupPWA();
+  }, []);
+
+  // Pantalla siempre encendida mientras la app está abierta.
+  useEffect(() => {
+    const wakeLock = createWakeLock();
+    void wakeLock.acquire();
+    return () => wakeLock.destroy();
   }, []);
 
   if (!ready) return <div className={styles.loading} role="status">Opening your library…</div>;

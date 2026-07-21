@@ -1,5 +1,5 @@
 /**
- * Mantiene la pantalla encendida mientras se lee. Si la API no existe o falla
+ * Mantiene la pantalla encendida mientras la app está abierta. Si la API no existe o falla
  * (Safari antiguo, ahorro de energía), la app sigue funcionando sin ella.
  */
 type WakeLockDocument = Pick<Document, 'addEventListener' | 'removeEventListener' | 'visibilityState'>;

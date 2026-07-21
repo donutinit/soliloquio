@@ -14,6 +14,8 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@fontsource-variable/lexend": "^5.2.5",
+    "@fontsource-variable/noto-sans": "^5.2.5",
     "dexie": "^4.0.8",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
