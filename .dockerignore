@@ -1,0 +1,14 @@
+node_modules
+dist
+dev-dist
+.git
+.github
+tests
+playwright-report
+test-results
+deploy
+scripts/deploy-shaolin.sh
+README.md
+IMG_*.PNG
+.env
+.env.*

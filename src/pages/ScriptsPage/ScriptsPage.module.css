@@ -1,0 +1,247 @@
+.page {
+  min-height: 100%;
+  padding: calc(env(safe-area-inset-top, 0px) + 16px) calc(env(safe-area-inset-right, 0px) + 16px)
+    calc(env(safe-area-inset-bottom, 0px) + 24px) calc(env(safe-area-inset-left, 0px) + 16px);
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.header h1 {
+  font-size: 32px;
+  margin: 8px 0;
+}
+
+.headerActions {
+  display: flex;
+  gap: 8px;
+}
+
+.primaryButton,
+.secondaryButton {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: none;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.primaryButton {
+  background: var(--accent);
+  color: #fff;
+}
+
+.secondaryButton {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.searchRow {
+  margin-bottom: 16px;
+}
+
+.search {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 16px;
+}
+
+.importErrors {
+  background: var(--surface-2);
+  border: 1px solid var(--danger);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.importErrors button {
+  min-height: 44px;
+  padding: 0 12px;
+  border: none;
+  background: none;
+  color: var(--accent);
+}
+
+.empty {
+  text-align: center;
+  color: var(--text-dim);
+  padding: 64px 16px;
+}
+
+.grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  min-height: 160px;
+  display: flex;
+}
+
+.cardMain {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 14px;
+  background: none;
+  border: none;
+  text-align: left;
+  min-width: 0;
+}
+
+.cardTitle {
+  font-size: 17px;
+  font-weight: 700;
+  word-break: break-word;
+  padding-right: 32px;
+}
+
+.cardExcerpt {
+  color: var(--text-dim);
+  font-size: 13px;
+  line-height: 1.4;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+}
+
+.cardDate {
+  margin-top: auto;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.cardMenuButton {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: none;
+  color: var(--text-dim);
+  font-size: 20px;
+  border-radius: 12px;
+}
+
+.sheetBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 55%);
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.sheet {
+  width: 100%;
+  max-width: 480px;
+  background: var(--surface-2);
+  border-radius: 16px 16px 0 0;
+  padding: 16px 16px calc(env(safe-area-inset-bottom, 0px) + 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sheetTitle {
+  color: var(--text-dim);
+  font-size: 14px;
+  margin: 0 0 8px;
+  text-align: center;
+}
+
+.sheet button {
+  min-height: 48px;
+  border: none;
+  background: none;
+  font-size: 17px;
+  border-radius: 12px;
+}
+
+.sheet button:active {
+  background: var(--surface);
+}
+
+.danger {
+  color: var(--danger);
+}
+
+.editorOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  padding: calc(env(safe-area-inset-top, 0px) + 8px) calc(env(safe-area-inset-right, 0px) + 12px)
+    calc(env(safe-area-inset-bottom, 0px) + 8px) calc(env(safe-area-inset-left, 0px) + 12px);
+}
+
+.editorHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.editorHeader button {
+  min-height: 44px;
+  padding: 0 12px;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-size: 16px;
+}
+
+.saveStatus {
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.editorTitle {
+  border: none;
+  background: none;
+  font-size: 24px;
+  font-weight: 700;
+  padding: 8px 4px;
+  outline: none;
+}
+
+.editorContent {
+  flex: 1;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 16px;
+  line-height: 1.5;
+  resize: none;
+  outline: none;
+}

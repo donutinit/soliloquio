@@ -1,0 +1,5 @@
+Estas son notas en texto plano.
+
+# Esto no es un encabezado porque el archivo es .txt
+
+Fin de las notas.

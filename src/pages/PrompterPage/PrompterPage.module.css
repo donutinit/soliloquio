@@ -1,0 +1,388 @@
+.page {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  overflow: hidden;
+}
+
+.missing {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: var(--text-dim);
+}
+
+.missing button {
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: 12px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-size: 16px;
+}
+
+.viewport {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+}
+
+.content {
+  position: relative;
+  padding: 45vh calc(var(--prompter-margin, 4%) + env(safe-area-inset-right, 0px)) 55vh
+    calc(var(--prompter-margin, 4%) + env(safe-area-inset-left, 0px));
+  will-change: transform;
+}
+
+/* Todos los bloques comparten fuente, tamaño, interlineado y márgenes. */
+.content .text,
+.content .heading {
+  font-size: var(--prompter-font-size, 44px);
+  line-height: 1.35;
+  margin: 0 0 0.8em;
+  color: #fff;
+  overflow-wrap: break-word;
+}
+
+/* Los headings solo se distinguen por negrita, color y espacio moderado. */
+.content .heading {
+  font-weight: 800;
+  color: var(--accent);
+  margin-top: 1.2em;
+}
+
+.toast {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 64px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgb(31 34 41 / 92%);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 18px;
+  font-size: 15px;
+  z-index: 40;
+  max-width: 80vw;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topBar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: calc(env(safe-area-inset-top, 0px) + 6px) calc(env(safe-area-inset-right, 0px) + 10px)
+    6px calc(env(safe-area-inset-left, 0px) + 10px);
+  background: linear-gradient(rgb(0 0 0 / 85%), transparent);
+  z-index: 30;
+}
+
+.title {
+  flex: 1;
+  font-size: 15px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sectionIndicator {
+  font-size: 14px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.padOn,
+.padOff {
+  font-size: 12px;
+}
+
+.padOn {
+  color: #3fb950;
+}
+
+.padOff {
+  color: var(--border);
+}
+
+.bottomBar {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  width: min(560px, calc(100vw - 24px));
+  background: rgb(22 24 29 / 94%);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 10px 14px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.padHint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+.speedRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-dim);
+}
+
+.speedRow input[type='range'] {
+  flex: 1;
+  min-height: 44px;
+}
+
+.speedValue {
+  min-width: 3ch;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.buttonRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.iconButton {
+  min-width: 44px;
+  min-height: 44px;
+  border: none;
+  background: none;
+  color: var(--text);
+  font-size: 20px;
+  border-radius: 12px;
+}
+
+.iconButton:active {
+  background: var(--surface-2);
+}
+
+.playButton {
+  min-height: 44px;
+  padding: 0 22px;
+  border: none;
+  border-radius: 22px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.playButton[data-playing='true'] {
+  background: var(--surface-2);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+}
+
+.panelBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 55%);
+  z-index: 45;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.panel {
+  width: 100%;
+  max-width: 560px;
+  background: var(--surface-2);
+  border-radius: 16px 16px 0 0;
+  padding: 16px 16px calc(env(safe-area-inset-bottom, 0px) + 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.settingRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settingLabel {
+  width: 82px;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+.settingRow input[type='range'] {
+  flex: 1;
+  min-height: 44px;
+}
+
+.stepButton {
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 12px;
+  font-size: 20px;
+}
+
+.settingValue {
+  min-width: 5ch;
+  text-align: right;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.panelActions {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.panelActions button {
+  min-height: 44px;
+  padding: 0 16px;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-size: 16px;
+  border-radius: 12px;
+}
+
+.sectionList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sectionList button {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: none;
+  background: none;
+  font-size: 16px;
+  text-align: left;
+  border-radius: 12px;
+  padding: 0 8px;
+}
+
+.sectionList button:active {
+  background: var(--surface);
+}
+
+.sectionCurrent {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.sectionNumber {
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  min-width: 2ch;
+}
+
+.mappingOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 46;
+  background: var(--bg);
+  overflow-y: auto;
+  padding: calc(env(safe-area-inset-top, 0px) + 12px) calc(env(safe-area-inset-right, 0px) + 16px)
+    calc(env(safe-area-inset-bottom, 0px) + 16px) calc(env(safe-area-inset-left, 0px) + 16px);
+}
+
+.mappingHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mappingHeader h2 {
+  font-size: 20px;
+  margin: 0;
+}
+
+.mappingHeader button {
+  min-height: 44px;
+  padding: 0 16px;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-size: 16px;
+}
+
+.mappingHint {
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+.mappingList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mappingList button {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-size: 14px;
+  text-align: left;
+}
+
+.mappingListening {
+  border-color: var(--accent) !important;
+  color: var(--accent);
+}
+
+.mappingIndex {
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.diagnostics {
+  margin-top: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: var(--text-dim);
+  word-break: break-all;
+}
