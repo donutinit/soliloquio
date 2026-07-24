@@ -21,6 +21,7 @@
 }
 
 .headerActions {
+  flex-shrink: 0;
   display: flex;
   gap: 0;
   padding: 2px;
@@ -163,7 +164,7 @@
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 12px;
 }
 
@@ -226,7 +227,7 @@
   font-size: 17px;
   font-weight: 750;
   line-height: 1.25;
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .cardExcerpt {
@@ -242,7 +243,7 @@
 .cardDate {
   margin-top: auto;
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -286,6 +287,12 @@
   background: var(--surface-2);
   box-shadow: 0 -18px 60px rgb(0 0 0 / 35%);
   animation: sheetUp 180ms ease-out;
+  scrollbar-color: var(--border-strong) transparent;
+  scrollbar-width: thin;
+}
+
+.optionsSheet {
+  max-width: 420px;
 }
 
 .sheetTitle {
@@ -322,14 +329,17 @@
 }
 
 .helpSheet section {
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface);
+  padding: 10px 2px 12px;
+}
+
+.helpSheet section + section {
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
 }
 
 .helpSheet h3,
-.helpSheet p {
+.helpSheet p,
+.helpSheet ul {
   margin: 0;
 }
 
@@ -338,10 +348,19 @@
   font-size: 15px;
 }
 
-.helpSheet p {
+.helpSheet p,
+.helpSheet li {
   color: var(--text-dim);
   font-size: 14px;
   line-height: 1.45;
+}
+
+.helpSheet ul {
+  padding: 6px 0 0 20px;
+}
+
+.helpSheet li + li {
+  margin-top: 3px;
 }
 
 .helpDone {
@@ -350,7 +369,7 @@
 }
 
 .appSettingsSheet {
-  gap: 12px;
+  gap: 0;
 }
 
 .appSettingsSheet h2,
@@ -360,6 +379,7 @@
 }
 
 .appSettingsSheet h2 {
+  margin-bottom: 8px;
   font-size: 22px;
   text-align: center;
 }
@@ -367,10 +387,7 @@
 .settingsSection,
 .updateSection,
 .dangerZone {
-  padding: 14px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: var(--surface);
+  padding: 12px 2px;
 }
 
 .updateSection {
@@ -378,6 +395,7 @@
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px 14px;
+  border-top: 1px solid var(--border);
 }
 
 .updateSection h3,
@@ -401,7 +419,7 @@
   min-height: 44px;
   padding: 0 12px;
   border: 1px solid var(--border-strong);
-  border-radius: 11px;
+  border-radius: 12px;
   background: var(--surface-2);
   color: var(--link);
   font-size: 14px;
@@ -418,6 +436,12 @@
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 14px;
+}
+
+.appSettingRow + .appSettingRow {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
 }
 
 .appSettingRow label {
@@ -444,17 +468,77 @@
   min-height: 44px;
   padding: 0 10px;
   border: 1px solid var(--border-strong);
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--surface-2);
   color: var(--text);
   font-size: 16px;
 }
 
-.appSettingRow input[type='checkbox'] {
-  width: 28px;
+.switchControl {
+  position: relative;
+  width: 52px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  justify-self: end;
+}
+
+.switchControl input {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.switchControl input:disabled {
+  cursor: default;
+}
+
+.switchControl > span {
+  position: relative;
+  width: 46px;
   height: 28px;
-  margin: 8px;
-  accent-color: var(--accent);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+.switchControl > span::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 32%);
+  transition: transform 140ms ease, background 140ms ease;
+}
+
+.switchControl input:checked + span {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.switchControl input:checked + span::after {
+  transform: translateX(18px);
+  background: #fff;
+}
+
+.switchControl:focus-within {
+  border-radius: 999px;
+  outline: 3px solid color-mix(in srgb, var(--focus) 28%, transparent);
+  outline-offset: 1px;
+}
+
+.switchControl:has(input:disabled) {
+  opacity: 0.55;
 }
 
 .appSettingRow select:focus-visible {
@@ -474,7 +558,11 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 8px;
-  border-color: color-mix(in srgb, var(--danger) 52%, var(--border));
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--danger) 52%, var(--border));
+  border-radius: 14px;
+  background: var(--surface);
+  margin-top: 12px;
 }
 
 .dangerButton,
@@ -483,7 +571,7 @@
   min-height: 44px;
   padding: 0 14px;
   border: 0;
-  border-radius: 11px;
+  border-radius: 12px;
   font-size: 15px;
   font-weight: 700;
 }
@@ -519,6 +607,7 @@
 
 .settingsDone {
   align-self: flex-end;
+  margin-top: 4px;
   background: none;
   color: var(--link);
 }
@@ -607,7 +696,7 @@
 .gamepadHint,
 .gamepadFeedback,
 .gamepadError {
-  margin: 10px 2px;
+  margin: 10px auto;
   font-size: 13px;
   line-height: 1.45;
 }
@@ -793,7 +882,7 @@
 
 .saveStatus,
 .saveError {
-  font-size: 12px;
+  font-size: 13px;
   text-align: center;
 }
 
@@ -830,12 +919,18 @@
   resize: none;
 }
 
-.editorTitle:focus,
 .editorContent:focus,
 .search:focus {
   border-color: var(--focus);
   outline: 3px solid color-mix(in srgb, var(--focus) 28%, transparent);
   outline-offset: 1px;
+}
+
+.editorTitle:focus {
+  border-color: color-mix(in srgb, var(--focus) 55%, transparent);
+  outline: 2px solid color-mix(in srgb, var(--focus) 18%, transparent);
+  outline-offset: 1px;
+  background: color-mix(in srgb, var(--focus) 4%, transparent);
 }
 
 .visuallyHidden {
@@ -871,6 +966,18 @@
   }
 }
 
+@media (min-width: 700px) {
+  .sheetBackdrop {
+    align-items: center;
+    padding: 20px;
+  }
+
+  .sheet {
+    border-bottom: 1px solid var(--border);
+    border-radius: 24px;
+  }
+}
+
 @media (max-width: 560px) {
   .grid {
     grid-template-columns: 1fr;
@@ -886,12 +993,26 @@
   }
 }
 
-@media (max-width: 359px) {
+@media (max-width: 374px) {
   .page {
     padding-right: 12px;
     padding-left: 12px;
   }
 
+  .header {
+    gap: 6px;
+  }
+
+  .header h1 {
+    font-size: 26px;
+  }
+
+  .headerActions {
+    padding: 1px;
+  }
+}
+
+@media (max-width: 359px) {
   .header h1 {
     font-size: 22px;
   }
@@ -941,12 +1062,23 @@
   }
 }
 
+@media (orientation: landscape) and (max-height: 500px) and (min-width: 700px) {
+  .sheet {
+    border-radius: 16px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .card,
   .sheet,
   .sheetBackdrop,
   .gamepadRowListening .gamepadChip {
     animation: none;
+    transition: none;
+  }
+
+  .switchControl > span,
+  .switchControl > span::after {
     transition: none;
   }
 }

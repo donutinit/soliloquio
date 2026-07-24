@@ -636,16 +636,14 @@ function Prompter({
       {controlsVisible && (
           <footer className={styles.bottomBar} data-testid="bottom-controls">
             <div className={styles.controlMetaRow}>
-              {!gamepadConnected && (
-                <p className={styles.padHint}>Connect a controller and press any button to activate it</p>
-              )}
               <p
                 className={styles.timeEstimate}
                 title="Estimated reading time at the current speed"
                 aria-label="Estimated elapsed and remaining reading time"
               >
-                <span className={styles.elapsedTime}>E <span ref={elapsedRef}>00:00</span></span>
-                <span className={styles.remainingTime}>R <span ref={remainingRef}>--:--</span></span>
+                <span ref={elapsedRef} className={styles.elapsedTime}>00:00</span>
+                <span className={styles.timeSeparator} aria-hidden="true">/</span>
+                <span ref={remainingRef} className={styles.remainingTime}>--:--</span>
               </p>
             </div>
             <div className={styles.speedRow}>

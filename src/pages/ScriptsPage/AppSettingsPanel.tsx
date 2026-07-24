@@ -87,14 +87,17 @@ export function AppSettingsPanel({
               <strong>Keep screen awake</strong>
               <span>Keeps the display on anywhere in the app when the browser allows it.</span>
             </label>
-            <input
-              id="keep-screen-awake"
-              type="checkbox"
-              data-testid="keep-awake-setting"
-              checked={settings.keepScreenAwake}
-              disabled={busy}
-              onChange={(event) => onKeepAwakeChange(event.target.checked)}
-            />
+            <span className={styles.switchControl}>
+              <input
+                id="keep-screen-awake"
+                type="checkbox"
+                data-testid="keep-awake-setting"
+                checked={settings.keepScreenAwake}
+                disabled={busy}
+                onChange={(event) => onKeepAwakeChange(event.target.checked)}
+              />
+              <span aria-hidden="true" />
+            </span>
           </div>
           {error && <p className={styles.settingsError} role="alert">{error}</p>}
         </section>

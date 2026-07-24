@@ -18,7 +18,7 @@ export function SectionNav({
     <div className={styles.panelBackdrop} onClick={onClose}>
       <div
         ref={dialogRef}
-        className={styles.panel}
+        className={`${styles.panel} ${styles.sectionsPanel}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="sections-title"

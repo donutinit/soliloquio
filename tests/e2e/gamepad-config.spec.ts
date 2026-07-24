@@ -15,6 +15,7 @@ async function openGamepadSettings(page: import('@playwright/test').Page): Promi
 }
 
 test('muestra todas las acciones con sus botones por defecto', async ({ page }) => {
+  await page.setViewportSize({ width: 1066, height: 700 });
   await openGamepadSettings(page);
   await expect(page.getByTestId('gamepad-settings-status')).toContainText('PlayStation controller');
   await expect(page.getByTestId('bind-togglePlay-value')).toHaveText('Cross');
@@ -22,6 +23,14 @@ test('muestra todas las acciones con sus botones por defecto', async ({ page }) 
   await expect(page.getByTestId('bind-speedUp-value')).toHaveText('R2');
   await expect(page.getByTestId('bind-marginUp-value')).toHaveText('D-pad Right');
   await expect(page.getByTestId('bind-backToScripts-value')).toHaveText('Circle');
+
+  const status = await page.getByTestId('gamepad-settings-status').boundingBox();
+  const hint = await page.getByTestId('gamepad-settings-hint').boundingBox();
+  expect(status).not.toBeNull();
+  expect(hint).not.toBeNull();
+  if (!status || !hint) throw new Error('Gamepad status or hint has no bounding box.');
+  expect(Math.abs(status.x - hint.x)).toBeLessThan(1);
+  expect(Math.abs(status.width - hint.width)).toBeLessThan(1);
 });
 
 test('con un mando Xbox adapta el nombre y la serigrafía de los botones', async ({ page }) => {

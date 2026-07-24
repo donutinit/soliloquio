@@ -26,6 +26,7 @@ import { checkForPWAUpdate } from '../../services/pwa';
 import { applyKeepScreenAwake } from '../../services/keepAwake';
 import { useModalFocus } from '../../app/useModalFocus';
 import { Icon } from '../../components/Icon';
+import { scriptExcerpt } from '../../features/scripts/excerpt';
 import { ScriptEditor } from './ScriptEditor';
 import { AppSettingsPanel, type AppUpdateState } from './AppSettingsPanel';
 import { GamepadSettingsPanel } from './GamepadSettingsPanel';
@@ -33,10 +34,6 @@ import { HelpPanel } from './HelpPanel';
 import styles from './ScriptsPage.module.css';
 
 const dateFormat = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' });
-
-function excerpt(content: string): string {
-  return content.replace(/[#>*`|-]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 90);
-}
 
 function OptionsSheet({
   title,
@@ -52,7 +49,7 @@ function OptionsSheet({
     <div className={styles.sheetBackdrop} onClick={onClose}>
       <div
         ref={dialogRef}
-        className={styles.sheet}
+        className={`${styles.sheet} ${styles.optionsSheet}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="script-options-title"
@@ -350,9 +347,9 @@ export function ScriptsPage({
 
   return (
     <div className={styles.page} aria-busy={busy}>
-      <header className={styles.header}>
+      <header className={styles.header} data-testid="library-header">
         <h1>Scripts</h1>
-        <div className={styles.headerActions}>
+        <div className={styles.headerActions} data-testid="library-header-actions">
           <button
             type="button"
             className={styles.headerIconButton}
@@ -478,7 +475,7 @@ export function ScriptsPage({
                 onClick={() => navigate(prompterHash(script.id))}
               >
                 <span className={styles.cardTitle} data-testid="card-title">{script.title}</span>
-                <span className={styles.cardExcerpt}>{excerpt(script.content) || 'Empty'}</span>
+                <span className={styles.cardExcerpt}>{scriptExcerpt(script.content) || 'Empty'}</span>
                 <span className={styles.cardDate}>{dateFormat.format(new Date(script.updatedAt))}</span>
               </button>
               <button

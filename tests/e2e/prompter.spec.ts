@@ -77,6 +77,15 @@ test('landscape controls and controller guide stay inside the viewport', async (
   await expect(page.getByTestId('controller-diagram')).toBeVisible();
   await expect(page.getByTestId('controller-diagram')).toBeInViewport();
   await expect(page.getByTestId('controller-guide')).toContainText('Left stick · fast scroll');
+
+  const diagram = await page.getByTestId('controller-diagram').boundingBox();
+  const legend = await page
+    .getByRole('list', { name: 'Controller button assignments' })
+    .boundingBox();
+  expect(diagram).not.toBeNull();
+  expect(legend).not.toBeNull();
+  if (!diagram || !legend) throw new Error('Controller diagram or legend has no bounding box.');
+  expect(legend.width).toBeGreaterThan(diagram.width);
 });
 
 test('opens the current script directly in the editor', async ({ page }) => {

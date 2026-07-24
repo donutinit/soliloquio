@@ -68,7 +68,10 @@ home-screen PWA is generally more resilient.
 - Drag the text for manual scrolling.
 - Tap the reading surface to hide or show controls.
 - Use Settings in the prompter to change speed, text size, or margins.
-- The `E` and `R` values estimate elapsed and remaining reading time at the current speed.
+- The two compact time values estimate elapsed and remaining reading time at the current speed.
+- Markdown headings deliberately appear as small, underlined Noto Sans section markers rather
+  than large editorial headings. They orient the reader without competing with the spoken copy;
+  preserve this hierarchy when changing prompter typography.
 - The **Keep screen awake** toggle in App Settings (on by default) holds a screen wake lock
   anywhere in the app and reacquires it after returning from the background when the browser
   allows it.

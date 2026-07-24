@@ -160,7 +160,7 @@ export function GamepadSettingsPanel({
         <span>{padName ?? 'No controller detected. Connect one and press any button.'}</span>
       </div>
 
-      <p className={styles.gamepadHint} aria-live="polite">
+      <p className={styles.gamepadHint} data-testid="gamepad-settings-hint" aria-live="polite">
         {listening
           ? `Press a controller button for “${actionLabel(listening)}”… Tap the action again to cancel.`
           : 'Tap an action, then press the controller button you want for it. Assigning a busy button swaps the two actions. Stick axes always scroll.'}

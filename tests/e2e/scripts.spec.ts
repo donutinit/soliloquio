@@ -48,6 +48,27 @@ test('busca guiones por título y contenido', async ({ page }) => {
   await expect(cardByTitle(page, 'Quick notes')).toHaveCount(0);
 });
 
+test('keeps the compact library composition aligned across phone and desktop widths', async ({
+  page
+}) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  const headerActions = await page.getByTestId('library-header-actions').boundingBox();
+  expect(headerActions).not.toBeNull();
+  if (!headerActions) throw new Error('Library header actions have no bounding box.');
+  expect(headerActions.x + headerActions.width).toBeLessThanOrEqual(348.5);
+
+  const mobileCard = await cardByTitle(page, 'Welcome to Teleprompter').boundingBox();
+  expect(mobileCard).not.toBeNull();
+  if (!mobileCard) throw new Error('Mobile script card has no bounding box.');
+  expect(mobileCard.width).toBeGreaterThan(330);
+
+  await page.setViewportSize({ width: 1066, height: 700 });
+  const desktopCard = await cardByTitle(page, 'Welcome to Teleprompter').boundingBox();
+  expect(desktopCard).not.toBeNull();
+  if (!desktopCard) throw new Error('Desktop script card has no bounding box.');
+  expect(desktopCard.width).toBeGreaterThan(280);
+});
+
 test('duplica un guion', async ({ page }) => {
   await cardByTitle(page, 'Quick notes').getByTestId('card-menu').click();
   await page.getByTestId('menu-duplicate').click();
