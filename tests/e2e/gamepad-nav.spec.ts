@@ -51,7 +51,7 @@ test('el d-pad enfoca la biblioteca y Sur activa el elemento enfocado', async ({
         return `${ring.borderTopColor}|${ring.borderTopLeftRadius}`;
       })
     )
-    .toBe('rgb(138, 180, 255)|19px');
+    .toBe('rgb(255, 175, 208)|19px');
 
   // The overflow menu remains available to touch/keyboard, but controller
   // confirm must neither open it nor leave focus trapped on it.
