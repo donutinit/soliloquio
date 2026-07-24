@@ -46,6 +46,16 @@ test('con un mando Xbox adapta el nombre y la serigrafía de los botones', async
   await expect(page.getByTestId('bind-toggleControllerGuide-value')).toHaveText('View');
   await expect(page.getByTestId('bind-toggleSections-value')).toHaveText('RS');
   await expect(page.getByTestId('bind-marginUp-value')).toHaveText('D-pad Right');
+
+  await page.getByTestId('gamepad-settings-done').click();
+  await page.getByRole('button', { name: 'Done' }).click();
+  await openScriptInPrompter(page, 'Welcome to Teleprompter');
+  await page.getByTestId('gamepad-status').click();
+  await expect(page.getByTestId('controller-diagram')).toHaveAttribute(
+    'data-controller-family',
+    'xbox'
+  );
+  await expect(page.getByRole('img', { name: 'Xbox controller button layout' })).toBeVisible();
 });
 
 test('reasignar a un botón ocupado intercambia las dos acciones y persiste', async ({ page }) => {

@@ -85,9 +85,11 @@ home-screen PWA is generally more resilient.
 Pair a Bluetooth controller in iOS settings (for a DualShock 4, hold **PS + Share** until the
 light bar flashes). Once the app is open, press any button so the browser exposes the
 controller. The app identifies the controller family (PlayStation, Xbox, Nintendo, 8BitDo)
-from its reported id and shows matching button names in the Gamepad panel. Detection is
-best-effort: some controllers announce themselves as Xbox in XInput mode, and unknown devices
-fall back to numbered buttons.
+from its reported id and shows matching button names in the Gamepad panel. The in-reader guide
+uses a DualShock 4 diagram for PlayStation controllers and an Xbox Wireless Controller diagram
+for Xbox controllers; other families retain the standard diagram. Detection is best-effort:
+some controllers announce themselves as Xbox in XInput mode, and unknown devices fall back to
+numbered buttons.
 
 ### App navigation
 

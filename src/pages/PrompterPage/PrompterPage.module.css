@@ -77,7 +77,7 @@
   max-width: min(80vw, 520px);
   border: 1px solid var(--border);
   border-radius: 12px;
-  background: rgb(31 34 41 / 97%);
+  background: color-mix(in srgb, var(--surface-2) 97%, transparent);
   box-shadow: 0 10px 32px rgb(0 0 0 / 35%);
 }
 
@@ -199,7 +199,7 @@
   padding: 9px 13px;
   border: 1px solid rgb(255 255 255 / 10%);
   border-radius: 22px;
-  background: rgb(18 21 26);
+  background: color-mix(in srgb, var(--surface) 94%, #000);
   box-shadow: 0 -18px 38px rgb(0 0 0 / 58%), 0 16px 44px rgb(0 0 0 / 52%),
     0 1px 0 rgb(255 255 255 / 5%) inset;
   animation: controlsIn 140ms ease-out;
@@ -552,61 +552,242 @@
 }
 
 .controllerDiagram {
-  border: 1px solid rgb(255 255 255 / 8%);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border));
   border-radius: 22px;
-  background: linear-gradient(145deg, rgb(255 255 255 / 4%), transparent 60%);
+  background:
+    radial-gradient(circle at 50% 20%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 44%),
+    linear-gradient(145deg, rgb(255 255 255 / 4%), transparent 60%),
+    color-mix(in srgb, var(--surface) 78%, #000);
+  box-shadow: 0 18px 42px rgb(0 0 0 / 20%) inset;
 }
 
 .controllerDiagram svg {
   width: 100%;
   height: auto;
   display: block;
-  padding: 10px;
+  padding: 6px 10px 8px;
   overflow: visible;
 }
 
-.controllerBody {
-  fill: #242932;
-  stroke: #596273;
-  stroke-width: 3;
+.controllerShadow {
+  fill: rgb(0 0 0 / 36%);
 }
 
-.controllerSurface {
-  fill: #1a1e25;
-  stroke: #48505e;
+.controllerBody {
+  fill: #29252d;
+  stroke: #706574;
+  stroke-width: 3.2;
+  stroke-linejoin: round;
+}
+
+.controllerBodyHighlight {
+  fill: none;
+  stroke: rgb(255 255 255 / 13%);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.controllerGripSeam,
+.controllerPanelSeam {
+  fill: none;
+  stroke: #514853;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.controllerTrigger {
+  fill: #141116;
+  stroke: #554b58;
+  stroke-width: 2.5;
+}
+
+.controllerShoulderButton {
+  fill: #201c23;
+  stroke: #665b69;
+  stroke-width: 2.5;
+}
+
+.controllerTouchpad {
+  fill: #19161c;
+  stroke: #5c525f;
   stroke-width: 2;
 }
 
-.controllerControl,
-.controllerShoulder {
+.controllerTouchpadTexture,
+.controllerLightBar {
   fill: none;
-  stroke: #9ba6b8;
   stroke-linecap: round;
-  stroke-width: 7;
+}
+
+.controllerTouchpadTexture {
+  stroke: rgb(255 255 255 / 18%);
+  stroke-width: 1.8;
+  stroke-dasharray: 0 6;
+}
+
+.controllerLightBar {
+  stroke: var(--link);
+  stroke-width: 3;
+  opacity: 0.8;
+}
+
+.controllerUtilityButton {
+  fill: #151217;
+  stroke: #756a78;
+  stroke-width: 2;
+}
+
+.controllerUtilityGlyph,
+.controllerHomeGlyph,
+.xboxHomeGlyph {
+  fill: none;
+  stroke: #b9adb9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.controllerRecess,
+.controllerStickWell {
+  fill: #201c23;
+  stroke: #4f4752;
+  stroke-width: 2;
+}
+
+.controllerDpad,
+.xboxDpad {
+  fill: #151217;
+  stroke: #7b7080;
+  stroke-linejoin: round;
+  stroke-width: 2.5;
+}
+
+.controllerDpadDetail {
+  fill: none;
+  stroke: #aaa0ad;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.controllerFaceButton {
+  fill: #151217;
+  stroke: #827687;
+  stroke-width: 2.5;
+}
+
+.controllerFaceGlyph {
+  fill: none;
+  stroke: #c9bdc8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.dualshockTriangle {
+  stroke: #5bd4df;
+}
+
+.dualshockCircle {
+  stroke: #ef8298;
+}
+
+.dualshockCross {
+  stroke: #85b4ee;
+}
+
+.dualshockSquare {
+  stroke: #d491d2;
 }
 
 .controllerStick {
-  fill: #11141a;
-  stroke: #8994a5;
-  stroke-width: 5;
+  fill: #121014;
+  stroke: #8c818f;
+  stroke-width: 4;
+}
+
+.controllerStickDetail {
+  fill: none;
+  stroke: #514953;
+  stroke-linecap: round;
+  stroke-width: 2;
 }
 
 .controllerHome {
-  fill: #11141a;
-  stroke: #596273;
-  stroke-width: 3;
+  fill: #151217;
+  stroke: #675d6b;
+  stroke-width: 2.5;
+}
+
+.controllerSpeaker {
+  fill: #827785;
+}
+
+.controllerPort {
+  fill: #0c0a0d;
+  stroke: #514953;
+  stroke-width: 1.5;
+}
+
+.xboxDpadWell {
+  fill: #1a171c;
+  stroke: #524a55;
+  stroke-width: 2;
+}
+
+.xboxHome {
+  fill: #ded7dd;
+  stroke: #8b818c;
+  stroke-width: 2.5;
+}
+
+.xboxHomeGlyph {
+  stroke: #403943;
+  stroke-width: 2.2;
+}
+
+.xboxFaceGlyph {
+  font-family: 'Noto Sans Variable', 'Noto Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.xboxA {
+  fill: #68c783;
+}
+
+.xboxB {
+  fill: #f4777c;
+}
+
+.xboxX {
+  fill: #69aee9;
+}
+
+.xboxY {
+  fill: #e8cb67;
+}
+
+.controllerMarkerHalo {
+  fill: none;
+  stroke: color-mix(in srgb, var(--accent) 72%, #fff);
+  stroke-width: 2.2;
 }
 
 .controllerMarker {
   fill: var(--accent);
-  stroke: #fff;
-  stroke-width: 2;
+  stroke: #fff5fa;
+  stroke-width: 1.5;
 }
 
 .controllerMarkerText {
   fill: #fff;
-  font-size: 11px;
-  font-weight: 800;
+  font-family: 'Noto Sans Variable', 'Noto Sans', sans-serif;
+  font-size: 9.5px;
+  font-weight: 900;
+  pointer-events: none;
 }
 
 .stickGuide {
