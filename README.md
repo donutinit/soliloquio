@@ -62,17 +62,17 @@ home-screen PWA is generally more resilient.
 ### Reading controls
 
 - Press **START** to begin automatic scrolling and **PAUSE** to stop.
-- Automatic scrolling hides the script header and slides the playback bar away after one second.
-  Tap the reading surface to bring the bar back; it returns automatically when playback pauses or
-  reaches the end.
+- Automatic scrolling hides the script header and softly fades the playback bar after one second.
+  Tap the reading surface to fade the bar back in; it returns automatically when playback pauses
+  or reaches the end.
 - Scripts always open at the beginning; reading position is not stored between sessions.
 - Set an optional 0–10 second start countdown from App Settings. It is off by default and does
   not run when resuming from pause.
 - Drag the text for manual scrolling.
 - Tap the reading surface to hide or show controls.
 - Use Settings in the prompter to change speed, text size, or margins. New installs default to
-  speed 55 and 60 px text. A large centered HUD confirms each new value, including changes made
-  from a controller.
+  speed 55 and 60 px text. A centered range HUD smoothly confirms each new value, including
+  continuous slider changes and adjustments made from a controller.
 - The two compact time values estimate elapsed and remaining reading time at the current speed.
 - The script title is the first line of the prompter. It and all Markdown headings use an
   underlined Noto Sans treatment at one-half of the reading text size.

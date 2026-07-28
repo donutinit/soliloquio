@@ -20,9 +20,13 @@ test('reproduce y pausa el desplazamiento automático', async ({ page }) => {
   const moved = await prompterOffset(page);
   expect(moved).toBeGreaterThan(start);
 
-  await expect(page.getByTestId('bottom-controls')).toBeHidden();
+  const bottomControls = page.getByTestId('bottom-controls');
+  await expect(bottomControls).toBeHidden();
+  await expect(bottomControls).toHaveCSS('opacity', '0');
+  await expect(bottomControls).toHaveCSS('transform', 'none');
   await page.getByTestId('prompter-viewport').click({ position: { x: 180, y: 180 } });
-  await expect(page.getByTestId('bottom-controls')).toBeVisible();
+  await expect(bottomControls).toBeVisible();
+  await expect(bottomControls).toHaveCSS('opacity', '1');
   await playButton.click();
   await expect(playButton).toHaveAttribute('data-playing', 'false');
   await expect(page.getByTestId('top-controls')).toBeVisible();
@@ -55,6 +59,11 @@ test('cambia velocidad, tamaño de fuente y márgenes desde ajustes', async ({ p
   await expect(page.getByTestId('margin-value')).toHaveText('5%');
   await expect(page.getByTestId('adjustment-feedback')).toContainText('Margins');
   await expect(page.getByTestId('adjustment-feedback-value')).toHaveText('5%');
+  await expect(page.getByTestId('adjustment-feedback')).toHaveAttribute(
+    'data-setting',
+    'horizontalMargin'
+  );
+  await expect(page.getByTestId('adjustment-feedback')).toHaveCount(0, { timeout: 2_000 });
 });
 
 test('vuelve al inicio y a la lista de guiones', async ({ page }) => {

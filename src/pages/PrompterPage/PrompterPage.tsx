@@ -29,16 +29,45 @@ import styles from './PrompterPage.module.css';
 const READING_LINE_FRACTION = 0.4;
 const IDLE_POLL_INTERVAL_MS = 250;
 const PLAYBACK_CONTROLS_AUTO_HIDE_MS = 1000;
-const ADJUSTMENT_FEEDBACK_MS = 900;
+const ADJUSTMENT_FEEDBACK_HOLD_MS = 720;
+const ADJUSTMENT_FEEDBACK_EXIT_MS = 220;
 
 type Panel = 'none' | 'settings' | 'sections' | 'controllerGuide';
 type AdjustableSetting = 'speed' | 'fontSize' | 'horizontalMargin';
-
-const ADJUSTMENT_DISPLAY: Record<AdjustableSetting, { label: string; unit: string }> = {
-  speed: { label: 'Speed', unit: '' },
-  fontSize: { label: 'Text size', unit: 'px' },
-  horizontalMargin: { label: 'Margins', unit: '%' }
+type AdjustmentFeedback = {
+  key: AdjustableSetting;
+  value: number;
+  phase: 'visible' | 'exiting';
 };
+
+const ADJUSTMENT_DISPLAY: Record<
+  AdjustableSetting,
+  { label: string; unit: string; min: number; max: number }
+> = {
+  speed: {
+    label: 'Speed',
+    unit: '',
+    min: SPEED_LIMITS.min,
+    max: SPEED_LIMITS.max
+  },
+  fontSize: {
+    label: 'Text size',
+    unit: 'px',
+    min: FONT_LIMITS.min,
+    max: FONT_LIMITS.max
+  },
+  horizontalMargin: {
+    label: 'Margins',
+    unit: '%',
+    min: MARGIN_LIMITS.min,
+    max: MARGIN_LIMITS.max
+  }
+};
+
+function adjustmentProgress(key: AdjustableSetting, value: number): number {
+  const display = ADJUSTMENT_DISPLAY[key];
+  return ((value - display.min) / (display.max - display.min)) * 100;
+}
 
 function formatDuration(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return '--:--';
@@ -148,10 +177,7 @@ function Prompter({
   const [gamepadConnected, setGamepadConnected] = useState(false);
   const [padFamily, setPadFamily] = useState<ControllerFamily>('playstation');
   const [storageError, setStorageError] = useState<string | null>(null);
-  const [adjustmentFeedback, setAdjustmentFeedback] = useState<{
-    key: AdjustableSetting;
-    value: number;
-  } | null>(null);
+  const [adjustmentFeedback, setAdjustmentFeedback] = useState<AdjustmentFeedback | null>(null);
 
   const viewportRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -176,7 +202,8 @@ function Prompter({
   const renderedPositionRef = useRef(Number.NaN);
   const exitingRef = useRef(false);
   const manualWakeActiveRef = useRef(false);
-  const adjustmentTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const adjustmentExitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const adjustmentRemoveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const engineRef = useRef<ScrollEngine | null>(null);
   if (!engineRef.current) {
@@ -324,7 +351,8 @@ function Prompter({
   useEffect(
     () => () => {
       if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
-      if (adjustmentTimerRef.current) clearTimeout(adjustmentTimerRef.current);
+      if (adjustmentExitTimerRef.current) clearTimeout(adjustmentExitTimerRef.current);
+      if (adjustmentRemoveTimerRef.current) clearTimeout(adjustmentRemoveTimerRef.current);
     },
     []
   );
@@ -348,12 +376,21 @@ function Prompter({
   }, [navigate, persistSettings, script.id]);
 
   const showAdjustmentFeedback = useCallback((key: AdjustableSetting, value: number) => {
-    if (adjustmentTimerRef.current) clearTimeout(adjustmentTimerRef.current);
-    setAdjustmentFeedback({ key, value });
-    adjustmentTimerRef.current = setTimeout(() => {
-      adjustmentTimerRef.current = null;
-      setAdjustmentFeedback(null);
-    }, ADJUSTMENT_FEEDBACK_MS);
+    if (adjustmentExitTimerRef.current) clearTimeout(adjustmentExitTimerRef.current);
+    if (adjustmentRemoveTimerRef.current) clearTimeout(adjustmentRemoveTimerRef.current);
+    adjustmentExitTimerRef.current = null;
+    adjustmentRemoveTimerRef.current = null;
+    setAdjustmentFeedback({ key, value, phase: 'visible' });
+    adjustmentExitTimerRef.current = setTimeout(() => {
+      adjustmentExitTimerRef.current = null;
+      setAdjustmentFeedback((current) =>
+        current ? { ...current, phase: 'exiting' } : null
+      );
+      adjustmentRemoveTimerRef.current = setTimeout(() => {
+        adjustmentRemoveTimerRef.current = null;
+        setAdjustmentFeedback(null);
+      }, ADJUSTMENT_FEEDBACK_EXIT_MS);
+    }, ADJUSTMENT_FEEDBACK_HOLD_MS);
   }, []);
 
   const updateSetting = useCallback((key: AdjustableSetting, value: number) => {
@@ -540,7 +577,7 @@ function Prompter({
     };
   }, []);
 
-  // Once playback is underway, give the controls one second before sliding
+  // Once playback is underway, give the controls one second before fading
   // them away. Any setting interaction or open panel restarts the idle period.
   useEffect(() => {
     if (!playing || !controlsVisible || panel !== 'none') return;
@@ -599,6 +636,14 @@ function Prompter({
     '--prompter-font-size': `${settings.fontSize}px`,
     '--prompter-margin': `${settings.horizontalMargin}%`
   } as CSSProperties;
+  const adjustmentStyle = adjustmentFeedback
+    ? ({
+        '--adjustment-progress': `${adjustmentProgress(
+          adjustmentFeedback.key,
+          adjustmentFeedback.value
+        )}%`
+      } as CSSProperties)
+    : undefined;
 
   return (
     <div className={styles.page} data-testid="prompter-page">
@@ -668,16 +713,31 @@ function Prompter({
 
       {adjustmentFeedback && (
         <div
-          className={styles.adjustmentFeedback}
+          className={`${styles.adjustmentFeedback} ${
+            adjustmentFeedback.phase === 'exiting' ? styles.adjustmentFeedbackExiting : ''
+          }`}
+          style={adjustmentStyle}
           data-testid="adjustment-feedback"
+          data-setting={adjustmentFeedback.key}
+          data-phase={adjustmentFeedback.phase}
           role="status"
           aria-live="polite"
         >
-          <span>{ADJUSTMENT_DISPLAY[adjustmentFeedback.key].label}</span>
-          <strong data-testid="adjustment-feedback-value">
-            {adjustmentFeedback.value}
-            {ADJUSTMENT_DISPLAY[adjustmentFeedback.key].unit}
+          <span className={styles.adjustmentLabel}>
+            {ADJUSTMENT_DISPLAY[adjustmentFeedback.key].label}
+          </span>
+          <strong
+            className={styles.adjustmentValue}
+            data-testid="adjustment-feedback-value"
+          >
+            <span>{adjustmentFeedback.value}</span>
+            {ADJUSTMENT_DISPLAY[adjustmentFeedback.key].unit && (
+              <span className={styles.adjustmentUnit}>
+                {ADJUSTMENT_DISPLAY[adjustmentFeedback.key].unit}
+              </span>
+            )}
           </strong>
+          <span className={styles.adjustmentMeter} aria-hidden="true" />
         </div>
       )}
 
