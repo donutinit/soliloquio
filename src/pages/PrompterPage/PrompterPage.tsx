@@ -28,8 +28,17 @@ import styles from './PrompterPage.module.css';
 /** Línea de lectura: fracción del alto del viewport donde se considera que se lee. */
 const READING_LINE_FRACTION = 0.4;
 const IDLE_POLL_INTERVAL_MS = 250;
+const PLAYBACK_CONTROLS_AUTO_HIDE_MS = 1000;
+const ADJUSTMENT_FEEDBACK_MS = 900;
 
 type Panel = 'none' | 'settings' | 'sections' | 'controllerGuide';
+type AdjustableSetting = 'speed' | 'fontSize' | 'horizontalMargin';
+
+const ADJUSTMENT_DISPLAY: Record<AdjustableSetting, { label: string; unit: string }> = {
+  speed: { label: 'Speed', unit: '' },
+  fontSize: { label: 'Text size', unit: 'px' },
+  horizontalMargin: { label: 'Margins', unit: '%' }
+};
 
 function formatDuration(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return '--:--';
@@ -133,14 +142,20 @@ function Prompter({
   const [playing, setPlaying] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [controlsVisible, setControlsVisible] = useState(true);
+  const [controlsActivity, setControlsActivity] = useState(0);
   const [panel, setPanel] = useState<Panel>('none');
   const [sectionIdx, setSectionIdx] = useState(0);
   const [gamepadConnected, setGamepadConnected] = useState(false);
   const [padFamily, setPadFamily] = useState<ControllerFamily>('playstation');
   const [storageError, setStorageError] = useState<string | null>(null);
+  const [adjustmentFeedback, setAdjustmentFeedback] = useState<{
+    key: AdjustableSetting;
+    value: number;
+  } | null>(null);
 
   const viewportRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const bottomBarRef = useRef<HTMLElement>(null);
   const blockElsRef = useRef<(HTMLElement | null)[]>([]);
   const sectionOffsetsRef = useRef<number[]>([]);
   const sectionIdxRef = useRef(0);
@@ -161,6 +176,7 @@ function Prompter({
   const renderedPositionRef = useRef(Number.NaN);
   const exitingRef = useRef(false);
   const manualWakeActiveRef = useRef(false);
+  const adjustmentTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const engineRef = useRef<ScrollEngine | null>(null);
   if (!engineRef.current) {
@@ -248,6 +264,7 @@ function Prompter({
     engine.seek(0);
     hasStartedRef.current = false;
     setPlaying(false);
+    setControlsVisible(true);
     wakeLoopRef.current();
   }, [clearCountdown]);
 
@@ -258,6 +275,7 @@ function Prompter({
 
     if (countdownRef.current !== null) {
       clearCountdown();
+      setControlsVisible(true);
       return;
     }
 
@@ -265,6 +283,7 @@ function Prompter({
     if (engine.state.playing) {
       engine.state.playing = false;
       setPlaying(false);
+      setControlsVisible(true);
       wakeLoopRef.current();
       return;
     }
@@ -305,6 +324,7 @@ function Prompter({
   useEffect(
     () => () => {
       if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+      if (adjustmentTimerRef.current) clearTimeout(adjustmentTimerRef.current);
     },
     []
   );
@@ -327,12 +347,27 @@ function Prompter({
     });
   }, [navigate, persistSettings, script.id]);
 
-  const updateSetting = useCallback((key: 'speed' | 'fontSize' | 'horizontalMargin', value: number) => {
+  const showAdjustmentFeedback = useCallback((key: AdjustableSetting, value: number) => {
+    if (adjustmentTimerRef.current) clearTimeout(adjustmentTimerRef.current);
+    setAdjustmentFeedback({ key, value });
+    adjustmentTimerRef.current = setTimeout(() => {
+      adjustmentTimerRef.current = null;
+      setAdjustmentFeedback(null);
+    }, ADJUSTMENT_FEEDBACK_MS);
+  }, []);
+
+  const updateSetting = useCallback((key: AdjustableSetting, value: number) => {
     const limit =
       key === 'speed' ? SPEED_LIMITS : key === 'fontSize' ? FONT_LIMITS : MARGIN_LIMITS;
+    const normalizedValue = clampToLimit(value, limit);
+    const current = settingsRef.current;
+    if (current[key] === normalizedValue) return;
+    const next = { ...current, [key]: normalizedValue };
+    settingsRef.current = next;
     settingsDirtyRef.current = true;
-    setSettingsState((prev) => ({ ...prev, [key]: clampToLimit(value, limit) }));
-  }, []);
+    setSettingsState(next);
+    showAdjustmentFeedback(key, normalizedValue);
+  }, [showAdjustmentFeedback]);
 
   const applyAction = useCallback(
     (action: GamepadAction) => {
@@ -471,6 +506,7 @@ function Prompter({
       if (engine.state.playing && position >= engine.maxPosition) {
         engine.state.playing = false;
         setPlaying(false);
+        setControlsVisible(true);
       }
       const readingLine = (viewportRef.current?.clientHeight ?? 0) * READING_LINE_FRACTION;
       const idx = currentSectionIndex(sectionOffsetsRef.current, position, readingLine);
@@ -503,6 +539,35 @@ function Prompter({
       wakeLoopRef.current = () => undefined;
     };
   }, []);
+
+  // Once playback is underway, give the controls one second before sliding
+  // them away. Any setting interaction or open panel restarts the idle period.
+  useEffect(() => {
+    if (!playing || !controlsVisible || panel !== 'none') return;
+    const timer = setTimeout(() => {
+      setControlsVisible(false);
+    }, PLAYBACK_CONTROLS_AUTO_HIDE_MS);
+    return () => clearTimeout(timer);
+  }, [
+    playing,
+    controlsVisible,
+    panel,
+    settings.speed,
+    settings.fontSize,
+    settings.horizontalMargin,
+    controlsActivity
+  ]);
+
+  useEffect(() => {
+    if (controlsVisible) return;
+    const activeElement = document.activeElement;
+    if (
+      activeElement instanceof HTMLElement &&
+      bottomBarRef.current?.contains(activeElement)
+    ) {
+      activeElement.blur();
+    }
+  }, [controlsVisible]);
 
   // Scroll manual táctil + tap para mostrar/ocultar controles.
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -540,12 +605,21 @@ function Prompter({
       <div
         ref={viewportRef}
         className={styles.viewport}
+        data-testid="prompter-viewport"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
       >
         <div ref={contentRef} className={styles.content} style={contentStyle} data-testid="prompter-content">
+          <div
+            role="heading"
+            aria-level={1}
+            className={`${styles.heading} ${styles.scriptTitleHeading}`}
+            data-block-type="script-title"
+          >
+            {script.title}
+          </div>
           {blocks.map((block, index) =>
             block.type === 'heading' ? (
               <div
@@ -592,6 +666,21 @@ function Prompter({
         </div>
       )}
 
+      {adjustmentFeedback && (
+        <div
+          className={styles.adjustmentFeedback}
+          data-testid="adjustment-feedback"
+          role="status"
+          aria-live="polite"
+        >
+          <span>{ADJUSTMENT_DISPLAY[adjustmentFeedback.key].label}</span>
+          <strong data-testid="adjustment-feedback-value">
+            {adjustmentFeedback.value}
+            {ADJUSTMENT_DISPLAY[adjustmentFeedback.key].unit}
+          </strong>
+        </div>
+      )}
+
       {controlsVisible && !playing && (
           <header className={styles.topBar} data-testid="top-controls">
             <button
@@ -633,8 +722,15 @@ function Prompter({
           </header>
       )}
 
-      {controlsVisible && (
-          <footer className={styles.bottomBar} data-testid="bottom-controls">
+      <footer
+        ref={bottomBarRef}
+        className={`${styles.bottomBar} ${controlsVisible ? '' : styles.bottomBarHidden}`}
+        data-testid="bottom-controls"
+        data-visible={controlsVisible}
+        aria-hidden={!controlsVisible}
+        onPointerDown={() => setControlsActivity((activity) => activity + 1)}
+        onFocus={() => setControlsActivity((activity) => activity + 1)}
+      >
             <div className={styles.controlMetaRow}>
               <p
                 className={styles.timeEstimate}
@@ -720,8 +816,7 @@ function Prompter({
                 <Icon name="settings" />
               </button>
             </div>
-          </footer>
-      )}
+      </footer>
 
       {panel === 'settings' && (
         <SettingsPanel

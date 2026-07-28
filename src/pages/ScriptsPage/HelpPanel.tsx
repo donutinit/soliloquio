@@ -21,7 +21,7 @@ export function HelpPanel({ onClose }: { onClose: () => void }) {
         </section>
         <section>
           <h3>2. Read</h3>
-          <p>Tap START for automatic scrolling. Drag the script to move manually; tap it to hide or show controls.</p>
+          <p>Tap START for automatic scrolling. Controls hide after one second; tap the script to bring them back or drag it to move manually.</p>
         </section>
         <section>
           <h3>3. Navigate</h3>

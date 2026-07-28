@@ -20,6 +20,9 @@ test('reproduce y pausa el desplazamiento automático', async ({ page }) => {
   const moved = await prompterOffset(page);
   expect(moved).toBeGreaterThan(start);
 
+  await expect(page.getByTestId('bottom-controls')).toBeHidden();
+  await page.getByTestId('prompter-viewport').click({ position: { x: 180, y: 180 } });
+  await expect(page.getByTestId('bottom-controls')).toBeVisible();
   await playButton.click();
   await expect(playButton).toHaveAttribute('data-playing', 'false');
   await expect(page.getByTestId('top-controls')).toBeVisible();
@@ -34,18 +37,24 @@ test('cambia velocidad, tamaño de fuente y márgenes desde ajustes', async ({ p
   const speedBefore = Number(await page.getByTestId('speed-value').textContent());
   await page.getByTestId('speed-plus').click();
   await expect(page.getByTestId('speed-value')).toHaveText(String(speedBefore + 5));
+  await expect(page.getByTestId('adjustment-feedback')).toContainText('Speed');
+  await expect(page.getByTestId('adjustment-feedback-value')).toHaveText(String(speedBefore + 5));
 
-  await expect(page.getByTestId('font-value')).toHaveText('52px');
+  await expect(page.getByTestId('font-value')).toHaveText('60px');
   await page.getByTestId('font-plus').click();
-  await expect(page.getByTestId('font-value')).toHaveText('54px');
+  await expect(page.getByTestId('font-value')).toHaveText('62px');
+  await expect(page.getByTestId('adjustment-feedback')).toContainText('Text size');
+  await expect(page.getByTestId('adjustment-feedback-value')).toHaveText('62px');
   const fontSize = await page.evaluate(
     () => getComputedStyle(document.querySelector('[data-block-type="text"]')!).fontSize
   );
-  expect(fontSize).toBe('54px');
+  expect(fontSize).toBe('62px');
 
   await expect(page.getByTestId('margin-value')).toHaveText('4%');
   await page.getByTestId('margin-plus').click();
   await expect(page.getByTestId('margin-value')).toHaveText('5%');
+  await expect(page.getByTestId('adjustment-feedback')).toContainText('Margins');
+  await expect(page.getByTestId('adjustment-feedback-value')).toHaveText('5%');
 });
 
 test('vuelve al inicio y a la lista de guiones', async ({ page }) => {

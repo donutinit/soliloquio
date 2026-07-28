@@ -9,6 +9,10 @@ function makeEngine(): ScrollEngine {
 }
 
 describe('ScrollEngine', () => {
+  it('starts with the reader default speed', () => {
+    expect(new ScrollEngine().state.baseSpeed).toBe(55);
+  });
+
   it('no avanza en pausa sin entrada manual', () => {
     const engine = makeEngine();
     expect(engine.tick(1000)).toBe(0);

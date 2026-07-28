@@ -35,6 +35,16 @@ describe('Teleprompter backups', () => {
     expect(parsed.scripts[0]).not.toHaveProperty('futureMetadata');
   });
 
+  it('defaults the card-title size when restoring an older backup', () => {
+    const backup = makeBackup([script], defaultSettings(), '2026-01-01T00:00:00Z');
+    const legacySettings: Partial<typeof backup.settings> = { ...backup.settings };
+    delete legacySettings.scriptCardTitleSize;
+
+    const parsed = parseBackup(JSON.stringify({ ...backup, settings: legacySettings }));
+
+    expect(parsed.settings.scriptCardTitleSize).toBe(25);
+  });
+
   it('does not emit retired reading-position data in new backups', () => {
     const legacyRuntimeScript = { ...script, lastPosition: 480.5 };
     const backup = makeBackup([legacyRuntimeScript], defaultSettings());

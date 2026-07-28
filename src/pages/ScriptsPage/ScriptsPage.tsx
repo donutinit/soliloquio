@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode
+} from 'react';
 import type { PrompterSettings, Script } from '../../types';
 import {
   createScript,
@@ -27,13 +34,12 @@ import { applyKeepScreenAwake } from '../../services/keepAwake';
 import { useModalFocus } from '../../app/useModalFocus';
 import { Icon } from '../../components/Icon';
 import { scriptExcerpt } from '../../features/scripts/excerpt';
+import { SCRIPT_CARD_TITLE_LIMITS } from '../../features/settings/settings';
 import { ScriptEditor } from './ScriptEditor';
 import { AppSettingsPanel, type AppUpdateState } from './AppSettingsPanel';
 import { GamepadSettingsPanel } from './GamepadSettingsPanel';
 import { HelpPanel } from './HelpPanel';
 import styles from './ScriptsPage.module.css';
-
-const dateFormat = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' });
 
 function OptionsSheet({
   title,
@@ -85,11 +91,14 @@ export function ScriptsPage({
   const [gamepadOpen, setGamepadOpen] = useState(false);
   const [appSettings, setAppSettings] = useState<PrompterSettings | null>(null);
   const [settingsError, setSettingsError] = useState<string | null>(null);
-  const [settingsSaving, setSettingsSaving] = useState(false);
   const [updateState, setUpdateState] = useState<AppUpdateState>('idle');
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const appSettingsSaveRef = useRef<Promise<void>>(Promise.resolve());
+  const appSettingsChangeVersionRef = useRef(0);
+  const appSettingsRef = useRef(appSettings);
+  const persistedAppSettingsRef = useRef(appSettings);
+  appSettingsRef.current = appSettings;
   const cardButtonRefs = useRef(new Map<string, HTMLButtonElement>());
   const restoredGamepadFocusRef = useRef(false);
 
@@ -104,6 +113,23 @@ export function ScriptsPage({
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadVersion = appSettingsChangeVersionRef.current;
+    void getSettings()
+      .then((settings) => {
+        if (!cancelled && appSettingsChangeVersionRef.current === loadVersion) {
+          appSettingsRef.current = settings;
+          persistedAppSettingsRef.current = settings;
+          setAppSettings(settings);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     setEditingId(initialEditingId ?? null);
@@ -194,7 +220,12 @@ export function ScriptsPage({
       }
       if (restoredBackup) {
         try {
-          applyKeepScreenAwake((await getSettings()).keepScreenAwake);
+          const restoredSettings = await getSettings();
+          appSettingsChangeVersionRef.current += 1;
+          appSettingsRef.current = restoredSettings;
+          persistedAppSettingsRef.current = restoredSettings;
+          setAppSettings(restoredSettings);
+          applyKeepScreenAwake(restoredSettings.keepScreenAwake);
         } catch {
           errors.push('The backup was restored, but its screen setting could not be applied.');
         }
@@ -251,7 +282,11 @@ export function ScriptsPage({
     setUpdateState('idle');
     setUpdateError(null);
     try {
-      setAppSettings(await getSettings());
+      const loadedSettings = await getSettings();
+      appSettingsChangeVersionRef.current += 1;
+      appSettingsRef.current = loadedSettings;
+      persistedAppSettingsRef.current = loadedSettings;
+      setAppSettings(loadedSettings);
       setSettingsOpen(true);
     } catch {
       setOperationError('App settings could not be opened.');
@@ -264,30 +299,44 @@ export function ScriptsPage({
     changes: Partial<PrompterSettings>,
     errorMessage: string
   ) => {
-    if (!appSettings) return;
-    const previous = appSettings;
+    const previous = appSettingsRef.current;
+    if (!previous) return;
     const next = { ...previous, ...changes };
+    const changeVersion = appSettingsChangeVersionRef.current + 1;
+    appSettingsChangeVersionRef.current = changeVersion;
+    appSettingsRef.current = next;
     setAppSettings(next);
     applyKeepScreenAwake(next.keepScreenAwake);
     setSettingsError(null);
-    setSettingsSaving(true);
     const save = appSettingsSaveRef.current
       .catch(() => undefined)
       .then(() => saveSettings(next));
     appSettingsSaveRef.current = save;
     try {
       await save;
+      persistedAppSettingsRef.current = next;
+      if (appSettingsChangeVersionRef.current === changeVersion) {
+        setSettingsError(null);
+      }
     } catch {
-      setAppSettings(previous);
-      applyKeepScreenAwake(previous.keepScreenAwake);
-      setSettingsError(errorMessage);
-    } finally {
-      setSettingsSaving(false);
+      if (appSettingsChangeVersionRef.current === changeVersion) {
+        const persisted = persistedAppSettingsRef.current ?? previous;
+        appSettingsRef.current = persisted;
+        setAppSettings(persisted);
+        applyKeepScreenAwake(persisted.keepScreenAwake);
+        setSettingsError(errorMessage);
+      }
     }
   };
 
   const updateCountdown = (seconds: number) =>
     updateAppSettings({ countdownSeconds: seconds }, 'The countdown setting could not be saved.');
+
+  const updateScriptCardTitleSize = (size: number) =>
+    updateAppSettings(
+      { scriptCardTitleSize: size },
+      'The script card title size could not be saved.'
+    );
 
   const updateKeepAwake = (enabled: boolean) =>
     updateAppSettings({ keepScreenAwake: enabled }, 'The screen setting could not be saved.');
@@ -302,6 +351,9 @@ export function ScriptsPage({
       await appSettingsSaveRef.current.catch(() => undefined);
       await resetToFactoryDefaults();
       const restored = await getSettings();
+      appSettingsChangeVersionRef.current += 1;
+      appSettingsRef.current = restored;
+      persistedAppSettingsRef.current = restored;
       setAppSettings(restored);
       applyKeepScreenAwake(restored.keepScreenAwake);
       setSettingsOpen(false);
@@ -344,9 +396,14 @@ export function ScriptsPage({
 
   const menuScript = menuId ? scripts.find((script) => script.id === menuId) : undefined;
   const editingScript = editingId ? scripts.find((script) => script.id === editingId) : undefined;
+  const pageStyle = {
+    '--script-card-title-size': `${
+      appSettings?.scriptCardTitleSize ?? SCRIPT_CARD_TITLE_LIMITS.default
+    }px`
+  } as CSSProperties;
 
   return (
-    <div className={styles.page} aria-busy={busy}>
+    <div className={styles.page} style={pageStyle} aria-busy={busy}>
       <header className={styles.header} data-testid="library-header">
         <h1>Scripts</h1>
         <div className={styles.headerActions} data-testid="library-header-actions">
@@ -476,7 +533,6 @@ export function ScriptsPage({
               >
                 <span className={styles.cardTitle} data-testid="card-title">{script.title}</span>
                 <span className={styles.cardExcerpt}>{scriptExcerpt(script.content) || 'Empty'}</span>
-                <span className={styles.cardDate}>{dateFormat.format(new Date(script.updatedAt))}</span>
               </button>
               <button
                 type="button"
@@ -581,8 +637,9 @@ export function ScriptsPage({
           error={settingsError}
           updateState={updateState}
           updateError={updateError}
-          busy={busy || settingsSaving || updateState === 'checking'}
+          busy={busy || updateState === 'checking'}
           onCountdownChange={(seconds) => void updateCountdown(seconds)}
+          onScriptCardTitleSizeChange={(size) => void updateScriptCardTitleSize(size)}
           onKeepAwakeChange={(enabled) => void updateKeepAwake(enabled)}
           onOpenGamepad={() => setGamepadOpen(true)}
           onCheckForUpdate={() => void handleCheckForUpdate()}

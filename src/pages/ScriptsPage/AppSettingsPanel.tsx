@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import type { PrompterSettings } from '../../types';
-import { COUNTDOWN_LIMITS } from '../../features/settings/settings';
+import {
+  COUNTDOWN_LIMITS,
+  SCRIPT_CARD_TITLE_LIMITS
+} from '../../features/settings/settings';
 import { useModalFocus } from '../../app/useModalFocus';
 import styles from './ScriptsPage.module.css';
 
@@ -20,6 +23,7 @@ export function AppSettingsPanel({
   updateError,
   busy,
   onCountdownChange,
+  onScriptCardTitleSizeChange,
   onKeepAwakeChange,
   onOpenGamepad,
   onCheckForUpdate,
@@ -32,6 +36,7 @@ export function AppSettingsPanel({
   updateError: string | null;
   busy: boolean;
   onCountdownChange: (seconds: number) => void;
+  onScriptCardTitleSizeChange: (size: number) => void;
   onKeepAwakeChange: (enabled: boolean) => void;
   onOpenGamepad: () => void;
   onCheckForUpdate: () => void;
@@ -81,6 +86,28 @@ export function AppSettingsPanel({
                 </option>
               ))}
             </select>
+          </div>
+          <div className={styles.appSettingRow}>
+            <label htmlFor="script-card-title-size">
+              <strong>Script card titles</strong>
+              <span>Adjust their size for comfortable reading from farther away.</span>
+            </label>
+            <span className={styles.cardTitleSizeControl}>
+              <input
+                id="script-card-title-size"
+                type="range"
+                data-testid="card-title-size-setting"
+                min={SCRIPT_CARD_TITLE_LIMITS.min}
+                max={SCRIPT_CARD_TITLE_LIMITS.max}
+                step={SCRIPT_CARD_TITLE_LIMITS.step}
+                value={settings.scriptCardTitleSize}
+                disabled={busy}
+                onChange={(event) => onScriptCardTitleSizeChange(Number(event.target.value))}
+              />
+              <output htmlFor="script-card-title-size" data-testid="card-title-size-value">
+                {settings.scriptCardTitleSize}px
+              </output>
+            </span>
           </div>
           <div className={styles.appSettingRow}>
             <label htmlFor="keep-screen-awake">

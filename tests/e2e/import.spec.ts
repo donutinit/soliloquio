@@ -55,26 +55,43 @@ test('el markdown importado se aplana: headings sí, resto texto plano', async (
   await expect(page.locator('[data-block-type="text"]', { hasText: 'logo del programa' })).toBeVisible();
 });
 
-test('los headings son negrita sans subrayada, a un tercio del texto', async ({ page }) => {
+test('el título abre la lectura y los headings son negrita sans subrayada, a la mitad del texto', async ({
+  page
+}) => {
   await page.getByTestId('import-input').setInputFiles([fixture('guion-prueba.md')]);
   await openScriptInPrompter(page, 'guion-prueba');
 
   const styles = await page.evaluate(() => {
-    const heading = document.querySelector('[data-block-type="heading"]')!;
-    const text = document.querySelector('[data-block-type="text"]')!;
+    const content = document.querySelector<HTMLElement>('[data-testid="prompter-content"]');
+    const scriptTitle = document.querySelector<HTMLElement>('[data-block-type="script-title"]');
+    const heading = document.querySelector<HTMLElement>('[data-block-type="heading"]');
+    const text = document.querySelector<HTMLElement>('[data-block-type="text"]');
+    if (!content || !scriptTitle || !heading || !text) {
+      throw new Error('Expected prompter title, heading, and text blocks.');
+    }
     return {
+      firstBlockType: content.firstElementChild?.getAttribute('data-block-type'),
+      scriptTitleText: scriptTitle.textContent,
+      scriptTitleSize: parseFloat(getComputedStyle(scriptTitle).fontSize),
+      scriptTitleWeight: getComputedStyle(scriptTitle).fontWeight,
+      scriptTitleDecoration: getComputedStyle(scriptTitle).textDecorationLine,
       headingSize: parseFloat(getComputedStyle(heading).fontSize),
       textSize: parseFloat(getComputedStyle(text).fontSize),
       headingWeight: getComputedStyle(heading).fontWeight,
       headingFamily: getComputedStyle(heading).fontFamily,
       headingDecoration: getComputedStyle(heading).textDecorationLine,
       headingColor: getComputedStyle(heading).color,
-      background: getComputedStyle(document.querySelector('[data-testid="prompter-page"]')!)
-        .backgroundColor
+      background: getComputedStyle(
+        document.querySelector<HTMLElement>('[data-testid="prompter-page"]') ?? document.body
+      ).backgroundColor
     };
   });
-  // Un tercio del tamaño del texto de lectura: marcan sección sin robar espacio.
-  expect(styles.headingSize).toBeCloseTo(styles.textSize / 3, 0);
+  expect(styles.firstBlockType).toBe('script-title');
+  expect(styles.scriptTitleText).toBe('guion-prueba');
+  expect(styles.scriptTitleSize).toBeCloseTo(styles.headingSize, 1);
+  expect(styles.scriptTitleWeight).toBe(styles.headingWeight);
+  expect(styles.scriptTitleDecoration).toBe(styles.headingDecoration);
+  expect(styles.headingSize).toBeCloseTo(styles.textSize / 2, 1);
   expect(Number(styles.headingWeight)).toBeGreaterThanOrEqual(700);
   expect(styles.headingFamily.toLowerCase()).toContain('noto sans');
   expect(styles.headingDecoration).toBe('underline');

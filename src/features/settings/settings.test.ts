@@ -3,6 +3,7 @@ import {
   COUNTDOWN_LIMITS,
   FONT_LIMITS,
   MARGIN_LIMITS,
+  SCRIPT_CARD_TITLE_LIMITS,
   SPEED_LIMITS,
   clampToLimit,
   defaultSettings,
@@ -13,13 +14,15 @@ import {
 import { DEFAULT_GAMEPAD_BINDINGS, GAMEPAD_ACTIONS } from '../../types';
 
 describe('clampToLimit', () => {
-  it('recorta a los límites de velocidad, fuente y márgenes', () => {
+  it('recorta a los límites de velocidad, fuentes y márgenes', () => {
     expect(clampToLimit(5, SPEED_LIMITS)).toBe(SPEED_LIMITS.min);
     expect(clampToLimit(9999, SPEED_LIMITS)).toBe(SPEED_LIMITS.max);
     expect(clampToLimit(1, FONT_LIMITS)).toBe(FONT_LIMITS.min);
     expect(clampToLimit(500, FONT_LIMITS)).toBe(FONT_LIMITS.max);
     expect(clampToLimit(-3, MARGIN_LIMITS)).toBe(MARGIN_LIMITS.min);
     expect(clampToLimit(80, MARGIN_LIMITS)).toBe(MARGIN_LIMITS.max);
+    expect(clampToLimit(2, SCRIPT_CARD_TITLE_LIMITS)).toBe(SCRIPT_CARD_TITLE_LIMITS.min);
+    expect(clampToLimit(80, SCRIPT_CARD_TITLE_LIMITS)).toBe(SCRIPT_CARD_TITLE_LIMITS.max);
     expect(clampToLimit(-1, COUNTDOWN_LIMITS)).toBe(0);
     expect(clampToLimit(99, COUNTDOWN_LIMITS)).toBe(10);
   });
@@ -30,13 +33,25 @@ describe('clampToLimit', () => {
 });
 
 describe('normalizeSettings', () => {
-  it('uses schema version 3 for controller-guide bindings', () => {
-    expect(SETTINGS_SCHEMA_VERSION).toBe(3);
+  it('uses schema version 4 for script-card typography', () => {
+    expect(SETTINGS_SCHEMA_VERSION).toBe(4);
   });
 
   it('completa ajustes ausentes con los valores por defecto', () => {
     expect(normalizeSettings(undefined)).toEqual(defaultSettings());
     expect(normalizeSettings({})).toEqual(defaultSettings());
+    expect(defaultSettings()).toMatchObject({
+      speed: 55,
+      fontSize: 60,
+      scriptCardTitleSize: 25
+    });
+  });
+
+  it('normalizes the script-card title size independently from prompter text', () => {
+    expect(normalizeSettings({ scriptCardTitleSize: 31 }).scriptCardTitleSize).toBe(31);
+    expect(normalizeSettings({ scriptCardTitleSize: 500 }).scriptCardTitleSize).toBe(
+      SCRIPT_CARD_TITLE_LIMITS.max
+    );
   });
 
   it('conserva asignaciones válidas y descarta las inválidas', () => {

@@ -69,6 +69,12 @@ test('keeps the compact library composition aligned across phone and desktop wid
   expect(desktopCard.width).toBeGreaterThan(280);
 });
 
+test('shows readable card titles without import or update dates', async ({ page }) => {
+  const card = cardByTitle(page, 'Welcome to Teleprompter');
+  await expect(card.getByTestId('card-title')).toHaveCSS('font-size', '25px');
+  await expect(card.getByTestId('open-prompter').locator('span')).toHaveCount(2);
+});
+
 test('duplica un guion', async ({ page }) => {
   await cardByTitle(page, 'Quick notes').getByTestId('card-menu').click();
   await page.getByTestId('menu-duplicate').click();

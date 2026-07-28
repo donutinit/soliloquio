@@ -11,12 +11,13 @@ import {
 
 export type Limit = { min: number; max: number; step: number; default: number };
 
-export const SPEED_LIMITS: Limit = { min: 10, max: 300, step: 5, default: 65 };
-export const FONT_LIMITS: Limit = { min: 20, max: 120, step: 2, default: 52 };
+export const SPEED_LIMITS: Limit = { min: 10, max: 300, step: 5, default: 55 };
+export const FONT_LIMITS: Limit = { min: 20, max: 120, step: 2, default: 60 };
 export const MARGIN_LIMITS: Limit = { min: 0, max: 25, step: 1, default: 4 };
+export const SCRIPT_CARD_TITLE_LIMITS: Limit = { min: 18, max: 48, step: 1, default: 25 };
 export const COUNTDOWN_LIMITS: Limit = { min: 0, max: 10, step: 1, default: 0 };
 
-export const SETTINGS_SCHEMA_VERSION = 3;
+export const SETTINGS_SCHEMA_VERSION = 4;
 
 /** Máximo índice de botón aceptado; cubre mandos no estándar con botones extra. */
 const MAX_BUTTON_INDEX = 31;
@@ -31,6 +32,7 @@ export function defaultSettings(): PrompterSettings {
     speed: SPEED_LIMITS.default,
     fontSize: FONT_LIMITS.default,
     horizontalMargin: MARGIN_LIMITS.default,
+    scriptCardTitleSize: SCRIPT_CARD_TITLE_LIMITS.default,
     countdownSeconds: COUNTDOWN_LIMITS.default,
     keepScreenAwake: true,
     controllerBindings: { ...DEFAULT_GAMEPAD_BINDINGS }
@@ -133,6 +135,10 @@ export function normalizeSettings(raw: unknown): PrompterSettings {
     speed: clampToLimit(Number(partial.speed), SPEED_LIMITS),
     fontSize: clampToLimit(Number(partial.fontSize), FONT_LIMITS),
     horizontalMargin: clampToLimit(Number(partial.horizontalMargin), MARGIN_LIMITS),
+    scriptCardTitleSize: clampToLimit(
+      Number(partial.scriptCardTitleSize),
+      SCRIPT_CARD_TITLE_LIMITS
+    ),
     countdownSeconds: Math.round(
       clampToLimit(Number(partial.countdownSeconds), COUNTDOWN_LIMITS)
     ),

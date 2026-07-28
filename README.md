@@ -49,6 +49,8 @@ scripts/          PWA icon generation and shaolin deployment
   combined limit. Teleprompter JSON backups have a separate 25 MB limit.
 - Markdown headings create navigable sections. Plain-text scripts can be converted to Markdown
   from their options menu.
+- Script cards omit timestamps and use 25 px titles by default; their title size is adjustable in
+  App Settings for easier reading at a distance.
 - Export one script from its options menu or create a complete JSON backup from the download
   button in the library header.
 - Restoring a backup merges its scripts into the current library and restores its preferences.
@@ -60,18 +62,20 @@ home-screen PWA is generally more resilient.
 ### Reading controls
 
 - Press **START** to begin automatic scrolling and **PAUSE** to stop.
-- Automatic scrolling hides the script header until playback pauses or reaches the end; the
-  playback controls remain available.
+- Automatic scrolling hides the script header and slides the playback bar away after one second.
+  Tap the reading surface to bring the bar back; it returns automatically when playback pauses or
+  reaches the end.
 - Scripts always open at the beginning; reading position is not stored between sessions.
 - Set an optional 0–10 second start countdown from App Settings. It is off by default and does
   not run when resuming from pause.
 - Drag the text for manual scrolling.
 - Tap the reading surface to hide or show controls.
-- Use Settings in the prompter to change speed, text size, or margins.
+- Use Settings in the prompter to change speed, text size, or margins. New installs default to
+  speed 55 and 60 px text. A large centered HUD confirms each new value, including changes made
+  from a controller.
 - The two compact time values estimate elapsed and remaining reading time at the current speed.
-- Markdown headings deliberately appear as small, underlined Noto Sans section markers rather
-  than large editorial headings. They orient the reader without competing with the spoken copy;
-  preserve this hierarchy when changing prompter typography.
+- The script title is the first line of the prompter. It and all Markdown headings use an
+  underlined Noto Sans treatment at one-half of the reading text size.
 - The **Keep screen awake** toggle in App Settings (on by default) holds a screen wake lock
   anywhere in the app and reacquires it after returning from the background when the browser
   allows it.

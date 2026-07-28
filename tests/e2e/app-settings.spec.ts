@@ -63,6 +63,24 @@ test('keep screen awake is on by default and the choice survives a reload', asyn
   await expect(page.getByTestId('keep-awake-setting')).not.toBeChecked();
 });
 
+test('script card title size defaults to 25px and remains editable', async ({ page }) => {
+  const firstTitle = page.getByTestId('card-title').first();
+  await expect(firstTitle).toBeVisible();
+  await expect(firstTitle).toHaveCSS('font-size', '25px');
+
+  await page.getByTestId('app-settings-button').click();
+  const size = page.getByTestId('card-title-size-setting');
+  await expect(size).toHaveValue('25');
+  await size.focus();
+  await size.press('ArrowRight');
+  await expect(page.getByTestId('card-title-size-value')).toHaveText('26px');
+  await page.getByRole('button', { name: 'Done' }).click();
+  await expect(firstTitle).toHaveCSS('font-size', '26px');
+
+  await page.reload();
+  await expect(page.getByTestId('card-title').first()).toHaveCSS('font-size', '26px');
+});
+
 test('factory reset requires confirmation and restores the complete first-run state', async ({ page }) => {
   await page.getByTestId('new-script').click();
   await page.getByTestId('editor-title').fill('Temporary script');

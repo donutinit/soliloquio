@@ -16,7 +16,7 @@ test('scripts and settings persist while reading position resets', async ({ page
   await openScriptInPrompter(page, 'Welcome to Teleprompter');
   await page.getByTestId('settings-toggle').click();
   await page.getByTestId('font-plus').click();
-  await expect(page.getByTestId('font-value')).toHaveText('54px');
+  await expect(page.getByTestId('font-value')).toHaveText('62px');
   await page.getByTestId('settings-close').click();
 
   // Advance, then leave the reader.
@@ -35,7 +35,7 @@ test('scripts and settings persist while reading position resets', async ({ page
 
   await openScriptInPrompter(page, 'Welcome to Teleprompter');
   await page.getByTestId('settings-toggle').click();
-  await expect(page.getByTestId('font-value')).toHaveText('54px');
+  await expect(page.getByTestId('font-value')).toHaveText('62px');
   await page.getByTestId('settings-close').click();
 
   // Opening the script again always begins at the start.
@@ -54,5 +54,5 @@ test('a setting changed immediately before leaving is persisted', async ({ page 
 
   await openScriptInPrompter(page, 'Welcome to Teleprompter');
   await page.getByTestId('settings-toggle').click();
-  await expect(page.getByTestId('font-value')).toHaveText('54px');
+  await expect(page.getByTestId('font-value')).toHaveText('62px');
 });
