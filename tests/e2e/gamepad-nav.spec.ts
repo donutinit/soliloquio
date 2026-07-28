@@ -77,8 +77,10 @@ test('dentro de un modal el foco queda atrapado y Este lo cierra', async ({ page
   await page.getByTestId('app-settings-button').click();
   await expect(page.getByTestId('app-settings-panel')).toBeVisible();
 
-  // El modal autoenfoca el select del countdown; bajar mueve al siguiente control.
+  // El modal autoenfoca el select del countdown; bajar recorre los ajustes nuevos y existentes.
   await expect(page.getByTestId('countdown-setting')).toBeFocused();
+  await pressNav(page, DPAD_DOWN);
+  await expect(page.getByTestId('card-title-size-setting')).toBeFocused();
   await pressNav(page, DPAD_DOWN);
   await expect(page.getByTestId('keep-awake-setting')).toBeFocused();
 
@@ -150,7 +152,7 @@ test('los sliders del panel de ajustes se ajustan con el d-pad', async ({ page }
   await pressNav(page, DPAD_RIGHT);
   await expect(page.getByTestId('speed-slider')).toBeFocused();
   await pressNav(page, DPAD_RIGHT);
-  await expect(page.getByTestId('speed-value')).toHaveText('70');
+  await expect(page.getByTestId('speed-value')).toHaveText('60');
 
   await pressNav(page, EAST);
   await expect(page.getByTestId('settings-panel')).toHaveCount(0);
