@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { installFakeGamepad, openScriptInPrompter, prompterOffset, setButton } from './helpers';
 
 const CROSS = 0;
+const DPAD_UP = 12;
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(installFakeGamepad);
@@ -26,6 +27,20 @@ test('pulsación corta de Cross alterna play/pausa', async ({ page }) => {
   await page.waitForTimeout(120);
   await setButton(page, CROSS, false);
   await expect(playButton).toHaveAttribute('data-playing', 'false');
+});
+
+test('un ajuste desde el mando muestra el HUD y lo desvanece', async ({ page }) => {
+  await expect(page.getByTestId('gamepad-status')).toHaveAttribute('data-connected', 'true');
+
+  await setButton(page, DPAD_UP, true);
+  await page.waitForTimeout(120);
+  await setButton(page, DPAD_UP, false);
+
+  const feedback = page.getByTestId('adjustment-feedback');
+  await expect(feedback).toHaveAttribute('data-setting', 'fontSize');
+  await expect(feedback).toHaveAttribute('data-phase', 'visible');
+  await expect(page.getByTestId('adjustment-feedback-value')).toHaveText('62px');
+  await expect(feedback).toHaveCount(0, { timeout: 2_000 });
 });
 
 test('mantener Cross hace scroll continuo sin alternar play/pausa', async ({ page }) => {

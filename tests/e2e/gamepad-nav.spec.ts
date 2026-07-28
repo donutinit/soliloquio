@@ -153,6 +153,11 @@ test('los sliders del panel de ajustes se ajustan con el d-pad', async ({ page }
   await expect(page.getByTestId('speed-slider')).toBeFocused();
   await pressNav(page, DPAD_RIGHT);
   await expect(page.getByTestId('speed-value')).toHaveText('60');
+  await expect(page.getByTestId('adjustment-feedback')).toHaveAttribute(
+    'data-setting',
+    'speed'
+  );
+  await expect(page.getByTestId('adjustment-feedback-value')).toHaveText('60');
 
   await pressNav(page, EAST);
   await expect(page.getByTestId('settings-panel')).toHaveCount(0);

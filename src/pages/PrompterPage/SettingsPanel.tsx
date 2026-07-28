@@ -23,7 +23,7 @@ function SettingRow({
   value: number;
   limit: Limit;
   unit: string;
-  onChange: (value: number) => void;
+  onChange: (value: number, showFeedback: boolean) => void;
 }) {
   return (
     <div className={styles.settingRow}>
@@ -33,7 +33,7 @@ function SettingRow({
         className={styles.stepButton}
         data-testid={`${testId}-minus`}
         aria-label={`Decrease ${label}`}
-        onClick={() => onChange(value - limit.step)}
+        onClick={(event) => onChange(value - limit.step, !event.nativeEvent.isTrusted)}
       >
         −
       </button>
@@ -45,14 +45,16 @@ function SettingRow({
         step={limit.step}
         value={value}
         aria-label={label}
-        onChange={(e) => onChange(Number(e.target.value))}
+        onChange={(event) =>
+          onChange(Number(event.target.value), !event.nativeEvent.isTrusted)
+        }
       />
       <button
         type="button"
         className={styles.stepButton}
         data-testid={`${testId}-plus`}
         aria-label={`Increase ${label}`}
-        onClick={() => onChange(value + limit.step)}
+        onClick={(event) => onChange(value + limit.step, !event.nativeEvent.isTrusted)}
       >
         +
       </button>
@@ -70,7 +72,7 @@ export function SettingsPanel({
   onClose
 }: {
   settings: PrompterSettings;
-  onChange: (key: SettingKey, value: number) => void;
+  onChange: (key: SettingKey, value: number, showFeedback?: boolean) => void;
   onClose: () => void;
 }) {
   const dialogRef = useModalFocus<HTMLDivElement>(onClose);
@@ -93,7 +95,7 @@ export function SettingsPanel({
           value={settings.speed}
           limit={SPEED_LIMITS}
           unit=""
-          onChange={(v) => onChange('speed', v)}
+          onChange={(value, showFeedback) => onChange('speed', value, showFeedback)}
         />
         <SettingRow
           label="Text size"
@@ -101,7 +103,7 @@ export function SettingsPanel({
           value={settings.fontSize}
           limit={FONT_LIMITS}
           unit="px"
-          onChange={(v) => onChange('fontSize', v)}
+          onChange={(value, showFeedback) => onChange('fontSize', value, showFeedback)}
         />
         <SettingRow
           label="Margins"
@@ -109,7 +111,9 @@ export function SettingsPanel({
           value={settings.horizontalMargin}
           limit={MARGIN_LIMITS}
           unit="%"
-          onChange={(v) => onChange('horizontalMargin', v)}
+          onChange={(value, showFeedback) =>
+            onChange('horizontalMargin', value, showFeedback)
+          }
         />
         <p className={styles.panelNote}>
           Gamepad buttons are configured in App settings on the scripts screen.

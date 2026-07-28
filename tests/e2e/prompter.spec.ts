@@ -35,20 +35,18 @@ test('reproduce y pausa el desplazamiento automático', async ({ page }) => {
   expect(Math.abs((await prompterOffset(page)) - paused)).toBeLessThan(1);
 });
 
-test('cambia velocidad, tamaño de fuente y márgenes desde ajustes', async ({ page }) => {
+test('los ajustes manuales cambian valores sin mostrar el HUD del mando', async ({ page }) => {
   await page.getByTestId('settings-toggle').click();
 
   const speedBefore = Number(await page.getByTestId('speed-value').textContent());
   await page.getByTestId('speed-plus').click();
   await expect(page.getByTestId('speed-value')).toHaveText(String(speedBefore + 5));
-  await expect(page.getByTestId('adjustment-feedback')).toContainText('Speed');
-  await expect(page.getByTestId('adjustment-feedback-value')).toHaveText(String(speedBefore + 5));
+  await expect(page.getByTestId('adjustment-feedback')).toHaveCount(0);
 
   await expect(page.getByTestId('font-value')).toHaveText('60px');
   await page.getByTestId('font-plus').click();
   await expect(page.getByTestId('font-value')).toHaveText('62px');
-  await expect(page.getByTestId('adjustment-feedback')).toContainText('Text size');
-  await expect(page.getByTestId('adjustment-feedback-value')).toHaveText('62px');
+  await expect(page.getByTestId('adjustment-feedback')).toHaveCount(0);
   const fontSize = await page.evaluate(
     () => getComputedStyle(document.querySelector('[data-block-type="text"]')!).fontSize
   );
@@ -57,13 +55,7 @@ test('cambia velocidad, tamaño de fuente y márgenes desde ajustes', async ({ p
   await expect(page.getByTestId('margin-value')).toHaveText('4%');
   await page.getByTestId('margin-plus').click();
   await expect(page.getByTestId('margin-value')).toHaveText('5%');
-  await expect(page.getByTestId('adjustment-feedback')).toContainText('Margins');
-  await expect(page.getByTestId('adjustment-feedback-value')).toHaveText('5%');
-  await expect(page.getByTestId('adjustment-feedback')).toHaveAttribute(
-    'data-setting',
-    'horizontalMargin'
-  );
-  await expect(page.getByTestId('adjustment-feedback')).toHaveCount(0, { timeout: 2_000 });
+  await expect(page.getByTestId('adjustment-feedback')).toHaveCount(0);
 });
 
 test('vuelve al inicio y a la lista de guiones', async ({ page }) => {

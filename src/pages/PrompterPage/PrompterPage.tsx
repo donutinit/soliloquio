@@ -393,18 +393,21 @@ function Prompter({
     }, ADJUSTMENT_FEEDBACK_HOLD_MS);
   }, []);
 
-  const updateSetting = useCallback((key: AdjustableSetting, value: number) => {
-    const limit =
-      key === 'speed' ? SPEED_LIMITS : key === 'fontSize' ? FONT_LIMITS : MARGIN_LIMITS;
-    const normalizedValue = clampToLimit(value, limit);
-    const current = settingsRef.current;
-    if (current[key] === normalizedValue) return;
-    const next = { ...current, [key]: normalizedValue };
-    settingsRef.current = next;
-    settingsDirtyRef.current = true;
-    setSettingsState(next);
-    showAdjustmentFeedback(key, normalizedValue);
-  }, [showAdjustmentFeedback]);
+  const updateSetting = useCallback(
+    (key: AdjustableSetting, value: number, showFeedback = false) => {
+      const limit =
+        key === 'speed' ? SPEED_LIMITS : key === 'fontSize' ? FONT_LIMITS : MARGIN_LIMITS;
+      const normalizedValue = clampToLimit(value, limit);
+      const current = settingsRef.current;
+      if (current[key] === normalizedValue) return;
+      const next = { ...current, [key]: normalizedValue };
+      settingsRef.current = next;
+      settingsDirtyRef.current = true;
+      setSettingsState(next);
+      if (showFeedback) showAdjustmentFeedback(key, normalizedValue);
+    },
+    [showAdjustmentFeedback]
+  );
 
   const applyAction = useCallback(
     (action: GamepadAction) => {
@@ -429,22 +432,22 @@ function Prompter({
           jumpToSection(stepSection(sectionIdxRef.current, 1, sections.length));
           break;
         case 'speedDown':
-          updateSetting('speed', current.speed - SPEED_LIMITS.step);
+          updateSetting('speed', current.speed - SPEED_LIMITS.step, true);
           break;
         case 'speedUp':
-          updateSetting('speed', current.speed + SPEED_LIMITS.step);
+          updateSetting('speed', current.speed + SPEED_LIMITS.step, true);
           break;
         case 'fontUp':
-          updateSetting('fontSize', current.fontSize + FONT_LIMITS.step);
+          updateSetting('fontSize', current.fontSize + FONT_LIMITS.step, true);
           break;
         case 'fontDown':
-          updateSetting('fontSize', current.fontSize - FONT_LIMITS.step);
+          updateSetting('fontSize', current.fontSize - FONT_LIMITS.step, true);
           break;
         case 'marginUp':
-          updateSetting('horizontalMargin', current.horizontalMargin + MARGIN_LIMITS.step);
+          updateSetting('horizontalMargin', current.horizontalMargin + MARGIN_LIMITS.step, true);
           break;
         case 'marginDown':
-          updateSetting('horizontalMargin', current.horizontalMargin - MARGIN_LIMITS.step);
+          updateSetting('horizontalMargin', current.horizontalMargin - MARGIN_LIMITS.step, true);
           break;
         case 'toggleSettings':
           setPanel((p) => (p === 'settings' ? 'none' : 'settings'));

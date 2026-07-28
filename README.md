@@ -71,8 +71,8 @@ home-screen PWA is generally more resilient.
 - Drag the text for manual scrolling.
 - Tap the reading surface to hide or show controls.
 - Use Settings in the prompter to change speed, text size, or margins. New installs default to
-  speed 55 and 60 px text. A centered range HUD smoothly confirms each new value, including
-  continuous slider changes and adjustments made from a controller.
+  speed 55 and 60 px text. Adjustments made with a controller appear in a centered range HUD;
+  touch, mouse, and keyboard changes in the interface remain unobtrusive.
 - The two compact time values estimate elapsed and remaining reading time at the current speed.
 - The script title is the first line of the prompter. It and all Markdown headings use an
   underlined Noto Sans treatment at one-half of the reading text size.
