@@ -113,9 +113,9 @@ describe('GamepadController', () => {
     expect(held.manualVelocity).toBe(DEFAULT_MANUAL_SCROLL_SPEED);
   });
 
-  it('una pulsación en curso al conectar queda suprimida hasta soltarse', () => {
-    // Cubre la pulsación que despierta el mando en Safari y la que cerró un
-    // panel o abrió el guion navegando: no debe disparar su acción al soltarse.
+  it('una pulsación sostenida al abrir el guion queda suprimida hasta soltarse', () => {
+    // El botón que abrió el guion navegando no debe disparar su acción del
+    // lector cuando se suelta ya dentro del prompter.
     const controller = new GamepadController({ ...DEFAULT_GAMEPAD_BINDINGS });
     const pressed = fakePad({ buttons: { 0: { pressed: true, value: 1 } } });
     controller.update(pressed, 0);
@@ -127,6 +127,25 @@ describe('GamepadController', () => {
     controller.update(pressed, HOLD_THRESHOLD_MS + 200);
     const after = controller.update(fakePad({}), HOLD_THRESHOLD_MS + 300);
     expect(after.actions).toContain('togglePlay');
+  });
+
+  it('la pulsación que revela un mando dentro del lector controla el prompter', () => {
+    const controller = new GamepadController({ ...DEFAULT_GAMEPAD_BINDINGS });
+    controller.update(null, -16);
+    const pressed = fakePad({ buttons: { 0: { pressed: true, value: 1 } } });
+    controller.update(pressed, 0);
+    const released = controller.update(fakePad({}), 100);
+    expect(released.actions).toContain('togglePlay');
+  });
+
+  it('gamepadconnected recupera la primera entrada aunque un poll ya la hubiera cebado', () => {
+    const controller = new GamepadController({ ...DEFAULT_GAMEPAD_BINDINGS });
+    const pressed = fakePad({ buttons: { 0: { pressed: true, value: 1 } } });
+    controller.update(pressed, 0);
+    controller.acceptNextConnectionInput();
+    controller.update(pressed, 16);
+    const released = controller.update(fakePad({}), 100);
+    expect(released.actions).toContain('togglePlay');
   });
 
   it('reset() vuelve a cebar y descarta la pulsación mantenida', () => {
@@ -145,9 +164,12 @@ describe('GamepadController', () => {
     const frame = controller.update(null, 100);
     expect(frame.connected).toBe(false);
     expect(frame.actions).toEqual([]);
-    // al reconectar, la pulsación anterior quedó descartada
-    const after = controller.update(fakePad({}), 200);
-    expect(after.actions).toEqual([]);
+    // La pulsación anterior queda descartada, pero una nueva conexión sí puede
+    // usar su primera entrada.
+    const pressed = fakePad({ buttons: { 0: { pressed: true, value: 1 } } });
+    controller.update(pressed, 200);
+    const after = controller.update(fakePad({}), 300);
+    expect(after.actions).toContain('togglePlay');
   });
 
   it('los sticks aportan scroll fino y rápido con zona muerta', () => {

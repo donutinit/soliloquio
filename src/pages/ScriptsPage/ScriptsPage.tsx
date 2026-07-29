@@ -528,6 +528,7 @@ export function ScriptsPage({
                 type="button"
                 className={styles.cardMain}
                 data-testid="open-prompter"
+                data-gamepad-script
                 disabled={busy}
                 onClick={() => navigate(prompterHash(script.id))}
               >

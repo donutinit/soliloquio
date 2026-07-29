@@ -1,24 +1,32 @@
 import { expect, test } from '@playwright/test';
-import { installFakeGamepad, openScriptInPrompter, prompterOffset, setButton } from './helpers';
+import {
+  installFakeGamepad,
+  openScriptInPrompter,
+  prompterOffset,
+  setButton,
+  setGamepadConnected
+} from './helpers';
 
 const CROSS = 0;
 const DPAD_UP = 12;
 
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript(installFakeGamepad);
+  await page.addInitScript(installFakeGamepad, { connected: false });
   await page.goto('/');
   await openScriptInPrompter(page, 'Welcome to Teleprompter');
 });
 
 test('detecta el mando simulado', async ({ page }) => {
+  await setGamepadConnected(page, true);
   await expect(page.getByTestId('gamepad-status')).toHaveAttribute('data-connected', 'true');
 });
 
-test('pulsación corta de Cross alterna play/pausa', async ({ page }) => {
+test('la pulsación que revela el mando en el lector alterna play/pausa', async ({ page }) => {
   const playButton = page.getByTestId('play-pause');
   await expect(playButton).toHaveAttribute('data-playing', 'false');
 
   await setButton(page, CROSS, true);
+  await setGamepadConnected(page, true);
   await page.waitForTimeout(120);
   await setButton(page, CROSS, false);
   await expect(playButton).toHaveAttribute('data-playing', 'true');
@@ -30,6 +38,7 @@ test('pulsación corta de Cross alterna play/pausa', async ({ page }) => {
 });
 
 test('un ajuste desde el mando muestra el HUD y lo desvanece', async ({ page }) => {
+  await setGamepadConnected(page, true);
   await expect(page.getByTestId('gamepad-status')).toHaveAttribute('data-connected', 'true');
 
   await setButton(page, DPAD_UP, true);
@@ -45,6 +54,8 @@ test('un ajuste desde el mando muestra el HUD y lo desvanece', async ({ page }) 
 
 test('mantener Cross hace scroll continuo sin alternar play/pausa', async ({ page }) => {
   const playButton = page.getByTestId('play-pause');
+  await setGamepadConnected(page, true);
+  await expect(page.getByTestId('gamepad-status')).toHaveAttribute('data-connected', 'true');
   const before = await prompterOffset(page);
 
   await setButton(page, CROSS, true);

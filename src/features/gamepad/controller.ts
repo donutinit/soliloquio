@@ -58,6 +58,10 @@ export class GamepadController {
   private machines = new Map<GamepadAction, HoldButton>();
   private suppressed = new Set<GamepadAction>();
   private hadPad = false;
+  // Al entrar al lector con un mando ya expuesto, descarta el botón que abrió
+  // el guion. Tras observar una desconexión o recibir gamepadconnected dentro
+  // del lector, la primera entrada sí pertenece al prompter.
+  private suppressInitialInput = true;
 
   constructor(private bindings: GamepadBindings) {
     this.resetMachines();
@@ -69,14 +73,23 @@ export class GamepadController {
 
   /**
    * Descarta el estado en curso. El siguiente frame vuelve a cebar: cualquier
-   * pulsación aún mantenida (la que despertó el mando en Safari, la que cerró
-   * un panel navegando, la que abrió este guion) queda suprimida hasta que se
-   * suelte, en vez de disparar su acción al soltarse.
+   * pulsación aún mantenida (la que cerró un panel navegando o la que abrió
+   * este guion) queda suprimida hasta que se suelte, en vez de disparar su
+   * acción al soltarse.
    */
   reset(): void {
     this.resetMachines();
     this.suppressed.clear();
     this.hadPad = false;
+    this.suppressInitialInput = true;
+  }
+
+  /** Permite que la entrada que acaba de revelar un mando controle el lector. */
+  acceptNextConnectionInput(): void {
+    this.suppressInitialInput = false;
+    // El evento puede llegar justo después de que un poll haya cebado el mando.
+    // El siguiente frame debe empezar a medir la pulsación, no seguir omitiéndola.
+    this.suppressed.clear();
   }
 
   private resetMachines(): void {
@@ -86,7 +99,14 @@ export class GamepadController {
   update(pad: Gamepad | null | undefined, nowMs: number): GamepadFrame {
     if (!pad) {
       // Al desconectar, descarta pulsaciones a medias sin disparar acciones.
-      if (this.hadPad) this.reset();
+      if (this.hadPad) {
+        this.resetMachines();
+        this.suppressed.clear();
+        this.hadPad = false;
+      }
+      // Una conexión posterior ocurre ya dentro del lector: su primera entrada
+      // debe poder manejarlo incluso si el navegador no emite el evento.
+      this.suppressInitialInput = false;
       return { actions: [], manualVelocity: 0, connected: false };
     }
 
@@ -99,10 +119,13 @@ export class GamepadController {
 
     if (!this.hadPad) {
       this.hadPad = true;
-      for (const action of GAMEPAD_ACTIONS) {
-        if (isPressed(action)) this.suppressed.add(action);
+      if (this.suppressInitialInput) {
+        this.suppressInitialInput = false;
+        for (const action of GAMEPAD_ACTIONS) {
+          if (isPressed(action)) this.suppressed.add(action);
+        }
+        return { actions: [], manualVelocity: 0, connected: true };
       }
-      return { actions: [], manualVelocity: 0, connected: true };
     }
 
     const events = {} as Record<GamepadAction, HoldButtonEvents>;

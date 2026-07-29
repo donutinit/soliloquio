@@ -99,10 +99,12 @@ numbered buttons.
 
 A connected controller can drive the whole app: the d-pad or left stick moves the focus, the
 south button (Cross/A) activates the focused control, and the east button (Circle/B) closes
-the open panel. While a prompter panel (Settings, Sections, or Controller Guide) is open, the
-controller navigates that panel instead of triggering reader actions; sliders adjust with d-pad
-left/right. These navigation buttons are fixed. On iOS, opening the file import picker still
-requires a direct tap.
+the open panel. When a controller is first detected in the library, focus moves directly to the
+first visible script. If it is first detected while the reader is open, the input that exposed it
+can immediately control the prompter. While a prompter panel (Settings, Sections, or Controller
+Guide) is open, the controller navigates that panel instead of triggering reader actions; sliders
+adjust with d-pad left/right. These navigation buttons are fixed. On iOS, opening the file import
+picker still requires a direct tap.
 
 ### Reader actions
 

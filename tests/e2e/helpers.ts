@@ -22,12 +22,15 @@ export async function prompterOffset(page: Page): Promise<number> {
   });
 }
 
-export const installFakeGamepad = (padId?: string) => {
+export const installFakeGamepad = (
+  options?: string | { padId?: string; connected?: boolean }
+) => {
   type FakeButton = { pressed: boolean; touched: boolean; value: number };
+  let exposed = typeof options === 'string' ? true : (options?.connected ?? true);
   const pad = {
-    id: padId ?? 'Fake DualShock 4',
+    id: (typeof options === 'string' ? options : options?.padId) ?? 'Fake DualShock 4',
     index: 0,
-    connected: true,
+    connected: exposed,
     mapping: 'standard',
     timestamp: 0,
     axes: [0, 0, 0, 0] as number[],
@@ -36,6 +39,7 @@ export const installFakeGamepad = (padId?: string) => {
   const win = window as unknown as {
     __setButton: (index: number, pressed: boolean, value?: number) => void;
     __setAxis: (index: number, value: number) => void;
+    __setGamepadConnected: (connected: boolean) => void;
   };
   win.__setButton = (index, pressed, value) => {
     pad.buttons[index] = { pressed, touched: pressed, value: value ?? (pressed ? 1 : 0) };
@@ -45,7 +49,16 @@ export const installFakeGamepad = (padId?: string) => {
     pad.axes[index] = value;
     pad.timestamp = performance.now();
   };
-  navigator.getGamepads = () => [pad as unknown as Gamepad];
+  win.__setGamepadConnected = (connected) => {
+    exposed = connected;
+    pad.connected = connected;
+    window.dispatchEvent(
+      new GamepadEvent(connected ? 'gamepadconnected' : 'gamepaddisconnected', {
+        gamepad: pad as unknown as Gamepad
+      })
+    );
+  };
+  navigator.getGamepads = () => (exposed ? [pad as unknown as Gamepad] : []);
 };
 
 export async function setButton(page: Page, index: number, pressed: boolean): Promise<void> {
@@ -58,4 +71,12 @@ export async function setButton(page: Page, index: number, pressed: boolean): Pr
     },
     [index, pressed] as const
   );
+}
+
+export async function setGamepadConnected(page: Page, connected: boolean): Promise<void> {
+  await page.evaluate((next) => {
+    (
+      window as unknown as { __setGamepadConnected: (connected: boolean) => void }
+    ).__setGamepadConnected(next);
+  }, connected);
 }

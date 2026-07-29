@@ -1,5 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
-import { cardByTitle, installFakeGamepad, openScriptInPrompter, setButton } from './helpers';
+import {
+  cardByTitle,
+  installFakeGamepad,
+  openScriptInPrompter,
+  setButton,
+  setGamepadConnected
+} from './helpers';
 
 const SOUTH = 0;
 const EAST = 1;
@@ -22,27 +28,21 @@ async function pressNav(page: Page, button: number): Promise<void> {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript(installFakeGamepad);
+  await page.addInitScript(installFakeGamepad, { connected: false });
   await page.goto('/');
+  await setGamepadConnected(page, true);
 });
 
-test('el d-pad enfoca la biblioteca y Sur activa el elemento enfocado', async ({ page }) => {
+test('al detectar el mando enfoca el primer guion y permite navegarlo', async ({ page }) => {
   await waitForNavReady(page);
 
-  // Sin nada enfocado, el primer movimiento va al primer elemento de la página.
-  await pressNav(page, DPAD_DOWN);
-  await expect
-    .poll(() => page.evaluate(() => document.activeElement?.getAttribute('aria-label') ?? ''))
-    .toBe('Help');
+  const card = cardByTitle(page, 'Welcome to Teleprompter');
+  const cardMain = card.getByTestId('open-prompter');
+  await expect(cardMain).toBeFocused();
   await expect(page.locator(':root')).toHaveAttribute('data-gamepad-nav', 'true');
-  // El elemento enfocado muestra el anillo interior (no lo recorta ningún overflow).
-  await expect(page.getByRole('button', { name: 'Help' })).toHaveCSS('outline-width', '3px');
 
   // Una tarjeta enfocada se resalta entera: su botón llena la tarjeta y el
   // overflow:hidden recortaría un anillo exterior.
-  const card = cardByTitle(page, 'Welcome to Teleprompter');
-  const cardMain = card.getByTestId('open-prompter');
-  await cardMain.focus();
   await expect(cardMain).toHaveCSS('outline-style', 'none');
   await expect
     .poll(() =>
@@ -52,6 +52,10 @@ test('el d-pad enfoca la biblioteca y Sur activa el elemento enfocado', async ({
       })
     )
     .toBe('rgb(255, 175, 208)|19px');
+
+  // El d-pad baja al siguiente guion visible.
+  await pressNav(page, DPAD_DOWN);
+  await expect(page.getByTestId('open-prompter').nth(1)).toBeFocused();
 
   // The overflow menu remains available to touch/keyboard, but controller
   // confirm must neither open it nor leave focus trapped on it.
@@ -64,6 +68,7 @@ test('el d-pad enfoca la biblioteca y Sur activa el elemento enfocado', async ({
   await cardMain.focus();
   await pressNav(page, SOUTH);
   await expect(page.getByTestId('prompter-page')).toBeVisible();
+  await expect(page.getByTestId('play-pause')).toHaveAttribute('data-playing', 'false');
 
   // Círculo/B/Este sale del lector y devuelve el cursor al mismo guion, no al header.
   await pressNav(page, EAST);

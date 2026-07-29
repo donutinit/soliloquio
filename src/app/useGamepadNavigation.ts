@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { FOCUSABLE } from './useModalFocus';
 import { getActiveGamepad } from '../features/gamepad/controller';
 import { GamepadNavReader } from '../features/gamepad/navInput';
@@ -44,6 +44,9 @@ function markGamepadNavActive(): void {
  * `data-gamepad-nav-suspend` (el panel Gamepad en modo escucha) pausa todo.
  */
 export function useGamepadNavigation(mode: 'scripts' | 'prompter'): void {
+  const connectedPadIndexRef = useRef<number | null>(null);
+  const pendingInitialScriptFocusRef = useRef(false);
+
   useEffect(() => {
     const reader = new GamepadNavReader();
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -52,6 +55,12 @@ export function useGamepadNavigation(mode: 'scripts' | 'prompter'): void {
     const tick = () => {
       if (stopped) return;
       const pad = getActiveGamepad();
+      if (!pad) {
+        connectedPadIndexRef.current = null;
+      } else if (connectedPadIndexRef.current !== pad.index) {
+        connectedPadIndexRef.current = pad.index;
+        pendingInitialScriptFocusRef.current = mode === 'scripts';
+      }
       // Reprogramar pase lo que pase: una excepción puntual en un tick no debe
       // matar la navegación para el resto de la sesión.
       try {
@@ -60,12 +69,29 @@ export function useGamepadNavigation(mode: 'scripts' | 'prompter'): void {
         const scope = dialog ?? (mode === 'scripts' ? document.body : null);
         const suspended = document.querySelector('[data-gamepad-nav-suspend]') !== null;
 
+        if (mode !== 'scripts') pendingInitialScriptFocusRef.current = false;
+
         if (!pad || !scope || suspended) {
           // Fuera de ámbito no se consume nada; al volver, el primer frame ceba
           // para que una pulsación en curso no dispare acciones fantasma.
           reader.reset();
           delete document.documentElement.dataset.gamepadNavReady;
           return;
+        }
+
+        // Al descubrir un mando en la biblioteca, entra directamente por el
+        // primer guion. Si aún se está cargando IndexedDB o hay un modal
+        // abierto, conserva la intención y la aplica cuando el botón exista.
+        if (pendingInitialScriptFocusRef.current && !dialog) {
+          const firstScript = scope.querySelector<HTMLElement>(
+            '[data-gamepad-script]:not(:disabled)'
+          );
+          if (firstScript) {
+            firstScript.focus({ preventScroll: true });
+            firstScript.scrollIntoView({ block: 'nearest' });
+            markGamepadNavActive();
+            pendingInitialScriptFocusRef.current = false;
+          }
         }
 
         const frame = reader.update(pad, performance.now());

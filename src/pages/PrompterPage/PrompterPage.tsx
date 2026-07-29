@@ -187,6 +187,7 @@ function Prompter({
   const sectionIdxRef = useRef(0);
   const panelRef = useRef<Panel>('none');
   panelRef.current = panel;
+  const previousPanelRef = useRef<Panel>('none');
   const gamepadConnectedRef = useRef(false);
   const padIdRef = useRef<string | null>(null);
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -226,9 +227,13 @@ function Prompter({
   }, [settings.controllerBindings]);
 
   // Al cerrar un panel, descarta la pulsación que lo cerró: su release ya no
-  // debe disparar la acción del lector asignada a ese botón.
+  // debe disparar la acción del lector asignada a ese botón. La ejecución
+  // inicial no cuenta como cierre, para poder aceptar un mando conectado aquí.
   useEffect(() => {
-    if (panel === 'none') controllerRef.current!.reset();
+    if (previousPanelRef.current !== 'none' && panel === 'none') {
+      controllerRef.current!.reset();
+    }
+    previousPanelRef.current = panel;
   }, [panel]);
 
   const persistSettings = useCallback((): Promise<boolean> => {
@@ -567,14 +572,20 @@ function Prompter({
     };
     wakeLoopRef.current = requestSoon;
     requestSoon();
+    const onGamepadConnected = () => {
+      controllerRef.current!.acceptNextConnectionInput();
+      requestSoon();
+    };
     const onVisibility = () => {
       engineRef.current!.resetClock();
       requestSoon();
     };
+    window.addEventListener('gamepadconnected', onGamepadConnected);
     document.addEventListener('visibilitychange', onVisibility);
     return () => {
       cancelAnimationFrame(rafId);
       if (timeoutId) clearTimeout(timeoutId);
+      window.removeEventListener('gamepadconnected', onGamepadConnected);
       document.removeEventListener('visibilitychange', onVisibility);
       wakeLoopRef.current = () => undefined;
     };
