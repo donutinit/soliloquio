@@ -52,11 +52,13 @@ export const installFakeGamepad = (
   win.__setGamepadConnected = (connected) => {
     exposed = connected;
     pad.connected = connected;
-    window.dispatchEvent(
-      new GamepadEvent(connected ? 'gamepadconnected' : 'gamepaddisconnected', {
-        gamepad: pad as unknown as Gamepad
-      })
-    );
+    // Chromium exige una instancia nativa de Gamepad en el constructor. La
+    // simulación conserva el contrato observable sin depender de hardware.
+    const event = new Event(
+      connected ? 'gamepadconnected' : 'gamepaddisconnected'
+    ) as GamepadEvent;
+    Object.defineProperty(event, 'gamepad', { value: pad as unknown as Gamepad });
+    window.dispatchEvent(event);
   };
   navigator.getGamepads = () => (exposed ? [pad as unknown as Gamepad] : []);
 };
