@@ -19,7 +19,7 @@ test('checks for an app update manually from settings', async ({ page }) => {
   await expect(updateButton).toBeEnabled();
 });
 
-test('keeps the countdown off by default and runs it only before a fresh start', async ({ page }) => {
+test('keeps the countdown off by default and runs it before every start', async ({ page }) => {
   await page.getByTestId('app-settings-button').click();
   await expect(page.getByTestId('countdown-setting')).toHaveValue('0');
   await page.getByTestId('countdown-setting').selectOption('1');
@@ -40,7 +40,10 @@ test('keeps the countdown off by default and runs it only before a fresh start',
   await expect(playButton).toHaveAttribute('data-playing', 'false');
   await expect(page.getByTestId('top-controls')).toBeVisible();
   await playButton.click();
-  await expect(playButton).toHaveAttribute('data-playing', 'true');
+  await expect(page.getByTestId('startup-countdown')).toContainText('1');
+  await expect(playButton).toHaveAttribute('data-playing', 'false');
+  await expect(playButton).toHaveText(/CANCEL/);
+  await expect(playButton).toHaveAttribute('data-playing', 'true', { timeout: 3_000 });
   await expect(page.getByTestId('startup-countdown')).toHaveCount(0);
 
   await page.getByTestId('reset-position').click();

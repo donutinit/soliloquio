@@ -192,7 +192,6 @@ function Prompter({
   const padIdRef = useRef<string | null>(null);
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const countdownRef = useRef<number | null>(null);
-  const hasStartedRef = useRef(false);
   const dragRef = useRef<{ y: number; moved: boolean; startedAt: number } | null>(null);
   const settingsDirtyRef = useRef(false);
   const settingsSaveRef = useRef<Promise<boolean>>(Promise.resolve(true));
@@ -294,7 +293,6 @@ function Prompter({
     const engine = engineRef.current!;
     engine.state.playing = false;
     engine.seek(0);
-    hasStartedRef.current = false;
     setPlaying(false);
     setControlsVisible(true);
     wakeLoopRef.current();
@@ -322,11 +320,10 @@ function Prompter({
 
     if (engine.state.position >= engine.maxPosition - 1) {
       engine.seek(0);
-      hasStartedRef.current = false;
     }
 
     const seconds = settingsRef.current.countdownSeconds;
-    if (!hasStartedRef.current && seconds > 0) {
+    if (seconds > 0) {
       countdownRef.current = seconds;
       setCountdown(seconds);
       countdownTimerRef.current = setInterval(() => {
@@ -335,7 +332,6 @@ function Prompter({
         if (current <= 1) {
           clearCountdown();
           applyKeepScreenAwake(settingsRef.current.keepScreenAwake);
-          hasStartedRef.current = true;
           engine.state.playing = true;
           setPlaying(true);
           wakeLoopRef.current();
@@ -347,7 +343,6 @@ function Prompter({
       return;
     }
 
-    hasStartedRef.current = true;
     engine.state.playing = true;
     setPlaying(true);
     wakeLoopRef.current();

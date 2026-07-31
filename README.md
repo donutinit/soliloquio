@@ -67,7 +67,7 @@ home-screen PWA is generally more resilient.
   or reaches the end.
 - Scripts always open at the beginning; reading position is not stored between sessions.
 - Set an optional 0–10 second start countdown from App Settings. It is off by default and does
-  not run when resuming from pause.
+  run every time automatic scrolling starts, including when resuming from pause.
 - Drag the text for manual scrolling.
 - Tap the reading surface to hide or show controls.
 - Use Settings in the prompter to change speed, text size, or margins. New installs default to
