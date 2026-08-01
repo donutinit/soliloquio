@@ -549,6 +549,14 @@ function Prompter({
         const direction = Math.sign(manualVelocity) as -1 | 0 | 1;
         engine.setManual(direction, Math.abs(manualVelocity));
       } else {
+        if (
+          panelRef.current === 'sections' &&
+          pad !== null &&
+          is8BitDoMicro(pad.id) &&
+          frame.actions.includes('toggleSections')
+        ) {
+          applyActionRef.current('toggleSections');
+        }
         engine.setManual(0, 0);
       }
       const position = engine.tick(now);

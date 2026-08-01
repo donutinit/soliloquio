@@ -134,15 +134,18 @@ profile without changing other controllers:
 | Micro control | Reader behavior |
 |---|---|
 | D-pad left / right | Manual scroll up / down |
-| Hold D-pad up / down | Temporary 10% / 200% of the configured speed |
+| Hold D-pad up / down | Temporary 20% / 200% of the configured speed |
 | Hold Select + D-pad up / down | Increase / decrease text size; hold to repeat |
 | Hold Select + D-pad left / right | Decrease / increase margins; hold to repeat |
+| Select + B | Open / close the section list |
 | Select tap | Controller guide |
 | Start | Reader settings |
 
 Select and the D-pad are reserved while this profile is active. Releasing a temporary speed button
-restores normal playback speed, or stops again if the reader was paused. A Select combination is
-consumed, so releasing Select afterward does not also open the guide.
+restores normal playback speed, or stops again if the reader was paused. A Select combination
+consumes both controls, so releasing it does not also trigger the guide or the button's normal
+action. The face buttons retain the same positional behavior as a DualShock: B plays or pauses, A
+exits, Y shows or hides the controls, and X returns to the start.
 
 Hold behaviors (manual scrolling, step repeats) follow the action to its assigned button; stick
 axes always scroll. Gamepad button ordering can vary by browser — the panel's **Diagnostics**

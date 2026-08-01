@@ -176,7 +176,7 @@ export function GamepadSettingsPanel({
         {listening
           ? `Press a controller button for “${actionLabel(listening)}”… Tap the action again to cancel.`
           : micro
-            ? '8BitDo Micro profile: D-pad controls scrolling; hold Select with the D-pad for text and margins. Reserved controls are fixed.'
+            ? '8BitDo Micro profile: D-pad controls scrolling; hold Select with B for sections or with the D-pad for text and margins. Reserved controls are fixed.'
             : 'Tap an action, then press the controller button you want for it. Assigning a busy button swaps the two actions. Stick axes always scroll.'}
       </p>
       {feedback && !error && (

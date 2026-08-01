@@ -1,6 +1,7 @@
 import type { GamepadAction } from '../../types';
 
 export const MICRO_SELECT_BUTTON = 8;
+export const MICRO_B_BUTTON = 0;
 
 export const MICRO_DPAD = {
   up: 12,
@@ -9,7 +10,7 @@ export const MICRO_DPAD = {
   right: 15
 } as const;
 
-export const MICRO_SLOW_MULTIPLIER = 0.1;
+export const MICRO_SLOW_MULTIPLIER = 0.2;
 export const MICRO_FAST_MULTIPLIER = 2;
 
 export const MICRO_RESERVED_BUTTONS: readonly number[] = [
@@ -22,6 +23,7 @@ export const MICRO_RESERVED_BUTTONS: readonly number[] = [
 
 export const MICRO_FIXED_ACTION_LABELS: Partial<Record<GamepadAction, string>> = {
   toggleControllerGuide: 'Select',
+  toggleSections: 'Select + B',
   fontUp: 'Select + D-pad Up',
   fontDown: 'Select + D-pad Down',
   marginDown: 'Select + D-pad Left',

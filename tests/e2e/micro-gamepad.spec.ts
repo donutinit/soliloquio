@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { installFakeGamepad, openScriptInPrompter, prompterOffset, setButton } from './helpers';
 
 const MICRO_ID = '8BitDo Micro gamepad Gamepad';
-const CROSS = 0;
+const B = 0;
 const SELECT = 8;
 const START = 9;
 const DPAD_UP = 12;
@@ -32,10 +32,16 @@ test('muestra las asignaciones fijas del perfil 8BitDo Micro', async ({ page }) 
     '8BitDo Micro profile'
   );
   await expect(page.getByTestId('bind-toggleControllerGuide-value')).toHaveText('Select');
+  await expect(page.getByTestId('bind-togglePlay-value')).toHaveText('B');
+  await expect(page.getByTestId('bind-backToScripts-value')).toHaveText('A');
+  await expect(page.getByTestId('bind-toggleControls-value')).toHaveText('Y');
+  await expect(page.getByTestId('bind-resetToStart-value')).toHaveText('X');
   await expect(page.getByTestId('bind-fontUp-value')).toHaveText('Select + D-pad Up');
   await expect(page.getByTestId('bind-marginUp-value')).toHaveText('Select + D-pad Right');
+  await expect(page.getByTestId('bind-toggleSections-value')).toHaveText('Select + B');
   await expect(page.getByTestId('bind-toggleControllerGuide')).toBeDisabled();
   await expect(page.getByTestId('bind-fontUp')).toBeDisabled();
+  await expect(page.getByTestId('bind-toggleSections')).toBeDisabled();
 });
 
 test('aplica scroll y ajustes exclusivos del perfil Micro', async ({ page }) => {
@@ -98,10 +104,26 @@ test('aplica scroll y ajustes exclusivos del perfil Micro', async ({ page }) => 
   await pressButton(page, SELECT);
   await expect(page.getByRole('heading', { name: '8BitDo Micro controls' })).toBeVisible();
   await expect(page.getByTestId('micro-controller-profile')).toContainText(
-    'Temporary speed 10% / 200%'
+    'Temporary speed 20% / 200%'
   );
   await page.getByRole('button', { name: 'Done' }).click();
   await expect(page.getByTestId('controller-guide')).toHaveCount(0);
+  await page.waitForTimeout(100);
+
+  // Select + B abre y cierra la lista sin seleccionar ni alternar playback.
+  await setButton(page, SELECT, true);
+  await pressButton(page, B);
+  await expect(page.getByTestId('sections-panel')).toBeVisible();
+  await expect(page.getByTestId('play-pause')).toHaveAttribute('data-playing', 'false');
+  await setButton(page, SELECT, false);
+  await page.waitForTimeout(100);
+
+  await setButton(page, SELECT, true);
+  await pressButton(page, B);
+  await expect(page.getByTestId('sections-panel')).toHaveCount(0);
+  await expect(page.getByTestId('section-indicator')).toHaveText(/^1 \/ /);
+  await expect(page.getByTestId('play-pause')).toHaveAttribute('data-playing', 'false');
+  await setButton(page, SELECT, false);
   await page.waitForTimeout(100);
 
   await pressButton(page, START);
@@ -111,6 +133,6 @@ test('aplica scroll y ajustes exclusivos del perfil Micro', async ({ page }) => 
   await page.getByRole('button', { name: 'Done' }).click();
   await expect(page.getByTestId('settings-panel')).toHaveCount(0);
   await page.waitForTimeout(100);
-  await pressButton(page, CROSS);
+  await pressButton(page, B);
   await expect(page.getByTestId('play-pause')).toHaveAttribute('data-playing', 'true');
 });

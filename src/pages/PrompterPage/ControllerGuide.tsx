@@ -97,7 +97,10 @@ export function ControllerGuide({
                   <strong>← / →</strong> Manual scroll up / down
                 </span>
                 <span>
-                  <strong>↑ / ↓</strong> Temporary speed 10% / 200%
+                  <strong>↑ / ↓</strong> Temporary speed 20% / 200%
+                </span>
+                <span>
+                  <strong>Select + B</strong> Section list
                 </span>
               </div>
             ) : (
@@ -132,7 +135,7 @@ export function ControllerGuide({
 
         <p className={styles.controllerGuideNote}>
           {micro
-            ? 'The Micro profile reserves Select and the D-pad; remap the remaining actions in App settings → Gamepad.'
+            ? 'The Micro profile reserves Select combinations and the D-pad; remap the remaining actions in App settings → Gamepad.'
             : 'Remap any action from App settings → Gamepad.'}
         </p>
       </div>

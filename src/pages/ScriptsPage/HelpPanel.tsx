@@ -35,7 +35,10 @@ export function HelpPanel({ onClose }: { onClose: () => void }) {
             <li>Controller play/pause does not reveal hidden controls; use Show / hide controls.</li>
             <li>L1/LB and R1/RB change sections.</li>
             <li>Share, Create, View, Minus, or Select opens the controller guide.</li>
-            <li>8BitDo Micro uses its fixed D-pad and Select compact profile.</li>
+            <li>
+              8BitDo Micro uses its fixed D-pad and Select compact profile; Select + B opens the
+              section list.
+            </li>
             <li>Assign actions in App settings → Gamepad.</li>
             <li>The d-pad moves focus; south activates and east closes.</li>
           </ul>

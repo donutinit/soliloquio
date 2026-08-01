@@ -2,6 +2,8 @@ import { useEffect, useRef } from 'react';
 import { FOCUSABLE } from './useModalFocus';
 import { getActiveGamepad } from '../features/gamepad/controller';
 import { GamepadNavReader } from '../features/gamepad/navInput';
+import { is8BitDoMicro } from '../features/gamepad/controllerIdentity';
+import { MICRO_SELECT_BUTTON } from '../features/gamepad/microProfile';
 import { pickNext, type NavDirection, type NavRect } from '../features/gamepad/spatialNav';
 
 /** Cadencia con mando conectado; sin mando, poll perezoso para no gastar batería. */
@@ -95,6 +97,10 @@ export function useGamepadNavigation(mode: 'scripts' | 'prompter'): void {
         }
 
         const frame = reader.update(pad, performance.now());
+        const selectButton = pad.buttons[MICRO_SELECT_BUTTON];
+        const microModifierPressed =
+          is8BitDoMicro(pad.id) &&
+          (selectButton?.pressed === true || (selectButton?.value ?? 0) > 0.5);
         // Baliza observable: el modo navegación está activo y cebado.
         document.documentElement.dataset.gamepadNavReady = 'true';
         if (frame.moves.length > 0 || frame.confirm || frame.back) markGamepadNavActive();
@@ -119,7 +125,7 @@ export function useGamepadNavigation(mode: 'scripts' | 'prompter'): void {
           }
         }
 
-        if (frame.confirm) {
+        if (frame.confirm && !microModifierPressed) {
           const active = document.activeElement;
           if (
             active instanceof HTMLElement &&

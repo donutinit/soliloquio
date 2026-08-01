@@ -9,6 +9,7 @@ import {
 } from './gamepadInput';
 import { is8BitDoMicro } from './controllerIdentity';
 import {
+  MICRO_B_BUTTON,
   MICRO_DPAD,
   MICRO_FAST_MULTIPLIER,
   MICRO_RESERVED_BUTTONS,
@@ -63,11 +64,13 @@ function isButtonPressed(button: ButtonLike): boolean {
 }
 
 function microComboAction({
+  b,
   up,
   down,
   left,
   right
 }: {
+  b: boolean;
   up: boolean;
   down: boolean;
   left: boolean;
@@ -76,6 +79,7 @@ function microComboAction({
   // Horizontal gana ante una diagonal accidental para no cambiar dos ajustes.
   if (left !== right) return left ? 'marginDown' : 'marginUp';
   if (up !== down) return up ? 'fontUp' : 'fontDown';
+  if (b) return 'toggleSections';
   return null;
 }
 
@@ -90,6 +94,7 @@ export class GamepadController {
   private suppressed = new Set<GamepadAction>();
   private suppressedMicroButtons = new Set<number>();
   private microModifierConsumed = false;
+  private microBComboConsumed = false;
   private hadPad = false;
   // Al entrar al lector con un mando ya expuesto, descarta el botón que abrió
   // el guion. Tras observar una desconexión o recibir gamepadconnected dentro
@@ -115,6 +120,7 @@ export class GamepadController {
     this.suppressed.clear();
     this.suppressedMicroButtons.clear();
     this.microModifierConsumed = false;
+    this.microBComboConsumed = false;
     this.hadPad = false;
     this.suppressInitialInput = true;
   }
@@ -140,6 +146,7 @@ export class GamepadController {
         this.suppressed.clear();
         this.suppressedMicroButtons.clear();
         this.microModifierConsumed = false;
+        this.microBComboConsumed = false;
         this.hadPad = false;
       }
       // Una conexión posterior ocurre ya dentro del lector: su primera entrada
@@ -193,7 +200,10 @@ export class GamepadController {
       right: micro && microButtonPressed(MICRO_DPAD.right)
     };
     const microSelectPressed = micro && microButtonPressed(MICRO_SELECT_BUTTON);
-    const comboAction = microSelectPressed ? microComboAction(microButtons) : null;
+    const microBPressed = micro && microButtonPressed(MICRO_B_BUTTON);
+    const comboAction = microSelectPressed
+      ? microComboAction({ ...microButtons, b: microBPressed })
+      : null;
 
     if (comboAction && !this.microModifierConsumed) {
       this.microModifierConsumed = true;
@@ -208,6 +218,20 @@ export class GamepadController {
       }
     } else if (!microSelectPressed) {
       this.microModifierConsumed = false;
+    }
+
+    if (microSelectPressed && microBPressed && !this.microBComboConsumed) {
+      this.microBComboConsumed = true;
+      const bAction = GAMEPAD_ACTIONS.find(
+        (action) => this.bindings[action] === MICRO_B_BUTTON
+      );
+      if (bAction && bAction !== 'toggleSections') {
+        // Select + B reemplaza la acción normal de B durante esta pulsación.
+        this.machines.set(bAction, new HoldButton());
+        this.suppressed.add(bAction);
+      }
+    } else if (!microBPressed) {
+      this.microBComboConsumed = false;
     }
 
     const isPressed = (action: GamepadAction): boolean => {

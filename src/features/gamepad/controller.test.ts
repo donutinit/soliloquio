@@ -33,6 +33,9 @@ describe('asignaciones por defecto', () => {
     expect(values).toHaveLength(15);
     expect(new Set(values).size).toBe(15);
     expect(DEFAULT_GAMEPAD_BINDINGS.togglePlay).toBe(0);
+    expect(DEFAULT_GAMEPAD_BINDINGS.backToScripts).toBe(1);
+    expect(DEFAULT_GAMEPAD_BINDINGS.toggleControls).toBe(2);
+    expect(DEFAULT_GAMEPAD_BINDINGS.resetToStart).toBe(3);
     expect(DEFAULT_GAMEPAD_BINDINGS.marginUp).toBe(15);
     expect(DEFAULT_GAMEPAD_BINDINGS.toggleControllerGuide).toBe(8);
     expect(DEFAULT_GAMEPAD_BINDINGS.toggleSections).toBe(11);
@@ -220,14 +223,14 @@ describe('GamepadController', () => {
     expect(diagonal.temporarySpeedMultiplier).toBe(1);
   });
 
-  it('el Micro aplica 10%/200% temporal con arriba/abajo', () => {
+  it('el Micro aplica 20%/200% temporal con arriba/abajo', () => {
     const controller = primedMicroController();
     const slow = controller.update(
       microPad({ 12: { pressed: true, value: 1 } }),
       0
     );
     expect(slow.manualVelocity).toBe(0);
-    expect(slow.temporarySpeedMultiplier).toBe(0.1);
+    expect(slow.temporarySpeedMultiplier).toBe(0.2);
 
     const fast = controller.update(
       microPad({ 13: { pressed: true, value: 1 } }),
@@ -260,6 +263,38 @@ describe('GamepadController', () => {
 
     const released = controller.update(microPad(), 220);
     expect(released.actions).not.toContain('toggleControllerGuide');
+  });
+
+  it('Select + B alterna la lista de secciones sin activar Play/Pause ni la guía', () => {
+    const controller = primedMicroController();
+    const select = { 8: { pressed: true, value: 1 } };
+    controller.update(microPad(select), 0);
+    controller.update(
+      microPad({ ...select, 0: { pressed: true, value: 1 } }),
+      16
+    );
+    const bReleased = controller.update(microPad(select), 100);
+    expect(bReleased.actions).toContain('toggleSections');
+    expect(bReleased.actions).not.toContain('togglePlay');
+
+    const selectReleased = controller.update(microPad(), 120);
+    expect(selectReleased.actions).not.toContain('toggleControllerGuide');
+
+    controller.update(microPad(select), 140);
+    controller.update(
+      microPad({ ...select, 0: { pressed: true, value: 1 } }),
+      160
+    );
+    const modifierReleased = controller.update(
+      microPad({ 0: { pressed: true, value: 1 } }),
+      200
+    );
+    expect(modifierReleased.actions).toContain('toggleSections');
+    const secondBReleased = controller.update(microPad(), 220);
+    expect(secondBReleased.actions).not.toContain('togglePlay');
+
+    controller.update(microPad({ 0: { pressed: true, value: 1 } }), 240);
+    expect(controller.update(microPad(), 340).actions).toContain('togglePlay');
   });
 
   it('Select solo conserva la acción normal y Start 9 sigue funcionando', () => {
