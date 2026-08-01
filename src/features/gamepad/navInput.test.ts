@@ -3,6 +3,7 @@ import { GamepadNavReader } from './navInput';
 import { REPEAT_DELAY_MS, REPEAT_INTERVAL_MS } from './holdButton';
 
 function fakePad(overrides: {
+  id?: string;
   buttons?: Record<number, boolean>;
   axes?: number[];
 }): Gamepad {
@@ -12,7 +13,7 @@ function fakePad(overrides: {
     value: overrides.buttons?.[i] ? 1 : 0
   }));
   return {
-    id: 'fake',
+    id: overrides.id ?? 'fake',
     index: 0,
     connected: true,
     mapping: 'standard',
@@ -65,6 +66,22 @@ describe('GamepadNavReader', () => {
     expect(reader.update(fakePad({ buttons: { 1: true } }), 16).back).toBe(true);
     expect(reader.update(fakePad({ buttons: { 1: true } }), 32).back).toBe(false);
     expect(reader.update(fakePad({}), 48).back).toBe(false);
+  });
+
+  it('el Micro usa B físico para confirmar y A físico para volver', () => {
+    const reader = new GamepadNavReader();
+    const micro = (buttons: Record<number, boolean> = {}) =>
+      fakePad({ id: '8BitDo Micro gamepad Gamepad', buttons });
+    reader.update(micro(), 0);
+
+    const b = reader.update(micro({ 1: true }), 16);
+    expect(b.confirm).toBe(true);
+    expect(b.back).toBe(false);
+
+    reader.update(micro(), 32);
+    const a = reader.update(micro({ 0: true }), 48);
+    expect(a.confirm).toBe(false);
+    expect(a.back).toBe(true);
   });
 
   it('mantener confirmar no repite el clic', () => {

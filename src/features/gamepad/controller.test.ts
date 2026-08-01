@@ -240,6 +240,26 @@ describe('GamepadController', () => {
     expect(controller.update(microPad(), 32).temporarySpeedMultiplier).toBe(1);
   });
 
+  it('el Micro traduce A/B/X/Y crudos a las posiciones equivalentes de DualShock', () => {
+    const cases: { button: number; action: (typeof GAMEPAD_ACTIONS)[number] }[] = [
+      { button: 1, action: 'togglePlay' },
+      { button: 0, action: 'backToScripts' },
+      { button: 3, action: 'toggleControls' },
+      { button: 2, action: 'resetToStart' }
+    ];
+
+    for (const [index, testCase] of cases.entries()) {
+      const controller = primedMicroController();
+      const start = index * 200;
+      controller.update(
+        microPad({ [testCase.button]: { pressed: true, value: 1 } }),
+        start
+      );
+      const released = controller.update(microPad(), start + 100);
+      expect(released.actions).toContain(testCase.action);
+    }
+  });
+
   it('Select + D-pad ajusta texto y márgenes sin abrir la guía', () => {
     const controller = primedMicroController();
     const select = { 8: { pressed: true, value: 1 } };
@@ -270,7 +290,7 @@ describe('GamepadController', () => {
     const select = { 8: { pressed: true, value: 1 } };
     controller.update(microPad(select), 0);
     controller.update(
-      microPad({ ...select, 0: { pressed: true, value: 1 } }),
+      microPad({ ...select, 1: { pressed: true, value: 1 } }),
       16
     );
     const bReleased = controller.update(microPad(select), 100);
@@ -282,18 +302,18 @@ describe('GamepadController', () => {
 
     controller.update(microPad(select), 140);
     controller.update(
-      microPad({ ...select, 0: { pressed: true, value: 1 } }),
+      microPad({ ...select, 1: { pressed: true, value: 1 } }),
       160
     );
     const modifierReleased = controller.update(
-      microPad({ 0: { pressed: true, value: 1 } }),
+      microPad({ 1: { pressed: true, value: 1 } }),
       200
     );
     expect(modifierReleased.actions).toContain('toggleSections');
     const secondBReleased = controller.update(microPad(), 220);
     expect(secondBReleased.actions).not.toContain('togglePlay');
 
-    controller.update(microPad({ 0: { pressed: true, value: 1 } }), 240);
+    controller.update(microPad({ 1: { pressed: true, value: 1 } }), 240);
     expect(controller.update(microPad(), 340).actions).toContain('togglePlay');
   });
 

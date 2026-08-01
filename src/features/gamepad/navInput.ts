@@ -1,4 +1,6 @@
 import { REPEAT_DELAY_MS, REPEAT_INTERVAL_MS } from './holdButton';
+import { is8BitDoMicro } from './controllerIdentity';
+import { translateMicroFaceButtonIndex } from './microProfile';
 import type { NavDirection } from './spatialNav';
 
 export type NavFrame = {
@@ -115,8 +117,14 @@ export class GamepadNavReader {
         moves.push(direction);
       }
     }
-    const confirm = this.confirmPress.update(pad.buttons[NAV_CONFIRM_BUTTON]?.pressed ?? false);
-    const back = this.backPress.update(pad.buttons[NAV_BACK_BUTTON]?.pressed ?? false);
+    const navButtonIndex = (index: number): number =>
+      is8BitDoMicro(pad.id) ? translateMicroFaceButtonIndex(index) : index;
+    const confirm = this.confirmPress.update(
+      pad.buttons[navButtonIndex(NAV_CONFIRM_BUTTON)]?.pressed ?? false
+    );
+    const back = this.backPress.update(
+      pad.buttons[navButtonIndex(NAV_BACK_BUTTON)]?.pressed ?? false
+    );
 
     if (!this.hadPad) {
       this.hadPad = true;

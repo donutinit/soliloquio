@@ -145,7 +145,8 @@ Select and the D-pad are reserved while this profile is active. Releasing a temp
 restores normal playback speed, or stops again if the reader was paused. A Select combination
 consumes both controls, so releasing it does not also trigger the guide or the button's normal
 action. The face buttons retain the same positional behavior as a DualShock: B plays or pauses, A
-exits, Y shows or hides the controls, and X returns to the start.
+exits, Y shows or hides the controls, and X returns to the start. The Micro's raw A/B/X/Y button
+order is normalized only for this controller profile; Diagnostics continues to show the raw input.
 
 Hold behaviors (manual scrolling, step repeats) follow the action to its assigned button; stick
 axes always scroll. Gamepad button ordering can vary by browser — the panel's **Diagnostics**

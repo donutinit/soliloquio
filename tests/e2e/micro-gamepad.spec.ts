@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { installFakeGamepad, openScriptInPrompter, prompterOffset, setButton } from './helpers';
 
 const MICRO_ID = '8BitDo Micro gamepad Gamepad';
-const B = 0;
+const B = 1;
 const SELECT = 8;
 const START = 9;
 const DPAD_UP = 12;

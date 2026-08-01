@@ -14,7 +14,8 @@ import {
   MICRO_FAST_MULTIPLIER,
   MICRO_RESERVED_BUTTONS,
   MICRO_SELECT_BUTTON,
-  MICRO_SLOW_MULTIPLIER
+  MICRO_SLOW_MULTIPLIER,
+  translateMicroFaceButtonIndex
 } from './microProfile';
 import { GAMEPAD_ACTIONS, type GamepadAction, type GamepadBindings } from '../../types';
 
@@ -162,8 +163,12 @@ export class GamepadController {
 
     const micro = is8BitDoMicro(pad.id);
     const rawButton = (index: number): ButtonLike => pad.buttons[index] ?? RELEASED;
+    const actionButtonIndex = (action: GamepadAction): number => {
+      const index = this.bindings[action];
+      return micro ? translateMicroFaceButtonIndex(index) : index;
+    };
     const button = (action: GamepadAction): ButtonLike =>
-      pad.buttons[this.bindings[action]] ?? RELEASED;
+      pad.buttons[actionButtonIndex(action)] ?? RELEASED;
     const rawActionPressed = (action: GamepadAction): boolean => isButtonPressed(button(action));
 
     if (!this.hadPad) {
@@ -208,7 +213,7 @@ export class GamepadController {
     if (comboAction && !this.microModifierConsumed) {
       this.microModifierConsumed = true;
       const selectAction = GAMEPAD_ACTIONS.find(
-        (action) => this.bindings[action] === MICRO_SELECT_BUTTON
+        (action) => actionButtonIndex(action) === MICRO_SELECT_BUTTON
       );
       if (selectAction) {
         // La combinación consume Select: descarta una pulsación ya iniciada y
@@ -223,7 +228,7 @@ export class GamepadController {
     if (microSelectPressed && microBPressed && !this.microBComboConsumed) {
       this.microBComboConsumed = true;
       const bAction = GAMEPAD_ACTIONS.find(
-        (action) => this.bindings[action] === MICRO_B_BUTTON
+        (action) => actionButtonIndex(action) === MICRO_B_BUTTON
       );
       if (bAction && bAction !== 'toggleSections') {
         // Select + B reemplaza la acción normal de B durante esta pulsación.
@@ -235,7 +240,7 @@ export class GamepadController {
     }
 
     const isPressed = (action: GamepadAction): boolean => {
-      const boundIndex = this.bindings[action];
+      const boundIndex = actionButtonIndex(action);
       const reservedDpad =
         micro &&
         (boundIndex === MICRO_DPAD.up ||

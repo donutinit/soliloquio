@@ -10,7 +10,8 @@ import {
 import {
   isMicroFixedAction,
   MICRO_FIXED_ACTION_LABELS,
-  MICRO_RESERVED_BUTTONS
+  MICRO_RESERVED_BUTTONS,
+  translateMicroFaceButtonIndex
 } from '../../features/gamepad/microProfile';
 import {
   ACTION_GROUPS,
@@ -76,12 +77,13 @@ export function GamepadSettingsPanel({
     const interval = setInterval(() => {
       const pad = getActiveGamepad();
       if (!pad) return;
-      const index = pad.buttons.findIndex((b) => b.pressed || b.value > 0.5);
-      if (index < 0) return;
-      if (micro && MICRO_RESERVED_BUTTONS.includes(index)) {
+      const rawIndex = pad.buttons.findIndex((b) => b.pressed || b.value > 0.5);
+      if (rawIndex < 0) return;
+      if (micro && MICRO_RESERVED_BUTTONS.includes(rawIndex)) {
         setFeedback('Select and the D-pad are reserved by the 8BitDo Micro profile.');
         return;
       }
+      const index = micro ? translateMicroFaceButtonIndex(rawIndex) : rawIndex;
       const result = assignBinding(bindings, listening, index);
       onChange(result.bindings);
       setFeedback(
