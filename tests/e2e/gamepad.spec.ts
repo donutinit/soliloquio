@@ -8,6 +8,7 @@ import {
 } from './helpers';
 
 const CROSS = 0;
+const SQUARE = 2;
 const DPAD_UP = 12;
 
 test.beforeEach(async ({ page }) => {
@@ -35,6 +36,36 @@ test('la pulsación que revela el mando en el lector alterna play/pausa', async 
   await page.waitForTimeout(120);
   await setButton(page, CROSS, false);
   await expect(playButton).toHaveAttribute('data-playing', 'false');
+});
+
+test('play/pausa desde el mando no revela la barra de controles', async ({ page }) => {
+  const playButton = page.getByTestId('play-pause');
+  const bottomControls = page.getByTestId('bottom-controls');
+  await setGamepadConnected(page, true);
+  await expect(page.getByTestId('gamepad-status')).toHaveAttribute('data-connected', 'true');
+
+  // Square es la acción explícita Show / hide controls en el layout por defecto.
+  await setButton(page, SQUARE, true);
+  await page.waitForTimeout(120);
+  await setButton(page, SQUARE, false);
+  await expect(bottomControls).toBeHidden();
+
+  await setButton(page, CROSS, true);
+  await page.waitForTimeout(120);
+  await setButton(page, CROSS, false);
+  await expect(playButton).toHaveAttribute('data-playing', 'true');
+  await expect(bottomControls).toBeHidden();
+
+  await setButton(page, CROSS, true);
+  await page.waitForTimeout(120);
+  await setButton(page, CROSS, false);
+  await expect(playButton).toHaveAttribute('data-playing', 'false');
+  await expect(bottomControls).toBeHidden();
+
+  await setButton(page, SQUARE, true);
+  await page.waitForTimeout(120);
+  await setButton(page, SQUARE, false);
+  await expect(bottomControls).toBeVisible();
 });
 
 test('un ajuste desde el mando muestra el HUD y lo desvanece', async ({ page }) => {

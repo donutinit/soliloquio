@@ -123,7 +123,7 @@ export function GamepadSettingsPanel({
       aria-modal="true"
       aria-labelledby="gamepad-settings-title"
       data-testid="gamepad-settings-panel"
-      data-gamepad-nav-suspend={listening ? 'true' : undefined}
+      data-gamepad-nav-suspend={listening || showDiagnostics ? 'true' : undefined}
       tabIndex={-1}
     >
       <header className={styles.gamepadHeader}>

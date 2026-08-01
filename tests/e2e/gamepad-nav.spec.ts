@@ -187,3 +187,34 @@ test('el modo escucha del panel Gamepad suspende la navegación', async ({ page 
   await expect(page.getByTestId('bind-togglePlay-value')).toHaveText('Cross');
   await expect(page.getByTestId('gamepad-settings-panel')).toBeVisible();
 });
+
+test('Diagnostics muestra la entrada cruda sin navegar la interfaz', async ({ page }) => {
+  await waitForNavReady(page);
+  await page.getByTestId('app-settings-button').click();
+  await page.getByTestId('open-gamepad-settings').click();
+  await expect(page.getByTestId('gamepad-settings-panel')).toBeVisible();
+  await waitForNavReady(page);
+
+  const toggle = page.getByTestId('gamepad-diagnostics-toggle');
+  await toggle.click();
+  await expect(page.getByTestId('gamepad-diagnostics')).toBeVisible();
+  await expect(toggle).toBeFocused();
+  // Diagnostics conserva el sondeo crudo, pero suspende el lector que mueve
+  // el foco, confirma controles o cierra el modal.
+  await expect(page.locator(':root')).not.toHaveAttribute('data-gamepad-nav-ready', 'true');
+
+  await setButton(page, DPAD_DOWN, true);
+  await expect(page.getByTestId('gamepad-diagnostics')).toContainText('13:■1.00');
+  await expect(toggle).toBeFocused();
+  await setButton(page, DPAD_DOWN, false);
+
+  await setButton(page, EAST, true);
+  await expect(page.getByTestId('gamepad-diagnostics')).toContainText('1:■1.00');
+  await setButton(page, EAST, false);
+  await expect(page.getByTestId('gamepad-settings-panel')).toBeVisible();
+  await expect(toggle).toBeFocused();
+
+  await toggle.click();
+  await expect(page.getByTestId('gamepad-diagnostics')).toHaveCount(0);
+  await waitForNavReady(page);
+});

@@ -63,8 +63,9 @@ home-screen PWA is generally more resilient.
 
 - Press **START** to begin automatic scrolling and **PAUSE** to stop.
 - Automatic scrolling hides the script header and softly fades the playback bar after one second.
-  Tap the reading surface to fade the bar back in; it returns automatically when playback pauses
-  or reaches the end.
+  Tap the reading surface to fade the bar back in. Controller play/pause preserves the current
+  control visibility; use the assigned show/hide action to reveal it explicitly. The bar returns
+  automatically when playback reaches the end.
 - Scripts always open at the beginning; reading position is not stored between sessions.
 - Set an optional 0–10 second start countdown from App Settings. It is off by default and does
   run every time automatic scrolling starts, including when resuming from pause.
@@ -129,8 +130,9 @@ Configure**: tap an action, then press the button you want for it. The default l
 
 Hold behaviors (manual scrolling, step repeats) follow the action to its assigned button; stick
 axes always scroll. Gamepad button ordering can vary by browser — the panel's **Diagnostics**
-view shows raw button and axis input. Assigning a button already in use swaps the two actions so
-active actions remain unique, and **Reset** restores the default layout.
+view shows raw button and axis input while suspending controller navigation and actions. Assigning
+a button already in use swaps the two actions so active actions remain unique, and **Reset**
+restores the default layout.
 
 ## Safari and iOS notes
 

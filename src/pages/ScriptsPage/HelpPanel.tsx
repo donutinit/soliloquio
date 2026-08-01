@@ -32,6 +32,7 @@ export function HelpPanel({ onClose }: { onClose: () => void }) {
           <p>Connect it over Bluetooth, then press any button.</p>
           <ul>
             <li>The south face button starts or pauses.</li>
+            <li>Controller play/pause does not reveal hidden controls; use Show / hide controls.</li>
             <li>L1/LB and R1/RB change sections.</li>
             <li>Share, Create, View, Minus, or Select opens the controller guide.</li>
             <li>Assign actions in App settings → Gamepad.</li>

@@ -298,14 +298,14 @@ function Prompter({
     wakeLoopRef.current();
   }, [clearCountdown]);
 
-  const togglePlay = useCallback(() => {
+  const togglePlay = useCallback((revealControlsOnStop: boolean) => {
     // A gamepad action does not emit a DOM click, so explicitly retry a wake
     // lock here after a transient browser denial or an iOS lifecycle release.
     applyKeepScreenAwake(settingsRef.current.keepScreenAwake);
 
     if (countdownRef.current !== null) {
       clearCountdown();
-      setControlsVisible(true);
+      if (revealControlsOnStop) setControlsVisible(true);
       return;
     }
 
@@ -313,7 +313,7 @@ function Prompter({
     if (engine.state.playing) {
       engine.state.playing = false;
       setPlaying(false);
-      setControlsVisible(true);
+      if (revealControlsOnStop) setControlsVisible(true);
       wakeLoopRef.current();
       return;
     }
@@ -414,7 +414,7 @@ function Prompter({
       const current = settingsRef.current;
       switch (action) {
         case 'togglePlay':
-          togglePlay();
+          togglePlay(false);
           break;
         case 'resetToStart':
           resetToStart();
@@ -852,7 +852,7 @@ function Prompter({
                 data-testid="play-pause"
                 data-playing={playing}
                 data-counting={countdown !== null}
-                onClick={togglePlay}
+                onClick={() => togglePlay(true)}
               >
                 <Icon name={playing || countdown !== null ? 'pause' : 'play'} />
                 {countdown !== null ? 'CANCEL' : playing ? 'PAUSE' : 'START'}
