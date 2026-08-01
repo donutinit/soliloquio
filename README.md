@@ -128,6 +128,22 @@ Configure**: tap an action, then press the button you want for it. The default l
 | Share / Create / View / Minus / Select | Controller guide | Same action on release |
 | R3 / RS | Section browser | Same action on release |
 
+When the reported controller id identifies an **8BitDo Micro**, the app activates a fixed compact
+profile without changing other controllers:
+
+| Micro control | Reader behavior |
+|---|---|
+| D-pad left / right | Manual scroll up / down |
+| Hold D-pad up / down | Temporary 10% / 200% of the configured speed |
+| Hold Select + D-pad up / down | Increase / decrease text size; hold to repeat |
+| Hold Select + D-pad left / right | Decrease / increase margins; hold to repeat |
+| Select tap | Controller guide |
+| Start | Reader settings |
+
+Select and the D-pad are reserved while this profile is active. Releasing a temporary speed button
+restores normal playback speed, or stops again if the reader was paused. A Select combination is
+consumed, so releasing Select afterward does not also open the guide.
+
 Hold behaviors (manual scrolling, step repeats) follow the action to its assigned button; stick
 axes always scroll. Gamepad button ordering can vary by browser — the panel's **Diagnostics**
 view shows raw button and axis input while suspending controller navigation and actions. Assigning

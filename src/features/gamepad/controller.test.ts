@@ -4,7 +4,10 @@ import { HOLD_THRESHOLD_MS } from './holdButton';
 import { DEFAULT_MANUAL_SCROLL_SPEED } from './gamepadInput';
 import { DEFAULT_GAMEPAD_BINDINGS, GAMEPAD_ACTIONS } from '../../types';
 
+const MICRO_ID = '8BitDo Micro gamepad Gamepad';
+
 function fakePad(overrides: {
+  id?: string;
   buttons?: Record<number, { pressed: boolean; value: number }>;
   axes?: number[];
 }): Gamepad {
@@ -14,7 +17,7 @@ function fakePad(overrides: {
     value: overrides.buttons?.[i]?.value ?? 0
   }));
   return {
-    id: 'fake',
+    id: overrides.id ?? 'fake',
     index: 0,
     connected: true,
     mapping: 'standard',
@@ -40,6 +43,16 @@ describe('asignaciones por defecto', () => {
 function primedController(bindings = { ...DEFAULT_GAMEPAD_BINDINGS }): GamepadController {
   const controller = new GamepadController(bindings);
   controller.update(fakePad({}), -100);
+  return controller;
+}
+
+function microPad(buttons: Record<number, { pressed: boolean; value: number }> = {}): Gamepad {
+  return fakePad({ id: MICRO_ID, buttons });
+}
+
+function primedMicroController(): GamepadController {
+  const controller = new GamepadController({ ...DEFAULT_GAMEPAD_BINDINGS });
+  controller.update(microPad(), -100);
   return controller;
 }
 
@@ -179,5 +192,93 @@ describe('GamepadController', () => {
     const fast = controller.update(fakePad({ axes: [0, 1, 0, 0] }), 48).manualVelocity;
     expect(fine).toBeGreaterThan(0);
     expect(fast).toBeGreaterThan(fine);
+  });
+
+  it('el Micro usa izquierda/derecha para scroll manual y prioriza horizontal', () => {
+    const controller = primedMicroController();
+    const left = controller.update(
+      microPad({ 14: { pressed: true, value: 1 } }),
+      0
+    );
+    expect(left.manualVelocity).toBe(-DEFAULT_MANUAL_SCROLL_SPEED);
+    expect(left.temporarySpeedMultiplier).toBe(1);
+
+    const right = controller.update(
+      microPad({ 15: { pressed: true, value: 1 } }),
+      16
+    );
+    expect(right.manualVelocity).toBe(DEFAULT_MANUAL_SCROLL_SPEED);
+
+    const diagonal = controller.update(
+      microPad({
+        12: { pressed: true, value: 1 },
+        14: { pressed: true, value: 1 }
+      }),
+      32
+    );
+    expect(diagonal.manualVelocity).toBe(-DEFAULT_MANUAL_SCROLL_SPEED);
+    expect(diagonal.temporarySpeedMultiplier).toBe(1);
+  });
+
+  it('el Micro aplica 10%/200% temporal con arriba/abajo', () => {
+    const controller = primedMicroController();
+    const slow = controller.update(
+      microPad({ 12: { pressed: true, value: 1 } }),
+      0
+    );
+    expect(slow.manualVelocity).toBe(0);
+    expect(slow.temporarySpeedMultiplier).toBe(0.1);
+
+    const fast = controller.update(
+      microPad({ 13: { pressed: true, value: 1 } }),
+      16
+    );
+    expect(fast.temporarySpeedMultiplier).toBe(2);
+    expect(controller.update(microPad(), 32).temporarySpeedMultiplier).toBe(1);
+  });
+
+  it('Select + D-pad ajusta texto y márgenes sin abrir la guía', () => {
+    const controller = primedMicroController();
+    const select = { 8: { pressed: true, value: 1 } };
+    controller.update(microPad(select), 0);
+
+    controller.update(
+      microPad({ ...select, 12: { pressed: true, value: 1 } }),
+      16
+    );
+    const font = controller.update(microPad(select), 100);
+    expect(font.actions).toContain('fontUp');
+    expect(font.manualVelocity).toBe(0);
+    expect(font.temporarySpeedMultiplier).toBe(1);
+
+    controller.update(
+      microPad({ ...select, 14: { pressed: true, value: 1 } }),
+      120
+    );
+    const margin = controller.update(microPad(select), 200);
+    expect(margin.actions).toContain('marginDown');
+
+    const released = controller.update(microPad(), 220);
+    expect(released.actions).not.toContain('toggleControllerGuide');
+  });
+
+  it('Select solo conserva la acción normal y Start 9 sigue funcionando', () => {
+    const controller = primedMicroController();
+    controller.update(microPad({ 8: { pressed: true, value: 1 } }), 0);
+    expect(controller.update(microPad(), 100).actions).toContain('toggleControllerGuide');
+
+    controller.update(microPad({ 9: { pressed: true, value: 1 } }), 120);
+    expect(controller.update(microPad(), 220).actions).toContain('toggleSettings');
+  });
+
+  it('no aplica el perfil Micro a otros controles 8BitDo', () => {
+    const controller = new GamepadController({ ...DEFAULT_GAMEPAD_BINDINGS });
+    const other = (buttons: Record<number, { pressed: boolean; value: number }> = {}) =>
+      fakePad({ id: '8BitDo Pro 2', buttons });
+    controller.update(other(), -100);
+    controller.update(other({ 12: { pressed: true, value: 1 } }), 0);
+    const released = controller.update(other(), 100);
+    expect(released.actions).toContain('fontUp');
+    expect(released.temporarySpeedMultiplier).toBe(1);
   });
 });

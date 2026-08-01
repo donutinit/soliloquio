@@ -4,8 +4,14 @@ import { getActiveGamepad } from '../../features/gamepad/controller';
 import {
   gamepadIconName,
   identifyController,
+  is8BitDoMicro,
   type ControllerFamily
 } from '../../features/gamepad/controllerIdentity';
+import {
+  isMicroFixedAction,
+  MICRO_FIXED_ACTION_LABELS,
+  MICRO_RESERVED_BUTTONS
+} from '../../features/gamepad/microProfile';
 import {
   ACTION_GROUPS,
   actionLabel,
@@ -42,6 +48,7 @@ export function GamepadSettingsPanel({
   const [padName, setPadName] = useState<string | null>(null);
   // Última familia conocida: las etiquetas no vuelven a PlayStation al desconectar.
   const [family, setFamily] = useState<ControllerFamily>('playstation');
+  const [micro, setMicro] = useState(false);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [diagnostics, setDiagnostics] = useState<Diagnostics>(null);
 
@@ -56,6 +63,7 @@ export function GamepadSettingsPanel({
       const identity = identifyController(pad.id);
       setPadName(identity.name);
       setFamily(identity.family);
+      setMicro(is8BitDoMicro(pad.id));
     };
     read();
     const interval = setInterval(read, STATUS_POLL_MS);
@@ -70,6 +78,10 @@ export function GamepadSettingsPanel({
       if (!pad) return;
       const index = pad.buttons.findIndex((b) => b.pressed || b.value > 0.5);
       if (index < 0) return;
+      if (micro && MICRO_RESERVED_BUTTONS.includes(index)) {
+        setFeedback('Select and the D-pad are reserved by the 8BitDo Micro profile.');
+        return;
+      }
       const result = assignBinding(bindings, listening, index);
       onChange(result.bindings);
       setFeedback(
@@ -82,7 +94,7 @@ export function GamepadSettingsPanel({
       setListening(null);
     }, LISTEN_POLL_MS);
     return () => clearInterval(interval);
-  }, [listening, bindings, family, onChange]);
+  }, [listening, bindings, family, micro, onChange]);
 
   // Modo diagnóstico: estado crudo de botones y ejes.
   useEffect(() => {
@@ -163,7 +175,9 @@ export function GamepadSettingsPanel({
       <p className={styles.gamepadHint} data-testid="gamepad-settings-hint" aria-live="polite">
         {listening
           ? `Press a controller button for “${actionLabel(listening)}”… Tap the action again to cancel.`
-          : 'Tap an action, then press the controller button you want for it. Assigning a busy button swaps the two actions. Stick axes always scroll.'}
+          : micro
+            ? '8BitDo Micro profile: D-pad controls scrolling; hold Select with the D-pad for text and margins. Reserved controls are fixed.'
+            : 'Tap an action, then press the controller button you want for it. Assigning a busy button swaps the two actions. Stick axes always scroll.'}
       </p>
       {feedback && !error && (
         <p className={styles.gamepadFeedback} data-testid="gamepad-feedback" role="status">
@@ -186,6 +200,7 @@ export function GamepadSettingsPanel({
                   type="button"
                   data-testid={`bind-${action}`}
                   className={listening === action ? styles.gamepadRowListening : styles.gamepadRow}
+                  disabled={micro && isMicroFixedAction(action)}
                   onClick={() => setListening((current) => (current === action ? null : action))}
                 >
                   <span className={styles.gamepadActionText}>
@@ -193,7 +208,11 @@ export function GamepadSettingsPanel({
                     {hint && <span className={styles.gamepadActionHint}>{hint}</span>}
                   </span>
                   <span className={styles.gamepadChip} data-testid={`bind-${action}-value`}>
-                    {listening === action ? 'Press…' : buttonLabel(bindings[action], family)}
+                    {listening === action
+                      ? 'Press…'
+                      : micro && MICRO_FIXED_ACTION_LABELS[action]
+                        ? MICRO_FIXED_ACTION_LABELS[action]
+                        : buttonLabel(bindings[action], family)}
                   </span>
                 </button>
               </li>

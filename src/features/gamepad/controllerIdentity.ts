@@ -12,6 +12,12 @@ const FAMILY_NAMES: Record<ControllerFamily, string> = {
   generic: 'Controller'
 };
 
+const EIGHT_BITDO_MICRO_PATTERN = /8bitdo\s+micro|^2dc8-3106-/;
+
+export function is8BitDoMicro(id: string | null | undefined): boolean {
+  return EIGHT_BITDO_MICRO_PATTERN.test((id ?? '').toLowerCase());
+}
+
 /**
  * Vendor IDs USB tal y como aparecen en `Gamepad.id`: Chrome usa
  * "Vendor: 054c", Firefox antepone "054c-". Se comprueban ambas formas.
@@ -37,6 +43,9 @@ const KEYWORD_PATTERNS: [ControllerFamily, RegExp][] = [
 
 export function identifyController(id: string | null | undefined): ControllerIdentity {
   const normalized = (id ?? '').toLowerCase();
+  if (is8BitDoMicro(normalized)) {
+    return { family: '8bitdo', name: '8BitDo Micro controller' };
+  }
   for (const [family, pattern] of [...KEYWORD_PATTERNS, ...VENDOR_PATTERNS]) {
     if (pattern.test(normalized)) return { family, name: FAMILY_NAMES[family] };
   }

@@ -10,6 +10,7 @@ import { GamepadController, getActiveGamepad, type GamepadAction } from '../../f
 import {
   gamepadIconName,
   identifyController,
+  is8BitDoMicro,
   type ControllerFamily
 } from '../../features/gamepad/controllerIdentity';
 import {
@@ -176,6 +177,7 @@ function Prompter({
   const [sectionIdx, setSectionIdx] = useState(0);
   const [gamepadConnected, setGamepadConnected] = useState(false);
   const [padFamily, setPadFamily] = useState<ControllerFamily>('playstation');
+  const [microPad, setMicroPad] = useState(false);
   const [storageError, setStorageError] = useState<string | null>(null);
   const [adjustmentFeedback, setAdjustmentFeedback] = useState<AdjustmentFeedback | null>(null);
 
@@ -518,23 +520,34 @@ function Prompter({
       const padId = pad?.id ?? null;
       if (padId !== padIdRef.current) {
         padIdRef.current = padId;
-        if (pad) setPadFamily(identifyController(pad.id).family);
+        if (pad) {
+          setPadFamily(identifyController(pad.id).family);
+          setMicroPad(is8BitDoMicro(pad.id));
+        }
       }
       if (frame.connected !== gamepadConnectedRef.current) {
         gamepadConnectedRef.current = frame.connected;
         setGamepadConnected(frame.connected);
       }
-      const manualWakeActive = panelRef.current === 'none' && Math.abs(frame.manualVelocity) > 0;
+      const inputEnabled = panelRef.current === 'none';
+      const temporarySpeedMultiplier = inputEnabled ? frame.temporarySpeedMultiplier : 1;
+      engine.state.temporarySpeedMultiplier = temporarySpeedMultiplier;
+      const multiplierVelocity =
+        inputEnabled && !engine.state.playing && temporarySpeedMultiplier !== 1
+          ? settingsRef.current.speed * temporarySpeedMultiplier
+          : 0;
+      const manualVelocity = inputEnabled ? frame.manualVelocity + multiplierVelocity : 0;
+      const manualWakeActive = Math.abs(manualVelocity) > 0;
       if (manualWakeActive && !manualWakeActiveRef.current) {
         applyKeepScreenAwake(settingsRef.current.keepScreenAwake);
       }
       manualWakeActiveRef.current = manualWakeActive;
       // Con un panel abierto, el mando navega el panel (hook global): las
       // acciones del lector y el scroll manual quedan suspendidos.
-      if (panelRef.current === 'none') {
+      if (inputEnabled) {
         for (const action of frame.actions) applyActionRef.current(action);
-        const direction = Math.sign(frame.manualVelocity) as -1 | 0 | 1;
-        engine.setManual(direction, Math.abs(frame.manualVelocity));
+        const direction = Math.sign(manualVelocity) as -1 | 0 | 1;
+        engine.setManual(direction, Math.abs(manualVelocity));
       } else {
         engine.setManual(0, 0);
       }
@@ -909,6 +922,7 @@ function Prompter({
         <ControllerGuide
           bindings={settings.controllerBindings}
           family={padFamily}
+          micro={microPad}
           connected={gamepadConnected}
           onClose={() => setPanel('none')}
         />

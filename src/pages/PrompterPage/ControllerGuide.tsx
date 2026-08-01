@@ -1,11 +1,13 @@
 import { GAMEPAD_ACTIONS, type GamepadAction, type GamepadBindings } from '../../types';
 import { useModalFocus } from '../../app/useModalFocus';
 import { ACTION_GROUPS, actionLabel, buttonLabel } from '../../features/gamepad/actionCatalog';
+import { MICRO_FIXED_ACTION_LABELS } from '../../features/gamepad/microProfile';
 import type { ControllerFamily } from '../../features/gamepad/controllerIdentity';
 import { ControllerDiagram } from './ControllerDiagram';
 import styles from './PrompterPage.module.css';
 
-function familyLabel(family: ControllerFamily): string {
+function familyLabel(family: ControllerFamily, micro: boolean): string {
+  if (micro) return '8BitDo Micro';
   switch (family) {
     case 'playstation':
       return 'PlayStation';
@@ -31,11 +33,13 @@ function actionHint(action: GamepadAction): string | undefined {
 export function ControllerGuide({
   bindings,
   family,
+  micro,
   connected,
   onClose
 }: {
   bindings: GamepadBindings;
   family: ControllerFamily;
+  micro: boolean;
   connected: boolean;
   onClose: () => void;
 }) {
@@ -62,7 +66,7 @@ export function ControllerGuide({
         <header className={styles.controllerGuideHeader}>
           <div>
             <p>{connected ? 'Connected controller' : 'Saved button layout'}</p>
-            <h2 id="controller-guide-title">{familyLabel(family)} controls</h2>
+            <h2 id="controller-guide-title">{familyLabel(family, micro)} controls</h2>
           </div>
           <div className={styles.controllerGuideHeaderActions}>
             <span
@@ -87,14 +91,25 @@ export function ControllerGuide({
               <ControllerDiagram family={family} entries={entries} />
             </div>
 
-            <div className={styles.stickGuide}>
-              <span>
-                <strong>L</strong> Left stick · fast scroll
-              </span>
-              <span>
-                <strong>R</strong> Right stick · fine scroll
-              </span>
-            </div>
+            {micro ? (
+              <div className={styles.stickGuide} data-testid="micro-controller-profile">
+                <span>
+                  <strong>← / →</strong> Manual scroll up / down
+                </span>
+                <span>
+                  <strong>↑ / ↓</strong> Temporary speed 10% / 200%
+                </span>
+              </div>
+            ) : (
+              <div className={styles.stickGuide}>
+                <span>
+                  <strong>L</strong> Left stick · fast scroll
+                </span>
+                <span>
+                  <strong>R</strong> Right stick · fine scroll
+                </span>
+              </div>
+            )}
           </div>
 
           <ol className={styles.controllerLegend} aria-label="Controller button assignments">
@@ -104,7 +119,9 @@ export function ControllerGuide({
                 <span className={styles.controllerLegendText}>
                   <strong>{actionLabel(action)}</strong>
                   <span>
-                    {buttonLabel(buttonIndex, family)}
+                    {micro && MICRO_FIXED_ACTION_LABELS[action]
+                      ? MICRO_FIXED_ACTION_LABELS[action]
+                      : buttonLabel(buttonIndex, family)}
                     {hint ? ` · ${hint}` : ''}
                   </span>
                 </span>
@@ -113,7 +130,11 @@ export function ControllerGuide({
           </ol>
         </div>
 
-        <p className={styles.controllerGuideNote}>Remap any action from App settings → Gamepad.</p>
+        <p className={styles.controllerGuideNote}>
+          {micro
+            ? 'The Micro profile reserves Select and the D-pad; remap the remaining actions in App settings → Gamepad.'
+            : 'Remap any action from App settings → Gamepad.'}
+        </p>
       </div>
     </div>
   );

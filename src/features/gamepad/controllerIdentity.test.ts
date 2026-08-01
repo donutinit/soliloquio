@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { gamepadIconName, identifyController } from './controllerIdentity';
+import { gamepadIconName, identifyController, is8BitDoMicro } from './controllerIdentity';
 
 describe('identifyController', () => {
   it('detecta PlayStation por nombre y por vendor id', () => {
@@ -39,6 +39,16 @@ describe('identifyController', () => {
       '8bitdo'
     );
     expect(identifyController('2dc8-3106-8BitDo Micro gamepad').family).toBe('8bitdo');
+    expect(identifyController('8BitDo Micro gamepad Gamepad').name).toBe(
+      '8BitDo Micro controller'
+    );
+  });
+
+  it('distingue el Micro de otros modelos 8BitDo', () => {
+    expect(is8BitDoMicro('8BitDo Micro gamepad Gamepad')).toBe(true);
+    expect(is8BitDoMicro('2dc8-3106-8BitDo Micro gamepad')).toBe(true);
+    expect(is8BitDoMicro('8BitDo Pro 2')).toBe(false);
+    expect(is8BitDoMicro('8BitDo SN30 Pro')).toBe(false);
   });
 
   it('cae a genérico con ids desconocidos, vacíos o ausentes', () => {

@@ -7,6 +7,14 @@ import {
   applyDeadzone,
   triggerValue
 } from './gamepadInput';
+import { is8BitDoMicro } from './controllerIdentity';
+import {
+  MICRO_DPAD,
+  MICRO_FAST_MULTIPLIER,
+  MICRO_RESERVED_BUTTONS,
+  MICRO_SELECT_BUTTON,
+  MICRO_SLOW_MULTIPLIER
+} from './microProfile';
 import { GAMEPAD_ACTIONS, type GamepadAction, type GamepadBindings } from '../../types';
 
 export type { GamepadAction } from '../../types';
@@ -15,6 +23,8 @@ export type GamepadFrame = {
   actions: GamepadAction[];
   /** Velocidad manual en px/s con signo (+ hacia abajo). */
   manualVelocity: number;
+  /** Multiplicador momentáneo de la velocidad automática configurada. */
+  temporarySpeedMultiplier: number;
   connected: boolean;
 };
 
@@ -48,6 +58,27 @@ type ButtonLike = { pressed: boolean; value: number };
 
 const RELEASED: ButtonLike = { pressed: false, value: 0 };
 
+function isButtonPressed(button: ButtonLike): boolean {
+  return button.pressed || triggerValue(button) > 0;
+}
+
+function microComboAction({
+  up,
+  down,
+  left,
+  right
+}: {
+  up: boolean;
+  down: boolean;
+  left: boolean;
+  right: boolean;
+}): GamepadAction | null {
+  // Horizontal gana ante una diagonal accidental para no cambiar dos ajustes.
+  if (left !== right) return left ? 'marginDown' : 'marginUp';
+  if (up !== down) return up ? 'fontUp' : 'fontDown';
+  return null;
+}
+
 /**
  * Traduce el estado crudo del mando (leído dentro del mismo rAF que el motor
  * de scroll) a acciones discretas y a una velocidad de scroll manual continua.
@@ -57,6 +88,8 @@ const RELEASED: ButtonLike = { pressed: false, value: 0 };
 export class GamepadController {
   private machines = new Map<GamepadAction, HoldButton>();
   private suppressed = new Set<GamepadAction>();
+  private suppressedMicroButtons = new Set<number>();
+  private microModifierConsumed = false;
   private hadPad = false;
   // Al entrar al lector con un mando ya expuesto, descarta el botón que abrió
   // el guion. Tras observar una desconexión o recibir gamepadconnected dentro
@@ -80,6 +113,8 @@ export class GamepadController {
   reset(): void {
     this.resetMachines();
     this.suppressed.clear();
+    this.suppressedMicroButtons.clear();
+    this.microModifierConsumed = false;
     this.hadPad = false;
     this.suppressInitialInput = true;
   }
@@ -90,6 +125,7 @@ export class GamepadController {
     // El evento puede llegar justo después de que un poll haya cebado el mando.
     // El siguiente frame debe empezar a medir la pulsación, no seguir omitiéndola.
     this.suppressed.clear();
+    this.suppressedMicroButtons.clear();
   }
 
   private resetMachines(): void {
@@ -102,31 +138,88 @@ export class GamepadController {
       if (this.hadPad) {
         this.resetMachines();
         this.suppressed.clear();
+        this.suppressedMicroButtons.clear();
+        this.microModifierConsumed = false;
         this.hadPad = false;
       }
       // Una conexión posterior ocurre ya dentro del lector: su primera entrada
       // debe poder manejarlo incluso si el navegador no emite el evento.
       this.suppressInitialInput = false;
-      return { actions: [], manualVelocity: 0, connected: false };
+      return {
+        actions: [],
+        manualVelocity: 0,
+        temporarySpeedMultiplier: 1,
+        connected: false
+      };
     }
 
+    const micro = is8BitDoMicro(pad.id);
+    const rawButton = (index: number): ButtonLike => pad.buttons[index] ?? RELEASED;
     const button = (action: GamepadAction): ButtonLike =>
       pad.buttons[this.bindings[action]] ?? RELEASED;
-    const isPressed = (action: GamepadAction): boolean => {
-      const b = button(action);
-      return b.pressed || triggerValue(b) > 0;
-    };
+    const rawActionPressed = (action: GamepadAction): boolean => isButtonPressed(button(action));
 
     if (!this.hadPad) {
       this.hadPad = true;
       if (this.suppressInitialInput) {
         this.suppressInitialInput = false;
         for (const action of GAMEPAD_ACTIONS) {
-          if (isPressed(action)) this.suppressed.add(action);
+          if (rawActionPressed(action)) this.suppressed.add(action);
         }
-        return { actions: [], manualVelocity: 0, connected: true };
+        if (micro) {
+          for (const index of MICRO_RESERVED_BUTTONS) {
+            if (isButtonPressed(rawButton(index))) this.suppressedMicroButtons.add(index);
+          }
+        }
+        return {
+          actions: [],
+          manualVelocity: 0,
+          temporarySpeedMultiplier: 1,
+          connected: true
+        };
       }
     }
+
+    const microButtonPressed = (index: number): boolean => {
+      const isPressed = isButtonPressed(rawButton(index));
+      if (!this.suppressedMicroButtons.has(index)) return isPressed;
+      if (!isPressed) this.suppressedMicroButtons.delete(index);
+      return false;
+    };
+    const microButtons = {
+      up: micro && microButtonPressed(MICRO_DPAD.up),
+      down: micro && microButtonPressed(MICRO_DPAD.down),
+      left: micro && microButtonPressed(MICRO_DPAD.left),
+      right: micro && microButtonPressed(MICRO_DPAD.right)
+    };
+    const microSelectPressed = micro && microButtonPressed(MICRO_SELECT_BUTTON);
+    const comboAction = microSelectPressed ? microComboAction(microButtons) : null;
+
+    if (comboAction && !this.microModifierConsumed) {
+      this.microModifierConsumed = true;
+      const selectAction = GAMEPAD_ACTIONS.find(
+        (action) => this.bindings[action] === MICRO_SELECT_BUTTON
+      );
+      if (selectAction) {
+        // La combinación consume Select: descarta una pulsación ya iniciada y
+        // evita que su acción normal se dispare al soltar el modificador.
+        this.machines.set(selectAction, new HoldButton());
+        this.suppressed.add(selectAction);
+      }
+    } else if (!microSelectPressed) {
+      this.microModifierConsumed = false;
+    }
+
+    const isPressed = (action: GamepadAction): boolean => {
+      const boundIndex = this.bindings[action];
+      const reservedDpad =
+        micro &&
+        (boundIndex === MICRO_DPAD.up ||
+          boundIndex === MICRO_DPAD.down ||
+          boundIndex === MICRO_DPAD.left ||
+          boundIndex === MICRO_DPAD.right);
+      return (!reservedDpad && rawActionPressed(action)) || comboAction === action;
+    };
 
     const events = {} as Record<GamepadAction, HoldButtonEvents>;
     for (const action of GAMEPAD_ACTIONS) {
@@ -152,24 +245,44 @@ export class GamepadController {
     }
 
     let velocity = 0;
-    if (events.togglePlay.holdActive) velocity += DEFAULT_MANUAL_SCROLL_SPEED;
-    if (events.resetToStart.holdActive) velocity -= DEFAULT_MANUAL_SCROLL_SPEED;
-    if (events.speedUp.holdActive) {
-      velocity += triggerValue(button('speedUp')) * DEFAULT_MANUAL_SCROLL_SPEED;
+    let temporarySpeedMultiplier = 1;
+    if (micro) {
+      if (!microSelectPressed) {
+        if (microButtons.left !== microButtons.right) {
+          velocity = microButtons.left
+            ? -DEFAULT_MANUAL_SCROLL_SPEED
+            : DEFAULT_MANUAL_SCROLL_SPEED;
+        } else if (microButtons.up !== microButtons.down) {
+          temporarySpeedMultiplier = microButtons.up
+            ? MICRO_SLOW_MULTIPLIER
+            : MICRO_FAST_MULTIPLIER;
+        }
+      }
+    } else {
+      if (events.togglePlay.holdActive) velocity += DEFAULT_MANUAL_SCROLL_SPEED;
+      if (events.resetToStart.holdActive) velocity -= DEFAULT_MANUAL_SCROLL_SPEED;
+      if (events.speedUp.holdActive) {
+        velocity += triggerValue(button('speedUp')) * DEFAULT_MANUAL_SCROLL_SPEED;
+      }
+      if (events.speedDown.holdActive) {
+        velocity -= triggerValue(button('speedDown')) * DEFAULT_MANUAL_SCROLL_SPEED;
+      }
+      velocity +=
+        applyDeadzone(pad.axes[3] ?? 0, STICK_DEADZONE) *
+        DEFAULT_MANUAL_SCROLL_SPEED *
+        RIGHT_STICK_FACTOR;
+      velocity +=
+        applyDeadzone(pad.axes[1] ?? 0, STICK_DEADZONE) *
+        DEFAULT_MANUAL_SCROLL_SPEED *
+        LEFT_STICK_FACTOR;
     }
-    if (events.speedDown.holdActive) {
-      velocity -= triggerValue(button('speedDown')) * DEFAULT_MANUAL_SCROLL_SPEED;
-    }
-    velocity +=
-      applyDeadzone(pad.axes[3] ?? 0, STICK_DEADZONE) *
-      DEFAULT_MANUAL_SCROLL_SPEED *
-      RIGHT_STICK_FACTOR;
-    velocity +=
-      applyDeadzone(pad.axes[1] ?? 0, STICK_DEADZONE) *
-      DEFAULT_MANUAL_SCROLL_SPEED *
-      LEFT_STICK_FACTOR;
 
-    return { actions, manualVelocity: velocity, connected: true };
+    return {
+      actions,
+      manualVelocity: velocity,
+      temporarySpeedMultiplier,
+      connected: true
+    };
   }
 }
 
