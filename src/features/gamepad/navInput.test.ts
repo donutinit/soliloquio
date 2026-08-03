@@ -84,6 +84,22 @@ describe('GamepadNavReader', () => {
     expect(a.back).toBe(true);
   });
 
+  it('el Pro 3 usa B abajo para confirmar y A derecha para volver', () => {
+    const reader = new GamepadNavReader();
+    const pro3 = (buttons: Record<number, boolean> = {}) =>
+      fakePad({ id: '8BitDo Pro 3 Extended Gamepad', buttons });
+    reader.update(pro3(), 0);
+
+    const b = reader.update(pro3({ 1: true }), 16);
+    expect(b.confirm).toBe(true);
+    expect(b.back).toBe(false);
+
+    reader.update(pro3(), 32);
+    const a = reader.update(pro3({ 0: true }), 48);
+    expect(a.confirm).toBe(false);
+    expect(a.back).toBe(true);
+  });
+
   it('mantener confirmar no repite el clic', () => {
     const reader = new GamepadNavReader();
     reader.update(fakePad({}), 0);

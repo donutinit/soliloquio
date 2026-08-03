@@ -99,13 +99,13 @@ numbered buttons.
 ### App navigation
 
 A connected controller can drive the whole app: the d-pad or left stick moves the focus, the
-south button (Cross/A) activates the focused control, and the east button (Circle/B) closes
-the open panel. When a controller is first detected in the library, focus moves directly to the
-first visible script. If it is first detected while the reader is open, the input that exposed it
-can immediately control the prompter. While a prompter panel (Settings, Sections, or Controller
-Guide) is open, the controller navigates that panel instead of triggering reader actions; sliders
-adjust with d-pad left/right. These navigation buttons are fixed. On iOS, opening the file import
-picker still requires a direct tap.
+south button (Cross/Xbox A/Nintendo B) activates the focused control, and the east button
+(Circle/Xbox B/Nintendo A) closes the open panel. When a controller is first detected in the
+library, focus moves directly to the first visible script. If it is first detected while the reader
+is open, the input that exposed it can immediately control the prompter. While a prompter panel
+(Settings, Sections, or Controller Guide) is open, the controller navigates that panel instead of
+triggering reader actions; sliders adjust with d-pad left/right. These navigation buttons are
+fixed. On iOS, opening the file import picker still requires a direct tap.
 
 ### Reader actions
 
@@ -153,6 +153,12 @@ axes always scroll. Gamepad button ordering can vary by browser — the panel's 
 view shows raw button and axis input while suspending controller navigation and actions. Assigning
 a button already in use swaps the two actions so active actions remain unique, and **Reset**
 restores the default layout.
+
+The **8BitDo Pro 3** reports its face buttons to Apple browsers in A/B/X/Y letter order rather
+than standard physical-position order. Its profile normalizes those inputs so the Nintendo-layout
+B button at the bottom confirms or plays, while A on the right goes back or exits. L4, R4, PL, and
+PR are onboard remapping controls rather than independent browser inputs: configure them on the
+controller, and Teleprompter receives the assigned button or combination.
 
 ## Safari and iOS notes
 

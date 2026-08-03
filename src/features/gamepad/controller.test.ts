@@ -5,6 +5,7 @@ import { DEFAULT_MANUAL_SCROLL_SPEED } from './gamepadInput';
 import { DEFAULT_GAMEPAD_BINDINGS, GAMEPAD_ACTIONS } from '../../types';
 
 const MICRO_ID = '8BitDo Micro gamepad Gamepad';
+const PRO_3_ID = '8BitDo Pro 3 Extended Gamepad';
 
 function fakePad(overrides: {
   id?: string;
@@ -65,6 +66,26 @@ describe('GamepadController', () => {
     controller.update(fakePad({ buttons: { 0: { pressed: true, value: 1 } } }), 0);
     const frame = controller.update(fakePad({}), 100);
     expect(frame.actions).toContain('togglePlay');
+  });
+
+  it('el Pro 3 usa B abajo para Play/Pause y A derecha para salir', () => {
+    const pro3 = (buttons: Record<number, { pressed: boolean; value: number }> = {}) =>
+      fakePad({ id: PRO_3_ID, buttons });
+    const cases: { button: number; action: (typeof GAMEPAD_ACTIONS)[number] }[] = [
+      { button: 1, action: 'togglePlay' },
+      { button: 0, action: 'backToScripts' },
+      { button: 3, action: 'toggleControls' },
+      { button: 2, action: 'resetToStart' }
+    ];
+
+    for (const [index, testCase] of cases.entries()) {
+      const controller = new GamepadController({ ...DEFAULT_GAMEPAD_BINDINGS });
+      controller.update(pro3(), -100);
+      const start = index * 200;
+      controller.update(pro3({ [testCase.button]: { pressed: true, value: 1 } }), start);
+      const released = controller.update(pro3(), start + 100);
+      expect(released.actions).toContain(testCase.action);
+    }
   });
 
   it('mantener el botón de play no emite togglePlay y genera velocidad manual', () => {

@@ -13,9 +13,19 @@ const FAMILY_NAMES: Record<ControllerFamily, string> = {
 };
 
 const EIGHT_BITDO_MICRO_PATTERN = /8bitdo\s+micro|^2dc8-3106-/;
+const EIGHT_BITDO_PRO_3_PATTERN = /8bitdo\s+pro[\s-]*3\b/;
 
 export function is8BitDoMicro(id: string | null | undefined): boolean {
   return EIGHT_BITDO_MICRO_PATTERN.test((id ?? '').toLowerCase());
+}
+
+export function is8BitDoPro3(id: string | null | undefined): boolean {
+  return EIGHT_BITDO_PRO_3_PATTERN.test((id ?? '').toLowerCase());
+}
+
+/** Estos modelos exponen A/B/X/Y por letra, no por la posición estándar. */
+export function needs8BitDoFaceButtonNormalization(id: string | null | undefined): boolean {
+  return is8BitDoMicro(id) || is8BitDoPro3(id);
 }
 
 /**
@@ -45,6 +55,9 @@ export function identifyController(id: string | null | undefined): ControllerIde
   const normalized = (id ?? '').toLowerCase();
   if (is8BitDoMicro(normalized)) {
     return { family: '8bitdo', name: '8BitDo Micro controller' };
+  }
+  if (is8BitDoPro3(normalized)) {
+    return { family: '8bitdo', name: '8BitDo Pro 3 controller' };
   }
   for (const [family, pattern] of [...KEYWORD_PATTERNS, ...VENDOR_PATTERNS]) {
     if (pattern.test(normalized)) return { family, name: FAMILY_NAMES[family] };

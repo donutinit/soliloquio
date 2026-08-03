@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { gamepadIconName, identifyController, is8BitDoMicro } from './controllerIdentity';
+import {
+  gamepadIconName,
+  identifyController,
+  is8BitDoMicro,
+  is8BitDoPro3,
+  needs8BitDoFaceButtonNormalization
+} from './controllerIdentity';
 
 describe('identifyController', () => {
   it('detecta PlayStation por nombre y por vendor id', () => {
@@ -42,6 +48,9 @@ describe('identifyController', () => {
     expect(identifyController('8BitDo Micro gamepad Gamepad').name).toBe(
       '8BitDo Micro controller'
     );
+    expect(identifyController('8BitDo Pro 3 Extended Gamepad').name).toBe(
+      '8BitDo Pro 3 controller'
+    );
   });
 
   it('distingue el Micro de otros modelos 8BitDo', () => {
@@ -49,6 +58,15 @@ describe('identifyController', () => {
     expect(is8BitDoMicro('2dc8-3106-8BitDo Micro gamepad')).toBe(true);
     expect(is8BitDoMicro('8BitDo Pro 2')).toBe(false);
     expect(is8BitDoMicro('8BitDo SN30 Pro')).toBe(false);
+  });
+
+  it('normaliza el orden por letra solo en Micro y Pro 3', () => {
+    expect(is8BitDoPro3('8BitDo Pro 3 Extended Gamepad')).toBe(true);
+    expect(is8BitDoPro3('8BitDo Pro3')).toBe(true);
+    expect(is8BitDoPro3('8BitDo Pro 2')).toBe(false);
+    expect(needs8BitDoFaceButtonNormalization('8BitDo Pro 3 Extended Gamepad')).toBe(true);
+    expect(needs8BitDoFaceButtonNormalization('8BitDo Micro gamepad Gamepad')).toBe(true);
+    expect(needs8BitDoFaceButtonNormalization('8BitDo SN30 Pro')).toBe(false);
   });
 
   it('cae a genérico con ids desconocidos, vacíos o ausentes', () => {

@@ -5,13 +5,15 @@ import {
   gamepadIconName,
   identifyController,
   is8BitDoMicro,
+  is8BitDoPro3,
+  needs8BitDoFaceButtonNormalization,
   type ControllerFamily
 } from '../../features/gamepad/controllerIdentity';
+import { translateNintendoFaceButtonIndex } from '../../features/gamepad/faceButtonOrder';
 import {
   isMicroFixedAction,
   MICRO_FIXED_ACTION_LABELS,
-  MICRO_RESERVED_BUTTONS,
-  translateMicroFaceButtonIndex
+  MICRO_RESERVED_BUTTONS
 } from '../../features/gamepad/microProfile';
 import {
   ACTION_GROUPS,
@@ -50,6 +52,7 @@ export function GamepadSettingsPanel({
   // Última familia conocida: las etiquetas no vuelven a PlayStation al desconectar.
   const [family, setFamily] = useState<ControllerFamily>('playstation');
   const [micro, setMicro] = useState(false);
+  const [pro3, setPro3] = useState(false);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [diagnostics, setDiagnostics] = useState<Diagnostics>(null);
 
@@ -65,6 +68,7 @@ export function GamepadSettingsPanel({
       setPadName(identity.name);
       setFamily(identity.family);
       setMicro(is8BitDoMicro(pad.id));
+      setPro3(is8BitDoPro3(pad.id));
     };
     read();
     const interval = setInterval(read, STATUS_POLL_MS);
@@ -79,11 +83,14 @@ export function GamepadSettingsPanel({
       if (!pad) return;
       const rawIndex = pad.buttons.findIndex((b) => b.pressed || b.value > 0.5);
       if (rawIndex < 0) return;
-      if (micro && MICRO_RESERVED_BUTTONS.includes(rawIndex)) {
+      const currentMicro = is8BitDoMicro(pad.id);
+      if (currentMicro && MICRO_RESERVED_BUTTONS.includes(rawIndex)) {
         setFeedback('Select and the D-pad are reserved by the 8BitDo Micro profile.');
         return;
       }
-      const index = micro ? translateMicroFaceButtonIndex(rawIndex) : rawIndex;
+      const index = needs8BitDoFaceButtonNormalization(pad.id)
+        ? translateNintendoFaceButtonIndex(rawIndex)
+        : rawIndex;
       const result = assignBinding(bindings, listening, index);
       onChange(result.bindings);
       setFeedback(
@@ -96,7 +103,7 @@ export function GamepadSettingsPanel({
       setListening(null);
     }, LISTEN_POLL_MS);
     return () => clearInterval(interval);
-  }, [listening, bindings, family, micro, onChange]);
+  }, [listening, bindings, family, onChange]);
 
   // Modo diagnóstico: estado crudo de botones y ejes.
   useEffect(() => {
@@ -179,6 +186,8 @@ export function GamepadSettingsPanel({
           ? `Press a controller button for “${actionLabel(listening)}”… Tap the action again to cancel.`
           : micro
             ? '8BitDo Micro profile: D-pad controls scrolling; hold Select with B for sections or with the D-pad for text and margins. Reserved controls are fixed.'
+            : pro3
+              ? '8BitDo Pro 3 profile: B confirms and A goes back. L4, R4, PL, and PR use the controller’s onboard mapping and appear as their assigned button or combination.'
             : 'Tap an action, then press the controller button you want for it. Assigning a busy button swaps the two actions. Stick axes always scroll.'}
       </p>
       {feedback && !error && (

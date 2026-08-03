@@ -58,6 +58,32 @@ test('con un mando Xbox adapta el nombre y la serigrafía de los botones', async
   await expect(page.getByRole('img', { name: 'Xbox controller button layout' })).toBeVisible();
 });
 
+test('el Pro 3 normaliza su orden A/B/X/Y y explica los botones extra', async ({ page }) => {
+  await page.addInitScript(installFakeGamepad, '8BitDo Pro 3 Extended Gamepad');
+  await page.goto('/');
+  await openGamepadSettings(page);
+
+  await expect(page.getByTestId('gamepad-settings-status')).toContainText(
+    '8BitDo Pro 3 controller'
+  );
+  await expect(page.getByTestId('bind-togglePlay-value')).toHaveText('B');
+  await expect(page.getByTestId('bind-backToScripts-value')).toHaveText('A');
+  await expect(page.getByTestId('gamepad-settings-hint')).toContainText(
+    'B confirms and A goes back'
+  );
+  await expect(page.getByTestId('gamepad-settings-hint')).toContainText(
+    'L4, R4, PL, and PR use the controller’s onboard mapping'
+  );
+
+  // El índice crudo 0 es A en este mando. Al remapearlo, la app debe guardar
+  // la posición Este (A), no etiquetarlo erróneamente como B/Sur.
+  await page.getByTestId('bind-togglePlay').click();
+  await setButton(page, 0, true);
+  await expect(page.getByTestId('bind-togglePlay-value')).toHaveText('A');
+  await expect(page.getByTestId('bind-backToScripts-value')).toHaveText('B');
+  await setButton(page, 0, false);
+});
+
 test('reasignar a un botón ocupado intercambia las dos acciones y persiste', async ({ page }) => {
   await openGamepadSettings(page);
 

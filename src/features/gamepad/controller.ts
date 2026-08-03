@@ -7,15 +7,18 @@ import {
   applyDeadzone,
   triggerValue
 } from './gamepadInput';
-import { is8BitDoMicro } from './controllerIdentity';
+import {
+  is8BitDoMicro,
+  needs8BitDoFaceButtonNormalization
+} from './controllerIdentity';
+import { translateNintendoFaceButtonIndex } from './faceButtonOrder';
 import {
   MICRO_B_BUTTON,
   MICRO_DPAD,
   MICRO_FAST_MULTIPLIER,
   MICRO_RESERVED_BUTTONS,
   MICRO_SELECT_BUTTON,
-  MICRO_SLOW_MULTIPLIER,
-  translateMicroFaceButtonIndex
+  MICRO_SLOW_MULTIPLIER
 } from './microProfile';
 import { GAMEPAD_ACTIONS, type GamepadAction, type GamepadBindings } from '../../types';
 
@@ -162,10 +165,11 @@ export class GamepadController {
     }
 
     const micro = is8BitDoMicro(pad.id);
+    const normalizeFaceButtons = needs8BitDoFaceButtonNormalization(pad.id);
     const rawButton = (index: number): ButtonLike => pad.buttons[index] ?? RELEASED;
     const actionButtonIndex = (action: GamepadAction): number => {
       const index = this.bindings[action];
-      return micro ? translateMicroFaceButtonIndex(index) : index;
+      return normalizeFaceButtons ? translateNintendoFaceButtonIndex(index) : index;
     };
     const button = (action: GamepadAction): ButtonLike =>
       pad.buttons[actionButtonIndex(action)] ?? RELEASED;
