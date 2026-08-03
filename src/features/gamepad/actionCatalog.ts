@@ -1,5 +1,6 @@
 import { GAMEPAD_ACTIONS, type GamepadAction, type GamepadBindings } from '../../types';
 import type { ControllerFamily } from './controllerIdentity';
+import { pro3VirtualButton } from './pro3Profile';
 
 export type ActionInfo = {
   action: GamepadAction;
@@ -132,6 +133,10 @@ const FAMILY_BUTTON_LABELS: Partial<Record<ControllerFamily, string[]>> = {
 };
 
 export function buttonLabel(index: number, family: ControllerFamily = 'playstation'): string {
+  if (family === '8bitdo') {
+    const virtualButton = pro3VirtualButton(index);
+    if (virtualButton) return virtualButton.label;
+  }
   return FAMILY_BUTTON_LABELS[family]?.[index] ?? `Button ${index}`;
 }
 

@@ -9,9 +9,11 @@ import {
 } from './gamepadInput';
 import {
   is8BitDoMicro,
+  is8BitDoPro3,
   needs8BitDoFaceButtonNormalization
 } from './controllerIdentity';
 import { translateNintendoFaceButtonIndex } from './faceButtonOrder';
+import { activePro3VirtualButtons, pro3VirtualButton } from './pro3Profile';
 import {
   MICRO_B_BUTTON,
   MICRO_DPAD,
@@ -97,6 +99,7 @@ export class GamepadController {
   private machines = new Map<GamepadAction, HoldButton>();
   private suppressed = new Set<GamepadAction>();
   private suppressedMicroButtons = new Set<number>();
+  private suppressedPro3Buttons = new Set<number>();
   private microModifierConsumed = false;
   private microBComboConsumed = false;
   private hadPad = false;
@@ -123,6 +126,7 @@ export class GamepadController {
     this.resetMachines();
     this.suppressed.clear();
     this.suppressedMicroButtons.clear();
+    this.suppressedPro3Buttons.clear();
     this.microModifierConsumed = false;
     this.microBComboConsumed = false;
     this.hadPad = false;
@@ -136,6 +140,7 @@ export class GamepadController {
     // El siguiente frame debe empezar a medir la pulsación, no seguir omitiéndola.
     this.suppressed.clear();
     this.suppressedMicroButtons.clear();
+    this.suppressedPro3Buttons.clear();
   }
 
   private resetMachines(): void {
@@ -149,6 +154,7 @@ export class GamepadController {
         this.resetMachines();
         this.suppressed.clear();
         this.suppressedMicroButtons.clear();
+        this.suppressedPro3Buttons.clear();
         this.microModifierConsumed = false;
         this.microBComboConsumed = false;
         this.hadPad = false;
@@ -165,14 +171,37 @@ export class GamepadController {
     }
 
     const micro = is8BitDoMicro(pad.id);
+    const pro3 = is8BitDoPro3(pad.id);
     const normalizeFaceButtons = needs8BitDoFaceButtonNormalization(pad.id);
     const rawButton = (index: number): ButtonLike => pad.buttons[index] ?? RELEASED;
+    const boundVirtualIndexes = new Set(
+      GAMEPAD_ACTIONS.map((action) => this.bindings[action]).filter(
+        (index) => pro3VirtualButton(index) !== undefined
+      )
+    );
+    const activeVirtualButtons = new Map(
+      (pro3 ? activePro3VirtualButtons(pad.buttons) : [])
+        .filter(({ index }) => boundVirtualIndexes.has(index))
+        .map((virtualButton) => [virtualButton.index, virtualButton] as const)
+    );
+    for (const { chord } of activeVirtualButtons.values()) {
+      for (const index of chord) this.suppressedPro3Buttons.add(index);
+    }
     const actionButtonIndex = (action: GamepadAction): number => {
       const index = this.bindings[action];
       return normalizeFaceButtons ? translateNintendoFaceButtonIndex(index) : index;
     };
-    const button = (action: GamepadAction): ButtonLike =>
-      pad.buttons[actionButtonIndex(action)] ?? RELEASED;
+    const button = (action: GamepadAction): ButtonLike => {
+      const configuredIndex = this.bindings[action];
+      if (activeVirtualButtons.has(configuredIndex)) return { pressed: true, value: 1 };
+      if (pro3VirtualButton(configuredIndex)) return RELEASED;
+
+      const rawIndex = actionButtonIndex(action);
+      const raw = rawButton(rawIndex);
+      if (!this.suppressedPro3Buttons.has(rawIndex)) return raw;
+      if (!isButtonPressed(raw)) this.suppressedPro3Buttons.delete(rawIndex);
+      return RELEASED;
+    };
     const rawActionPressed = (action: GamepadAction): boolean => isButtonPressed(button(action));
 
     if (!this.hadPad) {

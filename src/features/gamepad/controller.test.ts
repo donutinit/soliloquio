@@ -88,6 +88,43 @@ describe('GamepadController', () => {
     }
   });
 
+  it('el Pro 3 convierte el remapeo Select+A en L4 sin disparar sus componentes', () => {
+    const bindings = { ...DEFAULT_GAMEPAD_BINDINGS, toggleSections: 28 };
+    const controller = new GamepadController(bindings);
+    const pro3 = (buttons: Record<number, { pressed: boolean; value: number }> = {}) =>
+      fakePad({ id: PRO_3_ID, buttons });
+    controller.update(pro3(), -100);
+
+    const chord = {
+      8: { pressed: true, value: 1 },
+      0: { pressed: true, value: 1 }
+    };
+    expect(controller.update(pro3(chord), 0).actions).toEqual([]);
+    const released = controller.update(pro3(), 100);
+
+    expect(released.actions).toContain('toggleSections');
+    expect(released.actions).not.toContain('toggleControllerGuide');
+    expect(released.actions).not.toContain('backToScripts');
+  });
+
+  it('no sintetiza los botones virtuales del Pro 3 en otros mandos', () => {
+    const controller = new GamepadController({
+      ...DEFAULT_GAMEPAD_BINDINGS,
+      toggleSections: 28
+    });
+    const other8BitDo = (buttons: Record<number, { pressed: boolean; value: number }> = {}) =>
+      fakePad({ id: '8BitDo Pro 2', buttons });
+    controller.update(other8BitDo(), -100);
+    controller.update(
+      other8BitDo({
+        8: { pressed: true, value: 1 },
+        0: { pressed: true, value: 1 }
+      }),
+      0
+    );
+    expect(controller.update(other8BitDo(), 100).actions).not.toContain('toggleSections');
+  });
+
   it('mantener el botón de play no emite togglePlay y genera velocidad manual', () => {
     const controller = primedController();
     const pressed = fakePad({ buttons: { 0: { pressed: true, value: 1 } } });

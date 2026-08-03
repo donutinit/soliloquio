@@ -156,9 +156,24 @@ restores the default layout.
 
 The **8BitDo Pro 3** reports its face buttons to Apple browsers in A/B/X/Y letter order rather
 than standard physical-position order. Its profile normalizes those inputs so the Nintendo-layout
-B button at the bottom confirms or plays, while A on the right goes back or exits. L4, R4, PL, and
-PR are onboard remapping controls rather than independent browser inputs: configure them on the
-controller, and Teleprompter receives the assigned button or combination.
+B button at the bottom confirms or plays, while A on the right goes back or exits.
+
+Native software such as Steam can receive the Pro 3's L4, R4, PL, and PR controls independently,
+but WebKit currently builds Safari's Gamepad button array from only the standard controls. The app
+provides four virtual controls through the Pro 3's onboard multi-button mapping:
+
+| Extra control | Configure on the Pro 3 as |
+|---|---|
+| L4 | Select + A |
+| R4 | Select + B |
+| PL | Select + X |
+| PR | Select + Y |
+
+For each row, hold the extra control and the listed buttons, then press Star to save the controller
+mapping. Afterwards, assign each extra normally in **App Settings → Gamepad**. The app recognizes
+the combinations as L4/R4/PL/PR and consumes their component buttons so they do not also trigger
+Select or the face-button action. Browsers that expose additional raw button indices remain
+supported directly.
 
 ## Safari and iOS notes
 

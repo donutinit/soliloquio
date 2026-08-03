@@ -68,6 +68,13 @@ describe('normalizeSettings', () => {
     expect(normalized.controllerBindings.nextSection).not.toBe(5);
   });
 
+  it('conserva los índices virtuales del perfil Pro 3', () => {
+    const normalized = normalizeSettings({
+      controllerBindings: { toggleSections: 31 }
+    });
+    expect(normalized.controllerBindings.toggleSections).toBe(31);
+  });
+
   it('migra un controllerMapping heredado conservando el remapeo del usuario', () => {
     const normalized = normalizeSettings({
       controllerMapping: { cross: 5, r1: 0 }

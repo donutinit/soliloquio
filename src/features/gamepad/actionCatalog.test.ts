@@ -31,6 +31,10 @@ describe('buttonLabel', () => {
     expect(buttonLabel(8, 'nintendo')).toBe('Minus');
     expect(buttonLabel(8, '8bitdo')).toBe('Select');
     expect(buttonLabel(13, 'xbox')).toBe('D-pad Down');
+    expect(buttonLabel(28, '8bitdo')).toBe('L4');
+    expect(buttonLabel(29, '8bitdo')).toBe('R4');
+    expect(buttonLabel(30, '8bitdo')).toBe('PL');
+    expect(buttonLabel(31, '8bitdo')).toBe('PR');
   });
 
   it('la familia genérica y los índices extra numeran el botón', () => {

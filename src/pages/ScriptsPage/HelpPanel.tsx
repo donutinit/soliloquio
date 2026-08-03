@@ -39,6 +39,11 @@ export function HelpPanel({ onClose }: { onClose: () => void }) {
               8BitDo Micro uses its fixed D-pad and Select compact profile; Select + B opens the
               section list.
             </li>
+            <li>
+              On 8BitDo Pro 3, map L4/R4/PL/PR to Select+A / Select+B / Select+X / Select+Y on the
+              controller (hold the extra and its combination, then press Star) to assign those
+              four controls independently in Safari.
+            </li>
             <li>Assign actions in App settings → Gamepad.</li>
             <li>The d-pad moves focus; south activates and east closes.</li>
           </ul>

@@ -10,6 +10,7 @@ import {
   type ControllerFamily
 } from '../../features/gamepad/controllerIdentity';
 import { translateNintendoFaceButtonIndex } from '../../features/gamepad/faceButtonOrder';
+import { activePro3VirtualButtons } from '../../features/gamepad/pro3Profile';
 import {
   isMicroFixedAction,
   MICRO_FIXED_ACTION_LABELS,
@@ -88,9 +89,14 @@ export function GamepadSettingsPanel({
         setFeedback('Select and the D-pad are reserved by the 8BitDo Micro profile.');
         return;
       }
-      const index = needs8BitDoFaceButtonNormalization(pad.id)
-        ? translateNintendoFaceButtonIndex(rawIndex)
-        : rawIndex;
+      const pro3VirtualIndex = is8BitDoPro3(pad.id)
+        ? activePro3VirtualButtons(pad.buttons)[0]?.index
+        : undefined;
+      const index =
+        pro3VirtualIndex ??
+        (needs8BitDoFaceButtonNormalization(pad.id)
+          ? translateNintendoFaceButtonIndex(rawIndex)
+          : rawIndex);
       const result = assignBinding(bindings, listening, index);
       onChange(result.bindings);
       setFeedback(
@@ -187,7 +193,7 @@ export function GamepadSettingsPanel({
           : micro
             ? '8BitDo Micro profile: D-pad controls scrolling; hold Select with B for sections or with the D-pad for text and margins. Reserved controls are fixed.'
             : pro3
-              ? '8BitDo Pro 3 profile: B confirms and A goes back. L4, R4, PL, and PR use the controller’s onboard mapping and appear as their assigned button or combination.'
+              ? '8BitDo Pro 3 profile: B confirms and A goes back. For independent extras in Safari, map L4/R4/PL/PR on the controller to Select+A / Select+B / Select+X / Select+Y, then assign them here.'
             : 'Tap an action, then press the controller button you want for it. Assigning a busy button swaps the two actions. Stick axes always scroll.'}
       </p>
       {feedback && !error && (

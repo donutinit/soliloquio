@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { installFakeGamepad, openScriptInPrompter, setButton } from './helpers';
+import { installFakeGamepad, openScriptInPrompter, setButton, setButtons } from './helpers';
 
 const R1 = 5;
 
@@ -58,7 +58,7 @@ test('con un mando Xbox adapta el nombre y la serigrafía de los botones', async
   await expect(page.getByRole('img', { name: 'Xbox controller button layout' })).toBeVisible();
 });
 
-test('el Pro 3 normaliza su orden A/B/X/Y y explica los botones extra', async ({ page }) => {
+test('el Pro 3 normaliza A/B/X/Y y reconstruye sus botones extra en Safari', async ({ page }) => {
   await page.addInitScript(installFakeGamepad, '8BitDo Pro 3 Extended Gamepad');
   await page.goto('/');
   await openGamepadSettings(page);
@@ -72,7 +72,7 @@ test('el Pro 3 normaliza su orden A/B/X/Y y explica los botones extra', async ({
     'B confirms and A goes back'
   );
   await expect(page.getByTestId('gamepad-settings-hint')).toContainText(
-    'L4, R4, PL, and PR use the controller’s onboard mapping'
+    'map L4/R4/PL/PR on the controller'
   );
 
   // El índice crudo 0 es A en este mando. Al remapearlo, la app debe guardar
@@ -82,6 +82,33 @@ test('el Pro 3 normaliza su orden A/B/X/Y y explica los botones extra', async ({
   await expect(page.getByTestId('bind-togglePlay-value')).toHaveText('A');
   await expect(page.getByTestId('bind-backToScripts-value')).toHaveText('B');
   await setButton(page, 0, false);
+
+  // WebKit oculta L4, pero el remapeo interno Select+A llega en un solo
+  // reporte y se reconstruye como un botón virtual independiente.
+  await page.getByTestId('bind-toggleSections').click();
+  await setButtons(page, [
+    [8, true],
+    [0, true]
+  ]);
+  await expect(page.getByTestId('bind-toggleSections-value')).toHaveText('L4');
+  await setButtons(page, [
+    [8, false],
+    [0, false]
+  ]);
+
+  await page.getByTestId('gamepad-settings-done').click();
+  await page.getByRole('button', { name: 'Done' }).click();
+  await openScriptInPrompter(page, 'Welcome to Teleprompter');
+  await setButtons(page, [
+    [8, true],
+    [0, true]
+  ]);
+  await page.waitForTimeout(120);
+  await setButtons(page, [
+    [8, false],
+    [0, false]
+  ]);
+  await expect(page.getByTestId('sections-panel')).toBeVisible();
 });
 
 test('reasignar a un botón ocupado intercambia las dos acciones y persiste', async ({ page }) => {

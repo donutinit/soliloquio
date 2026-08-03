@@ -75,6 +75,18 @@ export async function setButton(page: Page, index: number, pressed: boolean): Pr
   );
 }
 
+/** Cambia varios botones dentro del mismo turno para simular un solo reporte HID. */
+export async function setButtons(
+  page: Page,
+  states: readonly (readonly [index: number, pressed: boolean])[]
+): Promise<void> {
+  await page.evaluate((nextStates) => {
+    const setButton = (window as unknown as { __setButton: (i: number, p: boolean) => void })
+      .__setButton;
+    for (const [index, pressed] of nextStates) setButton(index, pressed);
+  }, states);
+}
+
 export async function setGamepadConnected(page: Page, connected: boolean): Promise<void> {
   await page.evaluate((next) => {
     (
