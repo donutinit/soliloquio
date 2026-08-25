@@ -9,10 +9,10 @@ import {
   getScript,
   getSettings,
   listScripts,
+  openDatabase,
   resetToFactoryDefaults,
   saveSettings,
   restoreBackup,
-  seedSampleScripts,
   updateScript
 } from './database';
 import { defaultSettings } from '../features/settings/settings';
@@ -240,9 +240,8 @@ describe('backup restore', () => {
 });
 
 describe('factory reset', () => {
-  it('atomically replaces local data with samples and default settings', async () => {
+  it('atomically clears local scripts and restores default settings', async () => {
     const database = freshDb();
-    await seedSampleScripts(database);
     const custom = await createScript(
       { title: 'Private draft', content: 'erase me', format: 'text' },
       database
@@ -252,26 +251,27 @@ describe('factory reset', () => {
     await resetToFactoryDefaults(database);
 
     expect(await getScript(custom.id, database)).toBeUndefined();
-    expect((await listScripts(database)).map((script) => script.title)).toEqual([
-      'Quick notes',
-      'Welcome to Teleprompter'
-    ]);
+    expect(await listScripts(database)).toHaveLength(0);
     expect(await getSettings(database)).toEqual(defaultSettings());
-
-    await seedSampleScripts(database);
-    expect(await listScripts(database)).toHaveLength(2);
   });
 });
 
-describe('siembra inicial', () => {
-  it('crea los ejemplos una sola vez y respeta su borrado', async () => {
-    const db = freshDb();
-    await seedSampleScripts(db);
-    const scripts = await listScripts(db);
-    expect(scripts.length).toBeGreaterThanOrEqual(1);
+describe('initialization', () => {
+  it('opens a new library without adding scripts', async () => {
+    const database = freshDb();
+    await openDatabase(database);
+    expect(await listScripts(database)).toHaveLength(0);
+  });
 
-    for (const script of scripts) await deleteScript(script.id, db);
-    await seedSampleScripts(db);
-    expect(await listScripts(db)).toHaveLength(0); // no re-siembra
+  it('does not alter scripts already stored on the device', async () => {
+    const database = freshDb();
+    const existing = await createScript(
+      { title: 'Existing script', content: 'Keep me', format: 'text' },
+      database
+    );
+    database.close();
+
+    await openDatabase(database);
+    expect(await getScript(existing.id, database)).toEqual(existing);
   });
 });

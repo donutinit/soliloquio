@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import {
   cardByTitle,
+  createSampleScripts,
   installFakeGamepad,
   openScriptInPrompter,
   setButton,
@@ -30,6 +31,7 @@ async function pressNav(page: Page, button: number): Promise<void> {
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(installFakeGamepad, { connected: false });
   await page.goto('/');
+  await createSampleScripts(page);
   await setGamepadConnected(page, true);
 });
 

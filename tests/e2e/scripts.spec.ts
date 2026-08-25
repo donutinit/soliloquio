@@ -1,8 +1,13 @@
 import { expect, test } from '@playwright/test';
-import { cardByTitle } from './helpers';
+import { cardByTitle, createSampleScript, createSampleScripts } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
+});
+
+test('starts with an empty library', async ({ page }) => {
+  await expect(page.getByTestId('script-card')).toHaveCount(0);
+  await expect(page.getByTestId('empty-state')).toContainText('No scripts yet.');
 });
 
 test('crea un guion nuevo y lo edita con autosave', async ({ page }) => {
@@ -29,6 +34,7 @@ test('opening the prompter immediately flushes pending edits', async ({ page }) 
 });
 
 test('dialogs trap focus and close with Escape', async ({ page }) => {
+  await createSampleScript(page, 'Quick notes');
   await cardByTitle(page, 'Quick notes').getByTestId('card-menu').click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toHaveAttribute('aria-modal', 'true');
@@ -38,6 +44,7 @@ test('dialogs trap focus and close with Escape', async ({ page }) => {
 });
 
 test('busca guiones por título y contenido', async ({ page }) => {
+  await createSampleScripts(page);
   await expect(cardByTitle(page, 'Welcome to Teleprompter')).toBeVisible();
 
   await page.getByTestId('search-input').fill('zzz-sin-resultados');
@@ -51,6 +58,7 @@ test('busca guiones por título y contenido', async ({ page }) => {
 test('keeps the compact library composition aligned across phone and desktop widths', async ({
   page
 }) => {
+  await createSampleScript(page, 'Welcome to Teleprompter');
   await page.setViewportSize({ width: 360, height: 800 });
   const headerActions = await page.getByTestId('library-header-actions').boundingBox();
   expect(headerActions).not.toBeNull();
@@ -70,18 +78,21 @@ test('keeps the compact library composition aligned across phone and desktop wid
 });
 
 test('shows readable card titles without import or update dates', async ({ page }) => {
+  await createSampleScript(page, 'Welcome to Teleprompter');
   const card = cardByTitle(page, 'Welcome to Teleprompter');
   await expect(card.getByTestId('card-title')).toHaveCSS('font-size', '25px');
   await expect(card.getByTestId('open-prompter').locator('span')).toHaveCount(2);
 });
 
 test('duplica un guion', async ({ page }) => {
+  await createSampleScript(page, 'Quick notes');
   await cardByTitle(page, 'Quick notes').getByTestId('card-menu').click();
   await page.getByTestId('menu-duplicate').click();
   await expect(cardByTitle(page, 'Quick notes (copy)')).toBeVisible();
 });
 
 test('elimina un guion con confirmación en dos pasos', async ({ page }) => {
+  await createSampleScript(page, 'Quick notes');
   await cardByTitle(page, 'Quick notes').getByTestId('card-menu').click();
   await page.getByTestId('menu-delete').click();
   await expect(page.getByTestId('menu-delete')).toHaveText('Delete permanently?');

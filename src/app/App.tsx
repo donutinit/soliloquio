@@ -3,7 +3,7 @@ import { useRoute } from './router';
 import { useGamepadNavigation } from './useGamepadNavigation';
 import { ScriptsPage } from '../pages/ScriptsPage/ScriptsPage';
 import { PrompterPage } from '../pages/PrompterPage/PrompterPage';
-import { getSettings, seedSampleScripts } from '../services/database';
+import { getSettings, openDatabase } from '../services/database';
 import { setupPWA } from '../services/pwa';
 import { applyKeepScreenAwake } from '../services/keepAwake';
 import styles from './App.module.css';
@@ -33,7 +33,7 @@ export function App() {
   useGamepadNavigation(route.page === 'prompter' ? 'prompter' : 'scripts');
 
   useEffect(() => {
-    void seedSampleScripts()
+    void openDatabase()
       .then(() => setInitializationError(false))
       .catch(() => setInitializationError(true))
       .finally(() => setReady(true));

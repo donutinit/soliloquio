@@ -180,7 +180,10 @@ export function AppSettingsPanel({
 
         <section className={styles.dangerZone}>
           <h3>Factory reset</h3>
-          <p>Permanently erases every script and setting, then restores the original samples and defaults.</p>
+          <p>
+            Permanently erases every script and setting, then restores an empty library and the
+            defaults.
+          </p>
           {confirmingReset ? (
             <div className={styles.resetConfirmation} role="alert">
               <strong>This cannot be undone.</strong>

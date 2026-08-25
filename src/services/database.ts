@@ -1,7 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie';
 import type { PrompterSettings, Script } from '../types';
 import { defaultSettings, normalizeSettings } from '../features/settings/settings';
-import { SAMPLE_SCRIPTS } from '../features/scripts/sampleScripts';
 import { compareScriptsByTitle } from '../features/scripts/sortScripts';
 
 type KvEntry = { key: string; value: unknown };
@@ -77,15 +76,6 @@ function normalizeScript(value: unknown): Script | undefined {
     createdAt,
     updatedAt: rawUpdatedAt ?? createdAt
   };
-}
-
-function factoryScripts(now = Date.now()): Script[] {
-  return SAMPLE_SCRIPTS.map((sample, index) => ({
-    id: newId(),
-    createdAt: now - index,
-    updatedAt: now - index,
-    ...sample
-  }));
 }
 
 export async function listScripts(database: TeleprompterDB = db): Promise<Script[]> {
@@ -175,7 +165,6 @@ export async function restoreBackup(
   await database.transaction('rw', database.scripts, database.kv, async () => {
     await database.scripts.bulkPut(normalizedScripts);
     await database.kv.put({ key: 'settings', value: normalizeSettings(settings) });
-    await database.kv.put({ key: 'seeded', value: true });
   });
 }
 
@@ -184,21 +173,11 @@ export async function resetToFactoryDefaults(database: TeleprompterDB = db): Pro
   await database.transaction('rw', database.scripts, database.kv, async () => {
     await database.scripts.clear();
     await database.kv.clear();
-    await database.scripts.bulkAdd(factoryScripts());
-    await database.kv.bulkPut([
-      { key: 'settings', value: defaultSettings() },
-      { key: 'seeded', value: true }
-    ]);
+    await database.kv.put({ key: 'settings', value: defaultSettings() });
   });
 }
 
-/** Siembra los guiones de ejemplo solo en el primer arranque. */
-export async function seedSampleScripts(database: TeleprompterDB = db): Promise<void> {
-  const seeded = await database.kv.get('seeded');
-  if (seeded) return;
-  const count = await database.scripts.count();
-  if (count === 0) {
-    await database.scripts.bulkAdd(factoryScripts());
-  }
-  await database.kv.put({ key: 'seeded', value: true });
+/** Opens IndexedDB without adding content to a new or existing library. */
+export async function openDatabase(database: TeleprompterDB = db): Promise<void> {
+  await database.open();
 }

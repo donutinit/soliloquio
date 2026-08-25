@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { cardByTitle, openScriptInPrompter } from './helpers';
+import { cardByTitle, createSampleScript, openScriptInPrompter } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -67,6 +67,7 @@ test('keep screen awake is on by default and the choice survives a reload', asyn
 });
 
 test('script card title size defaults to 25px and remains editable', async ({ page }) => {
+  await createSampleScript(page, 'Welcome to Teleprompter');
   const firstTitle = page.getByTestId('card-title').first();
   await expect(firstTitle).toBeVisible();
   await expect(firstTitle).toHaveCSS('font-size', '25px');
@@ -102,8 +103,8 @@ test('factory reset requires confirmation and restores the complete first-run st
   await expect(page.getByTestId('app-settings-panel')).toHaveCount(0);
   await expect(page.getByRole('status')).toContainText('Factory defaults restored.');
   await expect(cardByTitle(page, 'Temporary script')).toHaveCount(0);
-  await expect(cardByTitle(page, 'Welcome to Teleprompter')).toBeVisible();
-  await expect(cardByTitle(page, 'Quick notes')).toBeVisible();
+  await expect(page.getByTestId('script-card')).toHaveCount(0);
+  await expect(page.getByTestId('empty-state')).toContainText('No scripts yet.');
 
   await page.getByTestId('app-settings-button').click();
   await expect(page.getByTestId('countdown-setting')).toHaveValue('0');

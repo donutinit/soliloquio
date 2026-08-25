@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { cardByTitle, openScriptInPrompter } from './helpers';
+import { cardByTitle, createSampleScript, openScriptInPrompter } from './helpers';
 
 const fixture = (name: string) =>
   fileURLToPath(new URL(`../fixtures/${name}`, import.meta.url));
@@ -130,6 +130,7 @@ test('exports and restores a complete JSON backup', async ({ page }) => {
   });
   await page.reload();
   expect(await page.evaluate(() => Boolean(navigator.share))).toBe(false);
+  await createSampleScript(page, 'Quick notes');
 
   const downloadPromise = page.waitForEvent('download', { timeout: 5_000 });
   await page.getByTestId('backup-button').click();
