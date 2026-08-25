@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 
 export const FOCUSABLE =
-  'button:not([disabled]), [href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  'button:not([disabled]), a[href], area[href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /** Keeps keyboard focus inside a modal, supports Escape and restores focus. */
 export function useModalFocus<T extends HTMLElement>(onClose: () => void) {
