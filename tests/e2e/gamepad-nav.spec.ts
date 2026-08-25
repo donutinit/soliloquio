@@ -36,7 +36,7 @@ test.beforeEach(async ({ page }) => {
 test('al detectar el mando enfoca el primer guion y permite navegarlo', async ({ page }) => {
   await waitForNavReady(page);
 
-  const card = cardByTitle(page, 'Welcome to Teleprompter');
+  const card = cardByTitle(page, 'Quick notes');
   const cardMain = card.getByTestId('open-prompter');
   await expect(cardMain).toBeFocused();
   await expect(page.locator(':root')).toHaveAttribute('data-gamepad-nav', 'true');

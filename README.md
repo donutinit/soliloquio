@@ -49,6 +49,8 @@ scripts/          PWA icon generation and shaolin deployment
   combined limit. Teleprompter JSON backups have a separate 25 MB limit.
 - Markdown headings create navigable sections. Plain-text scripts can be converted to Markdown
   from their options menu.
+- Script cards are ordered by title with natural number handling, so `VID2` appears before
+  `VID10`.
 - Script cards omit timestamps and use 25 px titles by default; their title size is adjustable in
   App Settings for easier reading at a distance.
 - Export one script from its options menu or create a complete JSON backup from the download

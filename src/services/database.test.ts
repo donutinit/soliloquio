@@ -64,6 +64,29 @@ describe('guiones', () => {
     expect(await listScripts(db)).toHaveLength(0);
   });
 
+  it('lista los títulos en orden natural, incluyendo secuencias numéricas', async () => {
+    const db = freshDb();
+    const titles = ['VID143', 'VID2', 'VID001', 'VID4', 'VID02'];
+    await db.scripts.bulkPut(
+      titles.map((title, index) => ({
+        id: `video-${index}`,
+        title,
+        content: '',
+        format: 'text' as const,
+        createdAt: index,
+        updatedAt: index
+      }))
+    );
+
+    expect((await listScripts(db)).map((script) => script.title)).toEqual([
+      'VID001',
+      'VID02',
+      'VID2',
+      'VID4',
+      'VID143'
+    ]);
+  });
+
   it('duplica un guion con título «(copy)» y solo campos canónicos', async () => {
     const db = freshDb();
     const original = await createScript({ title: 'Base', content: 'x', format: 'text' }, db);
@@ -230,8 +253,8 @@ describe('factory reset', () => {
 
     expect(await getScript(custom.id, database)).toBeUndefined();
     expect((await listScripts(database)).map((script) => script.title)).toEqual([
-      'Welcome to Teleprompter',
-      'Quick notes'
+      'Quick notes',
+      'Welcome to Teleprompter'
     ]);
     expect(await getSettings(database)).toEqual(defaultSettings());
 

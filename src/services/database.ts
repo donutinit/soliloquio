@@ -2,6 +2,7 @@ import Dexie, { type EntityTable } from 'dexie';
 import type { PrompterSettings, Script } from '../types';
 import { defaultSettings, normalizeSettings } from '../features/settings/settings';
 import { SAMPLE_SCRIPTS } from '../features/scripts/sampleScripts';
+import { compareScriptsByTitle } from '../features/scripts/sortScripts';
 
 type KvEntry = { key: string; value: unknown };
 type LegacyScript = Script & { lastPosition?: unknown };
@@ -95,12 +96,7 @@ export async function listScripts(database: TeleprompterDB = db): Promise<Script
     const script = normalizeScript(stored);
     if (script) scripts.push(script);
   }
-  return scripts.sort(
-    (left, right) =>
-      right.updatedAt - left.updatedAt ||
-      right.createdAt - left.createdAt ||
-      (left.id < right.id ? -1 : left.id > right.id ? 1 : 0)
-  );
+  return scripts.sort(compareScriptsByTitle);
 }
 
 export async function getScript(
