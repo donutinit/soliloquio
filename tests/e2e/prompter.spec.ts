@@ -90,6 +90,10 @@ test('landscape controls and controller guide stay inside the viewport', async (
     'data-controller-family',
     'playstation'
   );
+  await expect(page.getByTestId('controller-diagram')).toHaveAttribute(
+    'data-controller-model',
+    'playstation'
+  );
   await expect(page.getByRole('img', { name: 'DualShock 4 button layout' })).toBeVisible();
   await expect(page.getByTestId('controller-guide')).toContainText('Left stick · fast scroll');
 

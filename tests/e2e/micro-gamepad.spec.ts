@@ -103,6 +103,11 @@ test('aplica scroll y ajustes exclusivos del perfil Micro', async ({ page }) => 
 
   await pressButton(page, SELECT);
   await expect(page.getByRole('heading', { name: '8BitDo Micro controls' })).toBeVisible();
+  await expect(page.getByTestId('controller-diagram')).toHaveAttribute(
+    'data-controller-model',
+    '8bitdo-micro'
+  );
+  await expect(page.getByRole('img', { name: '8BitDo Micro button layout' })).toBeVisible();
   await expect(page.getByTestId('micro-controller-profile')).toContainText(
     'Temporary speed 20% / 200%'
   );

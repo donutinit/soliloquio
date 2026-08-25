@@ -55,6 +55,10 @@ test('con un mando Xbox adapta el nombre y la serigrafía de los botones', async
     'data-controller-family',
     'xbox'
   );
+  await expect(page.getByTestId('controller-diagram')).toHaveAttribute(
+    'data-controller-model',
+    'xbox'
+  );
   await expect(page.getByRole('img', { name: 'Xbox controller button layout' })).toBeVisible();
 });
 
@@ -99,6 +103,15 @@ test('el Pro 3 normaliza A/B/X/Y y reconstruye sus botones extra en Safari', asy
   await page.getByTestId('gamepad-settings-done').click();
   await page.getByRole('button', { name: 'Done' }).click();
   await openScriptInPrompter(page, 'Welcome to Teleprompter');
+  await page.getByTestId('gamepad-status').click();
+  await expect(page.getByRole('heading', { name: '8BitDo Pro 3 controls' })).toBeVisible();
+  await expect(page.getByTestId('controller-diagram')).toHaveAttribute(
+    'data-controller-model',
+    '8bitdo-pro-3'
+  );
+  await expect(page.getByRole('img', { name: '8BitDo Pro 3 button layout' })).toBeVisible();
+  await page.getByRole('button', { name: 'Done' }).click();
+  await page.waitForTimeout(100);
   await setButtons(page, [
     [8, true],
     [0, true]

@@ -11,6 +11,7 @@ import {
   gamepadIconName,
   identifyController,
   is8BitDoMicro,
+  is8BitDoPro3,
   type ControllerFamily
 } from '../../features/gamepad/controllerIdentity';
 import {
@@ -177,7 +178,7 @@ function Prompter({
   const [sectionIdx, setSectionIdx] = useState(0);
   const [gamepadConnected, setGamepadConnected] = useState(false);
   const [padFamily, setPadFamily] = useState<ControllerFamily>('playstation');
-  const [microPad, setMicroPad] = useState(false);
+  const [padModel, setPadModel] = useState<'micro' | 'pro3' | null>(null);
   const [storageError, setStorageError] = useState<string | null>(null);
   const [adjustmentFeedback, setAdjustmentFeedback] = useState<AdjustmentFeedback | null>(null);
 
@@ -522,7 +523,9 @@ function Prompter({
         padIdRef.current = padId;
         if (pad) {
           setPadFamily(identifyController(pad.id).family);
-          setMicroPad(is8BitDoMicro(pad.id));
+          setPadModel(
+            is8BitDoMicro(pad.id) ? 'micro' : is8BitDoPro3(pad.id) ? 'pro3' : null
+          );
         }
       }
       if (frame.connected !== gamepadConnectedRef.current) {
@@ -930,7 +933,8 @@ function Prompter({
         <ControllerGuide
           bindings={settings.controllerBindings}
           family={padFamily}
-          micro={microPad}
+          micro={padModel === 'micro'}
+          pro3={padModel === 'pro3'}
           connected={gamepadConnected}
           onClose={() => setPanel('none')}
         />

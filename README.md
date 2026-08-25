@@ -156,6 +156,10 @@ view shows raw button and axis input while suspending controller navigation and 
 a button already in use swaps the two actions so active actions remain unique, and **Reset**
 restores the default layout.
 
+The in-reader controller guide uses the matching product layout for DualShock 4, Xbox,
+8BitDo Micro, and 8BitDo Pro 3 controllers. Its numbered pins and assignment list reflect the
+active global remapping; unknown controllers retain a generic layout.
+
 The **8BitDo Pro 3** reports its face buttons to Apple browsers in A/B/X/Y letter order rather
 than standard physical-position order. Its profile normalizes those inputs so the Nintendo-layout
 B button at the bottom confirms or plays, while A on the right goes back or exits.

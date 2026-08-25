@@ -6,8 +6,9 @@ import type { ControllerFamily } from '../../features/gamepad/controllerIdentity
 import { ControllerDiagram } from './ControllerDiagram';
 import styles from './PrompterPage.module.css';
 
-function familyLabel(family: ControllerFamily, micro: boolean): string {
+function familyLabel(family: ControllerFamily, micro: boolean, pro3: boolean): string {
   if (micro) return '8BitDo Micro';
+  if (pro3) return '8BitDo Pro 3';
   switch (family) {
     case 'playstation':
       return 'PlayStation';
@@ -34,12 +35,14 @@ export function ControllerGuide({
   bindings,
   family,
   micro,
+  pro3,
   connected,
   onClose
 }: {
   bindings: GamepadBindings;
   family: ControllerFamily;
   micro: boolean;
+  pro3: boolean;
   connected: boolean;
   onClose: () => void;
 }) {
@@ -66,7 +69,7 @@ export function ControllerGuide({
         <header className={styles.controllerGuideHeader}>
           <div>
             <p>{connected ? 'Connected controller' : 'Saved button layout'}</p>
-            <h2 id="controller-guide-title">{familyLabel(family, micro)} controls</h2>
+            <h2 id="controller-guide-title">{familyLabel(family, micro, pro3)} controls</h2>
           </div>
           <div className={styles.controllerGuideHeaderActions}>
             <span
@@ -87,8 +90,13 @@ export function ControllerGuide({
               className={styles.controllerDiagram}
               data-testid="controller-diagram"
               data-controller-family={family}
+              data-controller-model={micro ? '8bitdo-micro' : pro3 ? '8bitdo-pro-3' : family}
             >
-              <ControllerDiagram family={family} entries={entries} />
+              <ControllerDiagram
+                family={family}
+                model={micro ? 'micro' : pro3 ? 'pro3' : undefined}
+                entries={entries}
+              />
             </div>
 
             {micro ? (
