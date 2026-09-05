@@ -6,7 +6,7 @@ An offline-first teleprompter PWA designed for iPhone and Safari. It has no back
 or analytics. Scripts and preferences live only in the browser through IndexedDB, and playback
 can be controlled with a DualShock 4 or another standard gamepad.
 
-**Public URL:** https://tele.vondiego.com
+**Public URL:** https://soli.vondiego.com
 
 ## Development without local npm
 
