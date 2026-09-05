@@ -1,4 +1,6 @@
-# Teleprompter
+# Soliloquio
+
+*A teleprompter for your soliloquy.*
 
 An offline-first teleprompter PWA designed for iPhone and Safari. It has no backend, accounts,
 or analytics. Scripts and preferences live only in the browser through IndexedDB, and playback
@@ -43,11 +45,11 @@ scripts/          PWA icon generation and shaolin deployment
 
 - Create a Markdown script with the plus button.
 - New installations start with an empty library; the app does not add example scripts.
-- Import `.md`, `.markdown`, `.txt`, or a Teleprompter `.json` backup.
+- Import `.md`, `.markdown`, `.txt`, or a Soliloquio `.json` backup.
 - The import control is a directly tappable native file picker for reliable use in installed iOS
   web apps; file extensions are validated safely after selection.
 - A selection can contain up to 50 script files, with a 5 MB limit per script and a 20 MB
-  combined limit. Teleprompter JSON backups have a separate 25 MB limit.
+  combined limit. Soliloquio JSON backups have a separate 25 MB limit.
 - Markdown headings create navigable sections. Plain-text scripts can be converted to Markdown
   from their options menu.
 - Script cards are ordered by title with natural number handling, so `VID2` appears before
@@ -192,7 +194,7 @@ supported directly.
 ## Container image
 
 CI publishes a multi-architecture image for `linux/amd64` and `linux/arm64` to
-`ghcr.io/donutinit/teleprompter`. Images receive `latest`, commit-addressed `sha-<commit>`, and
+`ghcr.io/donutinit/soliloquio`. Images receive `latest`, commit-addressed `sha-<commit>`, and
 semantic version tags. The build uses `node:24-alpine` and serves only the final `dist/`
 directory from `caddy:2-alpine`.
 
@@ -209,12 +211,12 @@ image pinned to the full-commit SHA tag whose exact CI run has passed with:
 ```
 
 The script verifies CI, checks the anonymous registry pull and server preconditions, creates
-timestamped configuration backups, and updates only the `teleprompter` service:
+timestamped configuration backups, and updates only the `soliloquio` service:
 
 ```bash
-docker compose --project-name teleprompter --file compose.yaml config --quiet
-docker compose --project-name teleprompter --file compose.yaml pull teleprompter
-docker compose --project-name teleprompter --file compose.yaml up -d --no-deps teleprompter
+docker compose --project-name soliloquio --file compose.yaml config --quiet
+docker compose --project-name soliloquio --file compose.yaml pull soliloquio
+docker compose --project-name soliloquio --file compose.yaml up -d --no-deps soliloquio
 ```
 
 Never run `docker compose down`, any `prune`, `--remove-orphans`, or commands that affect other
@@ -226,9 +228,9 @@ Restore a previous timestamped `.env` backup, then update only this service and 
 
 ```bash
 ssh shaolin
-cd ~/docker/teleprompter
+cd ~/docker/soliloquio
 cp .env.bak.<timestamp> .env
-docker compose --project-name teleprompter --file compose.yaml up -d --no-deps teleprompter
+docker compose --project-name soliloquio --file compose.yaml up -d --no-deps soliloquio
 curl --fail http://127.0.0.1:45543/healthz
 ```
 
@@ -258,5 +260,5 @@ server {
   the editor is blocked until the latest content is safely stored.
 - **The controller does not respond:** press a button in the foreground, open App Settings →
   Gamepad → Diagnostics, and reassign browser-specific button indexes.
-- **`/healthz` fails:** inspect only the teleprompter container and use the rollback procedure.
+- **`/healthz` fails:** inspect only the soliloquio container and use the rollback procedure.
 - **Anonymous pull fails:** confirm that the GHCR package is still public.

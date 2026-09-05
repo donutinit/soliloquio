@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import Dexie from 'dexie';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
-  TeleprompterDB,
+  SoliloquioDB,
   createScript,
   deleteScript,
   duplicateScript,
@@ -36,8 +36,8 @@ function freshDbName(): string {
   return `test-${Date.now()}-${counter++}`;
 }
 
-function freshDb(): TeleprompterDB {
-  const db = new TeleprompterDB(freshDbName());
+function freshDb(): SoliloquioDB {
+  const db = new SoliloquioDB(freshDbName());
   dbs.push(db);
   return db;
 }
@@ -185,7 +185,7 @@ describe('guiones', () => {
     await legacy.table<typeof legacyScript, string>('scripts').put(legacyScript);
     legacy.close();
 
-    const migrated = new TeleprompterDB(name);
+    const migrated = new SoliloquioDB(name);
     dbs.push(migrated);
     expect(await getScript('legacy', migrated)).toEqual({
       id: 'legacy',

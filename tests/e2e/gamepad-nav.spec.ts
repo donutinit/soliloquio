@@ -98,7 +98,7 @@ test('dentro de un modal el foco queda atrapado y Este lo cierra', async ({ page
 test('Share opens the controller guide and R3 opens section navigation', async ({
   page
 }) => {
-  await openScriptInPrompter(page, 'Welcome to Teleprompter');
+  await openScriptInPrompter(page, 'Welcome to Soliloquio');
   const fontBefore = await page
     .getByTestId('prompter-content')
     .evaluate((el) => el.style.getPropertyValue('--prompter-font-size'));
@@ -147,7 +147,7 @@ test('Share opens the controller guide and R3 opens section navigation', async (
 });
 
 test('los sliders del panel de ajustes se ajustan con el d-pad', async ({ page }) => {
-  await openScriptInPrompter(page, 'Welcome to Teleprompter');
+  await openScriptInPrompter(page, 'Welcome to Soliloquio');
 
   // Options abre Settings; el foco cae en el primer control (menos velocidad).
   await pressNav(page, OPTIONS);

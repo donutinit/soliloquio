@@ -45,7 +45,7 @@ test('muestra las asignaciones fijas del perfil 8BitDo Micro', async ({ page }) 
 });
 
 test('aplica scroll y ajustes exclusivos del perfil Micro', async ({ page }) => {
-  await openScriptInPrompter(page, 'Welcome to Teleprompter');
+  await openScriptInPrompter(page, 'Welcome to Soliloquio');
   await expect(page.getByTestId('gamepad-status')).toHaveAttribute('data-connected', 'true');
   const content = page.getByTestId('prompter-content');
 

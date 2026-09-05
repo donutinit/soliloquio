@@ -1,10 +1,10 @@
 import type { PrompterSettings, Script } from '../../types';
 import { normalizeSettings } from '../settings/settings';
 
-export const BACKUP_KIND = 'teleprompter-backup';
+export const BACKUP_KIND = 'soliloquio-backup';
 export const BACKUP_VERSION = 1;
 
-export type TeleprompterBackup = {
+export type SoliloquioBackup = {
   kind: typeof BACKUP_KIND;
   version: typeof BACKUP_VERSION;
   exportedAt: string;
@@ -53,7 +53,7 @@ export function makeBackup(
   scripts: Script[],
   settings: PrompterSettings,
   exportedAt = new Date().toISOString()
-): TeleprompterBackup {
+): SoliloquioBackup {
   return {
     kind: BACKUP_KIND,
     version: BACKUP_VERSION,
@@ -70,7 +70,7 @@ export function makeBackup(
   };
 }
 
-export function parseBackup(raw: string): TeleprompterBackup {
+export function parseBackup(raw: string): SoliloquioBackup {
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
@@ -79,7 +79,7 @@ export function parseBackup(raw: string): TeleprompterBackup {
   }
   if (!isRecord(parsed)) throw new Error('Invalid backup file.');
   if (parsed.kind !== BACKUP_KIND || parsed.version !== BACKUP_VERSION) {
-    throw new Error('This is not a supported Teleprompter backup.');
+    throw new Error('This is not a supported Soliloquio backup.');
   }
   if (!Array.isArray(parsed.scripts)) {
     throw new Error('The backup contains invalid scripts.');
@@ -139,10 +139,10 @@ export function exportScriptFile(script: Script): Promise<void> {
   );
 }
 
-export function exportBackupFile(backup: TeleprompterBackup): Promise<void> {
+export function exportBackupFile(backup: SoliloquioBackup): Promise<void> {
   const date = backup.exportedAt.slice(0, 10) || 'backup';
   return shareOrDownload(
-    new File([JSON.stringify(backup, null, 2)], `teleprompter-backup-${date}.json`, {
+    new File([JSON.stringify(backup, null, 2)], `soliloquio-backup-${date}.json`, {
       type: 'application/json'
     })
   );

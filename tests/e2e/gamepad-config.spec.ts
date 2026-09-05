@@ -49,7 +49,7 @@ test('con un mando Xbox adapta el nombre y la serigrafía de los botones', async
 
   await page.getByTestId('gamepad-settings-done').click();
   await page.getByRole('button', { name: 'Done' }).click();
-  await openScriptInPrompter(page, 'Welcome to Teleprompter');
+  await openScriptInPrompter(page, 'Welcome to Soliloquio');
   await page.getByTestId('gamepad-status').click();
   await expect(page.getByTestId('controller-diagram')).toHaveAttribute(
     'data-controller-family',
@@ -102,7 +102,7 @@ test('el Pro 3 normaliza A/B/X/Y y reconstruye sus botones extra en Safari', asy
 
   await page.getByTestId('gamepad-settings-done').click();
   await page.getByRole('button', { name: 'Done' }).click();
-  await openScriptInPrompter(page, 'Welcome to Teleprompter');
+  await openScriptInPrompter(page, 'Welcome to Soliloquio');
   await page.getByTestId('gamepad-status').click();
   await expect(page.getByRole('heading', { name: '8BitDo Pro 3 controls' })).toBeVisible();
   await expect(page.getByTestId('controller-diagram')).toHaveAttribute(
@@ -152,7 +152,7 @@ test('reasignar a un botón ocupado intercambia las dos acciones y persiste', as
   await page.getByRole('button', { name: 'Done' }).click();
 
   // En el prompter, el botón reasignado dispara la nueva acción.
-  await openScriptInPrompter(page, 'Welcome to Teleprompter');
+  await openScriptInPrompter(page, 'Welcome to Soliloquio');
   const speedValue = page.getByTestId('speed-quick-value');
   const before = Number(await speedValue.textContent());
   await setButton(page, R1, true);

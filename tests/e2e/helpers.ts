@@ -1,7 +1,7 @@
 import type { Locator, Page } from '@playwright/test';
 
 const TEST_SCRIPTS = {
-  'Welcome to Teleprompter': `# Welcome
+  'Welcome to Soliloquio': `# Welcome
 
 This sample script shows you the essentials. You can edit or delete it whenever you like.
 
@@ -56,7 +56,7 @@ export async function createSampleScript(page: Page, title: TestScriptTitle): Pr
 
 export async function createSampleScripts(page: Page): Promise<void> {
   await createSampleScript(page, 'Quick notes');
-  await createSampleScript(page, 'Welcome to Teleprompter');
+  await createSampleScript(page, 'Welcome to Soliloquio');
 }
 
 export async function openScriptInPrompter(page: Page, title: string): Promise<void> {

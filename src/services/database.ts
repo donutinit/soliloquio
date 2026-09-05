@@ -8,11 +8,11 @@ type LegacyScript = Script & { lastPosition?: unknown };
 
 const SCRIPT_STORE_SCHEMA = 'id, updatedAt, title';
 
-export class TeleprompterDB extends Dexie {
+export class SoliloquioDB extends Dexie {
   scripts!: EntityTable<Script, 'id'>;
   kv!: EntityTable<KvEntry, 'key'>;
 
-  constructor(name = 'teleprompter') {
+  constructor(name = 'soliloquio') {
     super(name);
     // Migraciones: añadir aquí nuevas versiones con upgrade() sin borrar datos.
     this.version(1).stores({
@@ -35,7 +35,7 @@ export class TeleprompterDB extends Dexie {
   }
 }
 
-export const db = new TeleprompterDB();
+export const db = new SoliloquioDB();
 
 function newId(): string {
   return crypto.randomUUID();
@@ -78,7 +78,7 @@ function normalizeScript(value: unknown): Script | undefined {
   };
 }
 
-export async function listScripts(database: TeleprompterDB = db): Promise<Script[]> {
+export async function listScripts(database: SoliloquioDB = db): Promise<Script[]> {
   const scripts: Script[] = [];
   // `orderBy('updatedAt')` omite silenciosamente registros sin ese índice.
   // Recorremos toda la tabla para poder recuperar también datos antiguos o dañados.
@@ -91,14 +91,14 @@ export async function listScripts(database: TeleprompterDB = db): Promise<Script
 
 export async function getScript(
   id: string,
-  database: TeleprompterDB = db
+  database: SoliloquioDB = db
 ): Promise<Script | undefined> {
   return normalizeScript(await database.scripts.get(id));
 }
 
 export async function createScript(
   data: Pick<Script, 'title' | 'content' | 'format'>,
-  database: TeleprompterDB = db
+  database: SoliloquioDB = db
 ): Promise<Script> {
   const now = Date.now();
   const script: Script = { id: newId(), createdAt: now, updatedAt: now, ...data };
@@ -109,18 +109,18 @@ export async function createScript(
 export async function updateScript(
   id: string,
   changes: Partial<Pick<Script, 'title' | 'content' | 'format'>>,
-  database: TeleprompterDB = db
+  database: SoliloquioDB = db
 ): Promise<void> {
   await database.scripts.update(id, { ...changes, updatedAt: Date.now() });
 }
 
-export async function deleteScript(id: string, database: TeleprompterDB = db): Promise<void> {
+export async function deleteScript(id: string, database: SoliloquioDB = db): Promise<void> {
   await database.scripts.delete(id);
 }
 
 export async function duplicateScript(
   id: string,
-  database: TeleprompterDB = db
+  database: SoliloquioDB = db
 ): Promise<Script | undefined> {
   const original = normalizeScript(await database.scripts.get(id));
   if (!original) return undefined;
@@ -137,14 +137,14 @@ export async function duplicateScript(
   return copy;
 }
 
-export async function getSettings(database: TeleprompterDB = db): Promise<PrompterSettings> {
+export async function getSettings(database: SoliloquioDB = db): Promise<PrompterSettings> {
   const entry = await database.kv.get('settings');
   return entry ? normalizeSettings(entry.value) : defaultSettings();
 }
 
 export async function saveSettings(
   settings: PrompterSettings,
-  database: TeleprompterDB = db
+  database: SoliloquioDB = db
 ): Promise<void> {
   await database.kv.put({ key: 'settings', value: normalizeSettings(settings) });
 }
@@ -153,7 +153,7 @@ export async function saveSettings(
 export async function restoreBackup(
   scripts: Script[],
   settings: PrompterSettings,
-  database: TeleprompterDB = db
+  database: SoliloquioDB = db
 ): Promise<void> {
   const normalizedScripts: Script[] = [];
   for (const script of scripts) {
@@ -169,7 +169,7 @@ export async function restoreBackup(
 }
 
 /** Atomically erases all local data and recreates the first-run state. */
-export async function resetToFactoryDefaults(database: TeleprompterDB = db): Promise<void> {
+export async function resetToFactoryDefaults(database: SoliloquioDB = db): Promise<void> {
   await database.transaction('rw', database.scripts, database.kv, async () => {
     await database.scripts.clear();
     await database.kv.clear();
@@ -178,6 +178,6 @@ export async function resetToFactoryDefaults(database: TeleprompterDB = db): Pro
 }
 
 /** Opens IndexedDB without adding content to a new or existing library. */
-export async function openDatabase(database: TeleprompterDB = db): Promise<void> {
+export async function openDatabase(database: SoliloquioDB = db): Promise<void> {
   await database.open();
 }

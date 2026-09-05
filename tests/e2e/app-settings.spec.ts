@@ -25,7 +25,7 @@ test('keeps the countdown off by default and runs it before every start', async 
   await page.getByTestId('countdown-setting').selectOption('1');
   await page.getByRole('button', { name: 'Done' }).click();
 
-  await openScriptInPrompter(page, 'Welcome to Teleprompter');
+  await openScriptInPrompter(page, 'Welcome to Soliloquio');
   const playButton = page.getByTestId('play-pause');
   await playButton.click();
   await expect(page.getByTestId('startup-countdown')).toContainText('1');
@@ -67,7 +67,7 @@ test('keep screen awake is on by default and the choice survives a reload', asyn
 });
 
 test('script card title size defaults to 25px and remains editable', async ({ page }) => {
-  await createSampleScript(page, 'Welcome to Teleprompter');
+  await createSampleScript(page, 'Welcome to Soliloquio');
   const firstTitle = page.getByTestId('card-title').first();
   await expect(firstTitle).toBeVisible();
   await expect(firstTitle).toHaveCSS('font-size', '25px');

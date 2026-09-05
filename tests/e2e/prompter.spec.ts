@@ -3,7 +3,7 @@ import { openScriptInPrompter, prompterOffset } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
-  await openScriptInPrompter(page, 'Welcome to Teleprompter');
+  await openScriptInPrompter(page, 'Welcome to Soliloquio');
 });
 
 test('reproduce y pausa el desplazamiento automático', async ({ page }) => {
@@ -109,6 +109,6 @@ test('landscape controls and controller guide stay inside the viewport', async (
 
 test('opens the current script directly in the editor', async ({ page }) => {
   await page.getByTestId('edit-script').click();
-  await expect(page.getByTestId('editor-title')).toHaveValue('Welcome to Teleprompter');
+  await expect(page.getByTestId('editor-title')).toHaveValue('Welcome to Soliloquio');
   await expect(page.getByTestId('editor-content')).toHaveValue(/This sample script/);
 });

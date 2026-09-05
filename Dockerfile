@@ -6,7 +6,7 @@ COPY . .
 RUN npm run build
 
 FROM caddy:2-alpine
-LABEL org.opencontainers.image.source="https://github.com/donutinit/teleprompter"
+LABEL org.opencontainers.image.source="https://github.com/donutinit/soliloquio"
 COPY Caddyfile /etc/caddy/Caddyfile
 COPY --from=builder /app/dist /srv
 EXPOSE 80

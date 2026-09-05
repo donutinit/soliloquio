@@ -62,8 +62,8 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
           labels: |
-            org.opencontainers.image.title=teleprompter
-            org.opencontainers.image.description=Teleprompter PWA local y sin conexión
+            org.opencontainers.image.title=soliloquio
+            org.opencontainers.image.description=Soliloquio, teleprompter PWA local y sin conexión
             org.opencontainers.image.licenses=MIT
       - uses: docker/build-push-action@v6
         with:

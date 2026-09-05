@@ -6,7 +6,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('navega entre secciones con los botones', async ({ page }) => {
-  await openScriptInPrompter(page, 'Welcome to Teleprompter');
+  await openScriptInPrompter(page, 'Welcome to Soliloquio');
   await expect(page.getByTestId('section-indicator')).toHaveText('1 / 4');
 
   await page.getByTestId('section-next').click();
@@ -28,7 +28,7 @@ test('navega entre secciones con los botones', async ({ page }) => {
 });
 
 test('el navegador de secciones lista y salta a una sección', async ({ page }) => {
-  await openScriptInPrompter(page, 'Welcome to Teleprompter');
+  await openScriptInPrompter(page, 'Welcome to Soliloquio');
   await page.getByTestId('sections-toggle').click();
 
   const items = page.getByTestId('section-item');

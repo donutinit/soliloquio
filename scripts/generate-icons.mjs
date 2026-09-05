@@ -70,7 +70,7 @@ function inRoundedRect(x, y, x0, y0, w, h, r) {
   return (x - cx) ** 2 + (y - cy) ** 2 <= r ** 2 || (x >= x0 + r && x < x0 + w - r) || (y >= y0 + r && y < y0 + h - r);
 }
 
-// Tres líneas de "texto" (dos claras, una azul), el motivo del teleprompter.
+// Tres líneas de "texto" (dos claras, una azul), el motivo del prompter.
 function icon(size, { rounded, pad }) {
   const bars = [
     { y: 0.3, w: 0.6, color: FG },

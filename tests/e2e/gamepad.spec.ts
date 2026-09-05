@@ -14,7 +14,7 @@ const DPAD_UP = 12;
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(installFakeGamepad, { connected: false });
   await page.goto('/');
-  await openScriptInPrompter(page, 'Welcome to Teleprompter');
+  await openScriptInPrompter(page, 'Welcome to Soliloquio');
 });
 
 test('detecta el mando simulado', async ({ page }) => {

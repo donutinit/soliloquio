@@ -13,7 +13,7 @@ test('scripts and settings persist while reading position resets', async ({ page
   await expect(cardByTitle(page, 'Persistente')).toBeVisible();
 
   // Cambiar un ajuste desde el prompter.
-  await openScriptInPrompter(page, 'Welcome to Teleprompter');
+  await openScriptInPrompter(page, 'Welcome to Soliloquio');
   await page.getByTestId('settings-toggle').click();
   await page.getByTestId('font-plus').click();
   await expect(page.getByTestId('font-value')).toHaveText('62px');
@@ -33,7 +33,7 @@ test('scripts and settings persist while reading position resets', async ({ page
   await page.reload();
   await expect(cardByTitle(page, 'Persistente')).toBeVisible();
 
-  await openScriptInPrompter(page, 'Welcome to Teleprompter');
+  await openScriptInPrompter(page, 'Welcome to Soliloquio');
   await page.getByTestId('settings-toggle').click();
   await expect(page.getByTestId('font-value')).toHaveText('62px');
   await page.getByTestId('settings-close').click();
@@ -45,14 +45,14 @@ test('scripts and settings persist while reading position resets', async ({ page
 
 test('a setting changed immediately before leaving is persisted', async ({ page }) => {
   await page.goto('/');
-  await openScriptInPrompter(page, 'Welcome to Teleprompter');
+  await openScriptInPrompter(page, 'Welcome to Soliloquio');
   await page.getByTestId('settings-toggle').click();
   await page.getByTestId('font-plus').click();
   await page.getByTestId('settings-close').click();
   await page.getByTestId('back-to-scripts').click();
   await expect(page.getByTestId('new-script')).toBeVisible();
 
-  await openScriptInPrompter(page, 'Welcome to Teleprompter');
+  await openScriptInPrompter(page, 'Welcome to Soliloquio');
   await page.getByTestId('settings-toggle').click();
   await expect(page.getByTestId('font-value')).toHaveText('62px');
 });

@@ -17,7 +17,7 @@ export function HelpPanel({ onClose }: { onClose: () => void }) {
         <h2 id="help-title">Quick guide</h2>
         <section>
           <h3>1. Prepare</h3>
-          <p>Create a script or import Markdown, plain text, or a Teleprompter backup.</p>
+          <p>Create a script or import Markdown, plain text, or a Soliloquio backup.</p>
         </section>
         <section>
           <h3>2. Read</h3>

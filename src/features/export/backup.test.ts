@@ -11,7 +11,7 @@ const script = {
   updatedAt: 2
 };
 
-describe('Teleprompter backups', () => {
+describe('Soliloquio backups', () => {
   it('round-trips scripts and settings', () => {
     const backup = makeBackup(
       [script],

@@ -1,7 +1,7 @@
-name: teleprompter
+name: soliloquio
 services:
-  teleprompter:
-    image: ${TELEPROMPTER_IMAGE}
+  soliloquio:
+    image: ${SOLILOQUIO_IMAGE}
     restart: unless-stopped
     ports:
       - "45543:80"

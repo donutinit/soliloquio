@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Despliegue dirigido del teleprompter en el servidor `shaolin`.
+# Despliegue dirigido de Soliloquio en el servidor `shaolin`.
 # Requisitos: git, gh (autenticado), ssh con acceso a `shaolin`.
 # No construye nada localmente ni en el servidor: solo corre la imagen de GHCR.
 set -Eeuo pipefail
@@ -9,7 +9,7 @@ cd "$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
 
 REMOTE_HOST="${REMOTE_HOST:-shaolin}"
 # Ruta relativa al home remoto (scp en modo SFTP no expande $HOME)
-REMOTE_DIR="${REMOTE_DIR:-docker/teleprompter}"
+REMOTE_DIR="${REMOTE_DIR:-docker/soliloquio}"
 PORT=45543
 
 say() { printf '\n==> %s\n' "$*"; }
@@ -43,10 +43,10 @@ command -v docker >/dev/null || { echo "docker no disponible"; exit 1; }
 docker compose version >/dev/null || { echo "compose v2 no disponible"; exit 1; }
 df -h / | tail -1
 if docker ps --format '{{.Ports}}' | grep -q ":${PORT}->"; then
-  if docker ps --format '{{.Names}} {{.Ports}}' | grep ":${PORT}->" | grep -qv '^teleprompter-'; then
+  if docker ps --format '{{.Names}} {{.Ports}}' | grep ":${PORT}->" | grep -qv '^soliloquio-'; then
     echo "el puerto ${PORT} lo usa otro contenedor"; exit 1
   fi
-  echo "puerto ${PORT}: en uso por teleprompter (actualización)"
+  echo "puerto ${PORT}: en uso por soliloquio (actualización)"
 else
   echo "puerto ${PORT}: libre"
 fi
@@ -63,16 +63,16 @@ ssh -o BatchMode=yes "$REMOTE_HOST" "mkdir -p $REMOTE_DIR"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 ssh -o BatchMode=yes "$REMOTE_HOST" "cd $REMOTE_DIR && for f in compose.yaml .env; do [ -f \"\$f\" ] && cp \"\$f\" \"\$f.bak.$STAMP\" || true; done"
 scp -o BatchMode=yes deploy/compose.yaml "$REMOTE_HOST:$REMOTE_DIR/compose.yaml"
-ssh -o BatchMode=yes "$REMOTE_HOST" "printf 'TELEPROMPTER_IMAGE=%s\n' '$IMAGE' > $REMOTE_DIR/.env"
+ssh -o BatchMode=yes "$REMOTE_HOST" "printf 'SOLILOQUIO_IMAGE=%s\n' '$IMAGE' > $REMOTE_DIR/.env"
 
 # --- Actualización dirigida al servicio ---
 say "Desplegando…"
 ssh -o BatchMode=yes "$REMOTE_HOST" bash -s -- "$REMOTE_DIR" <<'DEPLOY'
 set -Eeuo pipefail
 cd "$1"
-docker compose --project-name teleprompter --file compose.yaml config --quiet
-docker compose --project-name teleprompter --file compose.yaml pull teleprompter
-docker compose --project-name teleprompter --file compose.yaml up -d --no-deps teleprompter
+docker compose --project-name soliloquio --file compose.yaml config --quiet
+docker compose --project-name soliloquio --file compose.yaml pull soliloquio
+docker compose --project-name soliloquio --file compose.yaml up -d --no-deps soliloquio
 DEPLOY
 
 # --- Verificación ---
@@ -81,16 +81,16 @@ ssh -o BatchMode=yes "$REMOTE_HOST" bash -s -- "$PORT" <<'VERIFY'
 set -Eeuo pipefail
 PORT="$1"
 for i in $(seq 1 30); do
-  STATUS="$(docker inspect --format '{{.State.Health.Status}}' teleprompter-teleprompter-1 2>/dev/null || echo starting)"
+  STATUS="$(docker inspect --format '{{.State.Health.Status}}' soliloquio-soliloquio-1 2>/dev/null || echo starting)"
   [ "$STATUS" = healthy ] && break
   sleep 2
 done
 echo "healthcheck: $STATUS"
-[ "$STATUS" = healthy ] || { docker logs --tail 50 teleprompter-teleprompter-1; exit 1; }
+[ "$STATUS" = healthy ] || { docker logs --tail 50 soliloquio-soliloquio-1; exit 1; }
 curl --fail --silent "http://127.0.0.1:${PORT}/healthz" && echo " /healthz OK"
 curl --fail --silent -o /dev/null "http://127.0.0.1:${PORT}/" && echo "/ OK"
 curl --fail --silent -o /dev/null "http://127.0.0.1:${PORT}/manifest.webmanifest" && echo "manifest OK"
-docker inspect --format '{{.Image}}' teleprompter-teleprompter-1
+docker inspect --format '{{.Image}}' soliloquio-soliloquio-1
 VERIFY
 
 say "Despliegue completado: $IMAGE"

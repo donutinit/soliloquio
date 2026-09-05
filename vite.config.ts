@@ -9,9 +9,9 @@ export default defineConfig({
       registerType: 'prompt',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Teleprompter',
-        short_name: 'Prompter',
-        description: 'A private, offline teleprompter with controller support',
+        name: 'Soliloquio',
+        short_name: 'Soliloquio',
+        description: 'A teleprompter for your soliloquy. Private, offline, with controller support.',
         lang: 'en',
         display: 'standalone',
         orientation: 'any',

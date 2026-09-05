@@ -7,7 +7,7 @@ context, but never commit it or copy private infrastructure details into tracked
 
 ## Product contract
 
-Teleprompter is an offline-first, single-device PWA optimized for iPhone, installed iOS web apps,
+Soliloquio is an offline-first, single-device PWA optimized for iPhone, installed iOS web apps,
 Safari, and gamepad-assisted reading. It intentionally has no backend, accounts, synchronization,
 tracking, or analytics. Scripts and preferences remain in the browser's IndexedDB.
 
@@ -75,7 +75,7 @@ The stack is React 18, strict TypeScript, Vite, Dexie, Vitest, Playwright, and
 - Preserve atomic backup restore and factory reset transactions.
 - Do not persist per-script reading positions. Every script opens at the start.
 - Backup format changes must remain backwards compatible or include explicit versioned migration.
-- Import accepts `.md`, `.markdown`, `.txt`, and Teleprompter `.json` backups. Limit a selection
+- Import accepts `.md`, `.markdown`, `.txt`, and Soliloquio `.json` backups. Limit a selection
   to 50 script files, 5 MB each and 20 MB combined; limit each backup to 25 MB. Validate both the
   extension and parsed content, and give file-specific errors.
 - Keep the PWA usable offline. Do not make startup, editing, or playback depend on a network call.
@@ -145,7 +145,7 @@ production deployment. Deploy only when the user explicitly asks.
 - Use `./scripts/deploy-shaolin.sh`; do not hand-roll a parallel deployment path.
 - The remote host only runs the built image. Never build, clone source, or install development tools
   there.
-- Scope every Compose command to the `teleprompter` project/service.
+- Scope every Compose command to the `soliloquio` project/service.
 - Never run `docker compose down`, `prune`, `--remove-orphans`, restart Docker/the host, or touch
   unrelated containers and services.
 - After deployment, verify container health, `/healthz`, the app root, the manifest, and the running

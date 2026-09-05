@@ -135,11 +135,11 @@ test('exports and restores a complete JSON backup', async ({ page }) => {
   const downloadPromise = page.waitForEvent('download', { timeout: 5_000 });
   await page.getByTestId('backup-button').click();
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toMatch(/^teleprompter-backup-.*\.json$/);
+  expect(download.suggestedFilename()).toMatch(/^soliloquio-backup-.*\.json$/);
   const downloadPath = await download.path();
   expect(downloadPath).not.toBeNull();
   const backup = await readFile(downloadPath!);
-  expect(backup.toString()).toContain('teleprompter-backup');
+  expect(backup.toString()).toContain('soliloquio-backup');
 
   await cardByTitle(page, 'Quick notes').getByTestId('card-menu').click();
   await page.getByTestId('menu-delete').click();

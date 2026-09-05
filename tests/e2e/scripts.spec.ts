@@ -45,41 +45,41 @@ test('dialogs trap focus and close with Escape', async ({ page }) => {
 
 test('busca guiones por título y contenido', async ({ page }) => {
   await createSampleScripts(page);
-  await expect(cardByTitle(page, 'Welcome to Teleprompter')).toBeVisible();
+  await expect(cardByTitle(page, 'Welcome to Soliloquio')).toBeVisible();
 
   await page.getByTestId('search-input').fill('zzz-sin-resultados');
   await expect(page.getByTestId('empty-state')).toBeVisible();
 
   await page.getByTestId('search-input').fill('welcome');
-  await expect(cardByTitle(page, 'Welcome to Teleprompter')).toBeVisible();
+  await expect(cardByTitle(page, 'Welcome to Soliloquio')).toBeVisible();
   await expect(cardByTitle(page, 'Quick notes')).toHaveCount(0);
 });
 
 test('keeps the compact library composition aligned across phone and desktop widths', async ({
   page
 }) => {
-  await createSampleScript(page, 'Welcome to Teleprompter');
+  await createSampleScript(page, 'Welcome to Soliloquio');
   await page.setViewportSize({ width: 360, height: 800 });
   const headerActions = await page.getByTestId('library-header-actions').boundingBox();
   expect(headerActions).not.toBeNull();
   if (!headerActions) throw new Error('Library header actions have no bounding box.');
   expect(headerActions.x + headerActions.width).toBeLessThanOrEqual(348.5);
 
-  const mobileCard = await cardByTitle(page, 'Welcome to Teleprompter').boundingBox();
+  const mobileCard = await cardByTitle(page, 'Welcome to Soliloquio').boundingBox();
   expect(mobileCard).not.toBeNull();
   if (!mobileCard) throw new Error('Mobile script card has no bounding box.');
   expect(mobileCard.width).toBeGreaterThan(330);
 
   await page.setViewportSize({ width: 1066, height: 700 });
-  const desktopCard = await cardByTitle(page, 'Welcome to Teleprompter').boundingBox();
+  const desktopCard = await cardByTitle(page, 'Welcome to Soliloquio').boundingBox();
   expect(desktopCard).not.toBeNull();
   if (!desktopCard) throw new Error('Desktop script card has no bounding box.');
   expect(desktopCard.width).toBeGreaterThan(280);
 });
 
 test('shows readable card titles without import or update dates', async ({ page }) => {
-  await createSampleScript(page, 'Welcome to Teleprompter');
-  const card = cardByTitle(page, 'Welcome to Teleprompter');
+  await createSampleScript(page, 'Welcome to Soliloquio');
+  const card = cardByTitle(page, 'Welcome to Soliloquio');
   await expect(card.getByTestId('card-title')).toHaveCSS('font-size', '25px');
   await expect(card.getByTestId('open-prompter').locator('span')).toHaveCount(2);
 });
