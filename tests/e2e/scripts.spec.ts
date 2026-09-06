@@ -5,9 +5,23 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/');
 });
 
-test('starts with an empty library', async ({ page }) => {
-  await expect(page.getByTestId('script-card')).toHaveCount(0);
-  await expect(page.getByTestId('empty-state')).toContainText('No scripts yet.');
+test('starts with only the factory script pinned at the bottom', async ({ page }) => {
+  await expect(page.getByTestId('script-card')).toHaveCount(1);
+  const factoryCard = cardByTitle(page, 'Read me first');
+  await expect(factoryCard.getByTestId('card-title')).toHaveText('Read me first');
+  await expect(page.getByTestId('empty-state')).toHaveCount(0);
+
+  await factoryCard.getByTestId('open-prompter').click();
+  await expect(page.getByTestId('prompter-page')).toBeVisible();
+  await expect(
+    page.locator('[data-block-type="heading"]', { hasText: 'Use it as a player' })
+  ).toBeVisible();
+
+  await page.getByTestId('back-to-scripts').click();
+  await createSampleScripts(page);
+  await expect(page.getByTestId('script-card')).toHaveCount(3);
+  await expect(page.getByTestId('script-card').last()).toContainText('Read me first');
+  await expect(page.getByTestId('script-card').first()).toContainText('Quick notes');
 });
 
 test('crea un guion nuevo y lo edita con autosave', async ({ page }) => {

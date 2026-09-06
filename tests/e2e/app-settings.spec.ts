@@ -103,8 +103,9 @@ test('factory reset requires confirmation and restores the complete first-run st
   await expect(page.getByTestId('app-settings-panel')).toHaveCount(0);
   await expect(page.getByRole('status')).toContainText('Factory defaults restored.');
   await expect(cardByTitle(page, 'Temporary script')).toHaveCount(0);
-  await expect(page.getByTestId('script-card')).toHaveCount(0);
-  await expect(page.getByTestId('empty-state')).toContainText('No scripts yet.');
+  await expect(page.getByTestId('script-card')).toHaveCount(1);
+  await expect(page.getByTestId('script-card').last()).toContainText('Read me first');
+  await expect(page.getByTestId('empty-state')).toHaveCount(0);
 
   await page.getByTestId('app-settings-button').click();
   await expect(page.getByTestId('countdown-setting')).toHaveValue('0');

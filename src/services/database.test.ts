@@ -16,6 +16,7 @@ import {
   updateScript
 } from './database';
 import { defaultSettings } from '../features/settings/settings';
+import { FACTORY_SCRIPT_ID, FACTORY_SCRIPT_TITLE } from '../features/scripts/factoryScript';
 import type { Script } from '../types';
 
 let counter = 0;
@@ -261,19 +262,37 @@ describe('factory reset', () => {
     await resetToFactoryDefaults(database);
 
     expect(await getScript(custom.id, database)).toBeUndefined();
-    expect(await listScripts(database)).toHaveLength(0);
+    expect(await listScripts(database)).toHaveLength(1);
+    expect(await getScript(FACTORY_SCRIPT_ID, database)).toMatchObject({
+      title: FACTORY_SCRIPT_TITLE
+    });
     expect(await getSettings(database)).toEqual(defaultSettings());
   });
 });
 
-describe('initialization', () => {
-  it('opens a new library without adding scripts', async () => {
+describe('factory script', () => {
+  it('seeds once on first open and stays at the bottom of the list', async () => {
     const database = freshDb();
+    await openDatabase(database);
+    expect(await listScripts(database)).toHaveLength(1);
+
+    await createScript({ title: 'A first', content: '', format: 'text' }, database);
+    await createScript({ title: 'Z last', content: '', format: 'text' }, database);
+    const titles = (await listScripts(database)).map((script) => script.title);
+    expect(titles).toEqual(['A first', 'Z last', FACTORY_SCRIPT_TITLE]);
+  });
+
+  it('does not resurrect after the user deletes it', async () => {
+    const database = freshDb();
+    await openDatabase(database);
+    await deleteScript(FACTORY_SCRIPT_ID, database);
+    database.close();
+
     await openDatabase(database);
     expect(await listScripts(database)).toHaveLength(0);
   });
 
-  it('does not alter scripts already stored on the device', async () => {
+  it('seeds alongside scripts already stored on the device', async () => {
     const database = freshDb();
     const existing = await createScript(
       { title: 'Existing script', content: 'Keep me', format: 'text' },
@@ -282,6 +301,8 @@ describe('initialization', () => {
     database.close();
 
     await openDatabase(database);
+    const scripts = await listScripts(database);
+    expect(scripts.map((script) => script.id)).toEqual([existing.id, FACTORY_SCRIPT_ID]);
     expect(await getScript(existing.id, database)).toEqual(existing);
   });
 });

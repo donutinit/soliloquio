@@ -3,6 +3,7 @@ import type { PrompterSettings, Script } from '../types';
 import { defaultSettings, normalizeSettings } from '../features/settings/settings';
 import { compareScriptsByTitle } from '../features/scripts/sortScripts';
 import { isValidTimestamp } from '../features/scripts/validTimestamp';
+import { FACTORY_SCRIPT_ID, makeFactoryScript } from '../features/scripts/factoryScript';
 
 type KvEntry = { key: string; value: unknown };
 type LegacyScript = Script & { lastPosition?: unknown };
@@ -84,11 +85,17 @@ export async function listScripts(database: SoliloquioDB = db): Promise<Script[]
   const scripts: Script[] = [];
   // `orderBy('updatedAt')` omite silenciosamente registros sin ese índice.
   // Recorremos toda la tabla para poder recuperar también datos antiguos o dañados.
+  let factoryScript: Script | undefined;
   for (const stored of await database.scripts.toArray()) {
     const script = normalizeScript(stored);
-    if (script) scripts.push(script);
+    if (!script) continue;
+    if (script.id === FACTORY_SCRIPT_ID) factoryScript = script;
+    else scripts.push(script);
   }
-  return scripts.sort(compareScriptsByTitle);
+  scripts.sort(compareScriptsByTitle);
+  // El guion de fábrica va siempre al final: es referencia, no contenido propio.
+  if (factoryScript) scripts.push(factoryScript);
+  return scripts;
 }
 
 export async function getScript(
@@ -181,10 +188,24 @@ export async function resetToFactoryDefaults(database: SoliloquioDB = db): Promi
     await database.scripts.clear();
     await database.kv.clear();
     await database.kv.put({ key: 'settings', value: defaultSettings() });
+    await database.kv.put({ key: 'factory-script-seeded', value: true });
+    await database.scripts.put(makeFactoryScript(Date.now()));
   });
 }
 
-/** Opens IndexedDB without adding content to a new or existing library. */
+/**
+ * Opens IndexedDB and, the first time only, adds the factory reference script.
+ * A kv flag makes seeding one-shot: deleting the script is respected and it
+ * does not come back on the next launch (only a factory reset restores it).
+ */
 export async function openDatabase(database: SoliloquioDB = db): Promise<void> {
   await database.open();
+  if (await database.kv.get('factory-script-seeded')) return;
+  await database.transaction('rw', database.scripts, database.kv, async () => {
+    if (await database.kv.get('factory-script-seeded')) return;
+    if (!(await database.scripts.get(FACTORY_SCRIPT_ID))) {
+      await database.scripts.put(makeFactoryScript(Date.now()));
+    }
+    await database.kv.put({ key: 'factory-script-seeded', value: true });
+  });
 }

@@ -44,7 +44,9 @@ scripts/          PWA icon generation and shaolin deployment
 ### Scripts and backups
 
 - Create a Markdown script with the plus button.
-- New installations start with an empty library; the app does not add example scripts.
+- New installations include a **Read me first** script, pinned to the bottom of the library. It
+  explains the intended workflow — import from Files and read, don't treat the app as permanent
+  storage — and deleting it is respected until a factory reset.
 - Import `.md`, `.markdown`, `.txt`, or a Soliloquio `.json` backup.
 - The import control is a directly tappable native file picker for reliable use in installed iOS
   web apps; file extensions are validated safely after selection.
@@ -86,7 +88,8 @@ home-screen PWA is generally more resilient.
   anywhere in the app and reacquires it after returning from the background when the browser
   allows it.
 - App Settings also provides a confirmed factory reset that atomically erases local scripts and
-  preferences, then restores an empty library and the default settings.
+  preferences, then restores the first-run library (the Read me first script) and the default
+  settings.
 - App Settings includes an **Update app** button that bypasses the normal detection interval,
   checks the service worker directly against the server, and installs a newer version immediately.
 
