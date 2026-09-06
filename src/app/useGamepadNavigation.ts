@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { FOCUSABLE } from './useModalFocus';
-import { getActiveGamepad } from '../features/gamepad/controller';
+import { getActiveGamepad } from '../services/gamepads';
 import { GamepadNavReader } from '../features/gamepad/navInput';
 import { is8BitDoMicro } from '../features/gamepad/controllerIdentity';
 import { MICRO_SELECT_BUTTON } from '../features/gamepad/microProfile';

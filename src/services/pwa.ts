@@ -1,5 +1,6 @@
 import { registerSW } from 'virtual:pwa-register';
 import { checkRegistrationForUpdate } from './pwaUpdate';
+import { flushPendingSaves } from './pendingSaves';
 
 /** Sin backend no hay push: la app sondea el Service Worker con esta cadencia. */
 const UPDATE_CHECK_INTERVAL_MS = 60_000;
@@ -49,15 +50,17 @@ export async function checkForPWAUpdate(): Promise<PWAUpdateResult> {
 
   const result = await checkRegistrationForUpdate(registration, swUrl);
   if (result === 'updating' && registration.waiting && applyServiceWorkerUpdate) {
+    await flushPendingSaves();
     void applyServiceWorkerUpdate(true);
   }
   return result;
 }
 
 /**
- * Auto-update: cuando se detecta una versión nueva se aplica de inmediato y la
- * página se recarga sola. La detección ocurre al abrir la app, al volver a
- * primer plano y periódicamente mientras está abierta.
+ * Auto-update: cuando se detecta una versión nueva se vacían primero los
+ * guardados pendientes y la página se recarga sola. La detección ocurre al
+ * abrir la app, al volver a primer plano y periódicamente mientras está
+ * abierta (solo en primer plano: el retorno ya dispara su propia comprobación).
  */
 export function setupPWA(): void {
   if (setupStarted) return;
@@ -65,7 +68,7 @@ export function setupPWA(): void {
   const updateSW = registerSW({
     immediate: true,
     onNeedRefresh() {
-      void updateSW(true);
+      void flushPendingSaves().then(() => updateSW(true));
     },
     onOfflineReady() {
       // La app ya funciona sin conexión; no hace falta molestar al usuario.
@@ -75,7 +78,10 @@ export function setupPWA(): void {
       serviceWorkerUrl = _swUrl;
       serviceWorkerRegistration = registration;
       const check = () => {
-        void checkRegistrationForUpdate(registration, _swUrl).catch(() => undefined);
+        if (document.visibilityState !== 'visible') return;
+        checkRegistrationForUpdate(registration, _swUrl).catch((error) => {
+          console.warn('Background update check failed', error);
+        });
       };
       setInterval(check, UPDATE_CHECK_INTERVAL_MS);
       document.addEventListener('visibilitychange', () => {

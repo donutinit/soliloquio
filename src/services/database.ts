@@ -2,6 +2,7 @@ import Dexie, { type EntityTable } from 'dexie';
 import type { PrompterSettings, Script } from '../types';
 import { defaultSettings, normalizeSettings } from '../features/settings/settings';
 import { compareScriptsByTitle } from '../features/scripts/sortScripts';
+import { isValidTimestamp } from '../features/scripts/validTimestamp';
 
 type KvEntry = { key: string; value: unknown };
 type LegacyScript = Script & { lastPosition?: unknown };
@@ -38,7 +39,15 @@ export class SoliloquioDB extends Dexie {
 export const db = new SoliloquioDB();
 
 function newId(): string {
-  return crypto.randomUUID();
+  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  // Contextos no seguros: UUID v4 a partir de la entropía disponible.
+  const bytes = new Uint8Array(16);
+  if (typeof crypto.getRandomValues === 'function') crypto.getRandomValues(bytes);
+  else for (let i = 0; i < bytes.length; i += 1) bytes[i] = Math.floor(Math.random() * 256);
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -46,14 +55,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function validTimestamp(value: unknown): number | undefined {
-  if (
-    typeof value !== 'number' ||
-    value < 0 ||
-    !Number.isFinite(new Date(value).getTime())
-  ) {
-    return undefined;
-  }
-  return value;
+  return isValidTimestamp(value) ? value : undefined;
 }
 
 /**
@@ -111,7 +113,10 @@ export async function updateScript(
   changes: Partial<Pick<Script, 'title' | 'content' | 'format'>>,
   database: SoliloquioDB = db
 ): Promise<void> {
-  await database.scripts.update(id, { ...changes, updatedAt: Date.now() });
+  const changed = await database.scripts.update(id, { ...changes, updatedAt: Date.now() });
+  if (changed === 0) {
+    throw new Error(`Script ${id} no longer exists; the change was not saved.`);
+  }
 }
 
 export async function deleteScript(id: string, database: SoliloquioDB = db): Promise<void> {
@@ -122,19 +127,21 @@ export async function duplicateScript(
   id: string,
   database: SoliloquioDB = db
 ): Promise<Script | undefined> {
-  const original = normalizeScript(await database.scripts.get(id));
-  if (!original) return undefined;
-  const now = Date.now();
-  const copy: Script = {
-    id: newId(),
-    title: `${original.title} (copy)`,
-    content: original.content,
-    format: original.format,
-    createdAt: now,
-    updatedAt: now
-  };
-  await database.scripts.add(copy);
-  return copy;
+  return database.transaction('rw', database.scripts, async () => {
+    const original = normalizeScript(await database.scripts.get(id));
+    if (!original) return undefined;
+    const now = Date.now();
+    const copy: Script = {
+      id: newId(),
+      title: `${original.title} (copy)`,
+      content: original.content,
+      format: original.format,
+      createdAt: now,
+      updatedAt: now
+    };
+    await database.scripts.add(copy);
+    return copy;
+  });
 }
 
 export async function getSettings(database: SoliloquioDB = db): Promise<PrompterSettings> {

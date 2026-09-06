@@ -74,6 +74,14 @@ describe('assignBinding', () => {
     expect(result.swappedWith).toBeUndefined();
     expect(result.bindings).toEqual(DEFAULT_GAMEPAD_BINDINGS);
   });
+
+  it('ignora índices de botón fuera del rango admisible', () => {
+    for (const index of [-1, 1.5, 32, 99]) {
+      const result = assignBinding({ ...DEFAULT_GAMEPAD_BINDINGS }, 'togglePlay', index);
+      expect(result.swappedWith).toBeUndefined();
+      expect(result.bindings).toEqual(DEFAULT_GAMEPAD_BINDINGS);
+    }
+  });
 });
 
 describe('actionLabel', () => {

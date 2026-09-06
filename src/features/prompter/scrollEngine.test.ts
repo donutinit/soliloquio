@@ -61,6 +61,14 @@ describe('ScrollEngine', () => {
     expect(engine.state.position).toBe(50);
   });
 
+  it('setManual no acepta velocidades negativas', () => {
+    const engine = makeEngine();
+    engine.setManual(1, -500);
+    expect(engine.state.manualSpeed).toBe(0);
+    engine.tick(1000);
+    expect(engine.state.position).toBe(0);
+  });
+
   it('resetClock evita saltos tras una pausa del reloj', () => {
     const engine = makeEngine();
     engine.state.playing = true;

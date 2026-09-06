@@ -26,6 +26,9 @@ export async function checkRegistrationForUpdate(
   registration.addEventListener('updatefound', onUpdateFound);
   try {
     await registration.update();
+    // Cede un macrotask para que un `updatefound` ya en cola se entregue antes
+    // de la comprobación final; el listener aún está activo.
+    await new Promise((resolve) => setTimeout(resolve, 0));
   } finally {
     registration.removeEventListener('updatefound', onUpdateFound);
   }

@@ -12,7 +12,7 @@ function collapseWhitespace(text: string): string {
 
 /**
  * Texto visible de contenido inline: enlaces → su texto, imágenes → su `alt`,
- * énfasis/negrita/tachado/código → texto plano, HTML inline → eliminado.
+ * énfasis/negrita/tachado/código → texto plano, HTML inline → separador.
  */
 function inlineText(nodes: PhrasingContent[]): string {
   let out = '';
@@ -32,6 +32,7 @@ function inlineText(nodes: PhrasingContent[]): string {
         out += node.alt ?? '';
         break;
       case 'html':
+        out += ' ';
         break;
       case 'footnoteReference':
         break;

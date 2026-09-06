@@ -154,10 +154,10 @@ exits, Y shows or hides the controls, and X returns to the start. The Micro's ra
 order is normalized only for this controller profile; Diagnostics continues to show the raw input.
 
 Hold behaviors (manual scrolling, step repeats) follow the action to its assigned button; stick
-axes always scroll. Gamepad button ordering can vary by browser — the panel's **Diagnostics**
-view shows raw button and axis input while suspending controller navigation and actions. Assigning
-a button already in use swaps the two actions so active actions remain unique, and **Reset**
-restores the default layout.
+axes scroll on controllers that report the standard mapping. Gamepad button ordering can vary by
+browser — the panel's **Diagnostics** view shows raw button and axis input while suspending
+controller navigation and actions. Assigning a button already in use swaps the two actions so
+active actions remain unique, and **Reset** restores the default layout.
 
 The in-reader controller guide uses the matching product layout for DualShock 4, Xbox,
 8BitDo Micro, and 8BitDo Pro 3 controllers. Its numbered pins and assignment list reflect the

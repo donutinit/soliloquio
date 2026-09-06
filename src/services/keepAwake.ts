@@ -9,9 +9,11 @@ let wakeLock: ReturnType<typeof createWakeLock> | null = null;
 
 export function applyKeepScreenAwake(enabled: boolean): void {
   if (enabled) {
-    wakeLock ??= createWakeLock();
-    void wakeLock.acquire();
+    const lock = (wakeLock ??= createWakeLock());
+    void lock.acquire();
   } else if (wakeLock) {
-    void wakeLock.release();
+    const lock = wakeLock;
+    wakeLock = null;
+    void lock.destroy();
   }
 }

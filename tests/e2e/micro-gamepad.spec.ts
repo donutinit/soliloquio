@@ -100,6 +100,9 @@ test('aplica scroll y ajustes exclusivos del perfil Micro', async ({ page }) => 
   await expect(page.getByTestId('adjustment-feedback-value')).toHaveText('3%');
   await setButton(page, SELECT, false);
   await expect(page.getByTestId('controller-guide')).toHaveCount(0);
+  // Deja que el lector observe la liberación del Select de la combinación:
+  // sin ese hueco, la supresión pendiente se traga también la pulsación nueva.
+  await page.waitForTimeout(150);
 
   await pressButton(page, SELECT);
   await expect(page.getByRole('heading', { name: '8BitDo Micro controls' })).toBeVisible();

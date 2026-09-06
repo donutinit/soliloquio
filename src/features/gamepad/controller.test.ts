@@ -11,6 +11,7 @@ function fakePad(overrides: {
   id?: string;
   buttons?: Record<number, { pressed: boolean; value: number }>;
   axes?: number[];
+  mapping?: GamepadMappingType;
 }): Gamepad {
   const buttons = Array.from({ length: 18 }, (_, i) => ({
     pressed: overrides.buttons?.[i]?.pressed ?? false,
@@ -21,7 +22,7 @@ function fakePad(overrides: {
     id: overrides.id ?? 'fake',
     index: 0,
     connected: true,
-    mapping: 'standard',
+    mapping: overrides.mapping ?? 'standard',
     timestamp: 0,
     axes: overrides.axes ?? [0, 0, 0, 0],
     buttons
@@ -253,6 +254,22 @@ describe('GamepadController', () => {
     const fast = controller.update(fakePad({ axes: [0, 1, 0, 0] }), 48).manualVelocity;
     expect(fine).toBeGreaterThan(0);
     expect(fast).toBeGreaterThan(fine);
+  });
+
+  it('ignora los sticks cuando el mando no declara mapeo estándar', () => {
+    const controller = primedController();
+    const frame = controller.update(fakePad({ axes: [0, 1, 0, 1], mapping: '' }), 16);
+    expect(frame.manualVelocity).toBe(0);
+  });
+
+  it('speedUp y speedDown mantenidos a la vez cancelan sus velocidades', () => {
+    const controller = primedController();
+    const both = fakePad({
+      buttons: { 6: { pressed: true, value: 1 }, 7: { pressed: true, value: 1 } }
+    });
+    controller.update(both, 0);
+    const frame = controller.update(both, HOLD_THRESHOLD_MS + 10);
+    expect(frame.manualVelocity).toBe(0);
   });
 
   it('el Micro usa izquierda/derecha para scroll manual y prioriza horizontal', () => {

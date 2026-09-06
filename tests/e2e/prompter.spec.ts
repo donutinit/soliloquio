@@ -69,6 +69,54 @@ test('vuelve al inicio y a la lista de guiones', async ({ page }) => {
   await expect(page.getByTestId('new-script')).toBeVisible();
 });
 
+test('el teclado revela los controles ocultos y Tab enfoca Play', async ({ page }) => {
+  const playButton = page.getByTestId('play-pause');
+  await playButton.click();
+  await expect(playButton).toHaveAttribute('data-playing', 'true');
+  const bottomControls = page.getByTestId('bottom-controls');
+  await expect(bottomControls).toBeHidden();
+
+  await page.keyboard.press('Tab');
+  await expect(bottomControls).toBeVisible();
+  await expect(playButton).toBeFocused();
+
+  await page.keyboard.press('Escape');
+  await expect(bottomControls).toBeVisible();
+});
+
+test('Space pausa desde el teclado y no depende de los controles visibles', async ({ page }) => {
+  const playButton = page.getByTestId('play-pause');
+  await playButton.click();
+  await expect(playButton).toHaveAttribute('data-playing', 'true');
+  const bottomControls = page.getByTestId('bottom-controls');
+  await expect(bottomControls).toBeHidden();
+
+  await page.keyboard.press(' ');
+  await expect(playButton).toHaveAttribute('data-playing', 'false');
+  await expect(bottomControls).toBeVisible();
+});
+
+test('un guion corto termina el desplazamiento solo y recupera los controles', async ({ page }) => {
+  await page.getByTestId('back-to-scripts').click();
+  await page.getByTestId('new-script').click();
+  await page.getByTestId('editor-title').fill('Tiny');
+  await page.getByTestId('editor-content').fill('ok');
+  await page.getByTestId('editor-close').click();
+  await page
+    .locator('[data-testid="script-card"]')
+    .filter({ hasText: 'Tiny' })
+    .getByTestId('open-prompter')
+    .click();
+  await expect(page.getByTestId('prompter-page')).toBeVisible();
+
+  const playButton = page.getByTestId('play-pause');
+  await playButton.click();
+  await expect(playButton).toHaveAttribute('data-playing', 'true');
+  await expect(playButton).toHaveAttribute('data-playing', 'false', { timeout: 8000 });
+  await expect(page.getByTestId('bottom-controls')).toBeVisible();
+  await expect(playButton).toBeEnabled();
+});
+
 test('landscape controls and controller guide stay inside the viewport', async ({ page }) => {
   await page.setViewportSize({ width: 844, height: 390 });
   const controls = await page.getByTestId('bottom-controls').boundingBox();

@@ -419,9 +419,9 @@
   font-weight: 700;
 }
 
-.updateStatus {
+.appSettingsSheet .updateStatus {
   grid-column: 1 / -1;
-  color: var(--text) !important;
+  color: var(--text);
 }
 
 .appSettingRow {
@@ -560,8 +560,8 @@
   outline-offset: 1px;
 }
 
-.settingsError {
-  margin-top: 10px !important;
+.appSettingsSheet .settingsError {
+  margin-top: 10px;
   color: var(--danger);
   font-size: 13px;
 }
@@ -903,11 +903,10 @@
   color: var(--text-dim);
 }
 
-.saveError {
-  max-width: 16ch;
-  min-height: 36px !important;
+.editorHeader .saveError {
+  max-width: 20ch;
   justify-self: center;
-  padding: 0 6px !important;
+  padding: 0 10px;
   color: var(--danger);
 }
 

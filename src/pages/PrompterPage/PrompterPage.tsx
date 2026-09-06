@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 import type { PrompterSettings, Script } from '../../types';
 import { getScript, getSettings, saveSettings } from '../../services/database';
 import { applyKeepScreenAwake } from '../../services/keepAwake';
+import { registerPendingSaveFlush } from '../../services/pendingSaves';
+import { getActiveGamepad } from '../../services/gamepads';
 import { scriptToBlocks } from '../../features/markdown/flatten';
 import { buildSections, currentSectionIndex, stepSection } from '../../features/sections/sections';
 import { ScrollEngine } from '../../features/prompter/scrollEngine';
-import { GamepadController, getActiveGamepad, type GamepadAction } from '../../features/gamepad/controller';
+import { GamepadController, type GamepadAction } from '../../features/gamepad/controller';
 import {
   gamepadIconName,
   identifyController,
@@ -25,6 +27,7 @@ import { SectionNav } from './SectionNav';
 import { ControllerGuide } from './ControllerGuide';
 import { editorHash } from '../../app/router';
 import { Icon } from '../../components/Icon';
+import { cssVars } from '../../styles/cssVars';
 import styles from './PrompterPage.module.css';
 
 /** Línea de lectura: fracción del alto del viewport donde se considera que se lee. */
@@ -181,10 +184,12 @@ function Prompter({
   const [padModel, setPadModel] = useState<'micro' | 'pro3' | null>(null);
   const [storageError, setStorageError] = useState<string | null>(null);
   const [adjustmentFeedback, setAdjustmentFeedback] = useState<AdjustmentFeedback | null>(null);
+  const [contentFits, setContentFits] = useState(false);
 
   const viewportRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const bottomBarRef = useRef<HTMLElement>(null);
+  const playButtonRef = useRef<HTMLButtonElement>(null);
   const blockElsRef = useRef<(HTMLElement | null)[]>([]);
   const sectionOffsetsRef = useRef<number[]>([]);
   const sectionIdxRef = useRef(0);
@@ -220,23 +225,34 @@ function Prompter({
     controllerRef.current = new GamepadController(initialSettings.controllerBindings);
   }
 
-  useEffect(() => {
-    engineRef.current!.state.baseSpeed = settings.speed;
-  }, [settings.speed]);
+  const requireEngine = useCallback((): ScrollEngine => {
+    const engine = engineRef.current;
+    if (!engine) throw new Error('Scroll engine is not initialized');
+    return engine;
+  }, []);
+  const requireController = useCallback((): GamepadController => {
+    const controller = controllerRef.current;
+    if (!controller) throw new Error('Gamepad controller is not initialized');
+    return controller;
+  }, []);
 
   useEffect(() => {
-    controllerRef.current!.setBindings(settings.controllerBindings);
-  }, [settings.controllerBindings]);
+    requireEngine().state.baseSpeed = settings.speed;
+  }, [settings.speed, requireEngine]);
+
+  useEffect(() => {
+    requireController().setBindings(settings.controllerBindings);
+  }, [settings.controllerBindings, requireController]);
 
   // Al cerrar un panel, descarta la pulsación que lo cerró: su release ya no
   // debe disparar la acción del lector asignada a ese botón. La ejecución
   // inicial no cuenta como cierre, para poder aceptar un mando conectado aquí.
   useEffect(() => {
     if (previousPanelRef.current !== 'none' && panel === 'none') {
-      controllerRef.current!.reset();
+      requireController().reset();
     }
     previousPanelRef.current = panel;
-  }, [panel]);
+  }, [panel, requireController]);
 
   const persistSettings = useCallback((): Promise<boolean> => {
     if (!settingsDirtyRef.current) return settingsSaveRef.current;
@@ -262,24 +278,27 @@ function Prompter({
     return () => clearTimeout(timer);
   }, [settings, initialSettings, persistSettings]);
 
-  useEffect(
-    () => () => {
+  // Una recarga automática (actualización del Service Worker) primero vacía
+  // el guardado pendiente; IndexedDB es la única copia de estos ajustes.
+  useEffect(() => {
+    const unregister = registerPendingSaveFlush(() => persistSettings());
+    return () => {
+      unregister();
       void persistSettings();
-    },
-    [persistSettings]
-  );
+    };
+  }, [persistSettings]);
 
   const jumpToSection = useCallback(
     (idx: number) => {
       const target = stepSection(idx, 0, sections.length);
       const readingLine = (viewportRef.current?.clientHeight ?? 0) * READING_LINE_FRACTION;
       // Place the section heading on the reading line instead of under the top controls.
-      engineRef.current!.seek((sectionOffsetsRef.current[target] ?? 0) - readingLine);
+      requireEngine().seek((sectionOffsetsRef.current[target] ?? 0) - readingLine);
       sectionIdxRef.current = target;
       setSectionIdx(target);
       wakeLoopRef.current();
     },
-    [sections.length]
+    [sections.length, requireEngine]
   );
 
   const clearCountdown = useCallback(() => {
@@ -293,13 +312,13 @@ function Prompter({
 
   const resetToStart = useCallback(() => {
     clearCountdown();
-    const engine = engineRef.current!;
+    const engine = requireEngine();
     engine.state.playing = false;
     engine.seek(0);
     setPlaying(false);
     setControlsVisible(true);
     wakeLoopRef.current();
-  }, [clearCountdown]);
+  }, [clearCountdown, requireEngine]);
 
   const togglePlay = useCallback((revealControlsOnStop: boolean) => {
     // A gamepad action does not emit a DOM click, so explicitly retry a wake
@@ -312,12 +331,19 @@ function Prompter({
       return;
     }
 
-    const engine = engineRef.current!;
+    const engine = requireEngine();
     if (engine.state.playing) {
       engine.state.playing = false;
       setPlaying(false);
       if (revealControlsOnStop) setControlsVisible(true);
       wakeLoopRef.current();
+      return;
+    }
+
+    // Un guion que cabe entero en pantalla no tiene recorrido: Play no arranca
+    // una cuenta atrás ni un desplazamiento imposible.
+    if (engine.maxPosition <= 0) {
+      setControlsVisible(true);
       return;
     }
 
@@ -349,7 +375,9 @@ function Prompter({
     engine.state.playing = true;
     setPlaying(true);
     wakeLoopRef.current();
-  }, [clearCountdown]);
+  }, [clearCountdown, requireEngine]);
+  const togglePlayRef = useRef(togglePlay);
+  togglePlayRef.current = togglePlay;
 
   useEffect(
     () => () => {
@@ -477,14 +505,16 @@ function Prompter({
       sectionOffsetsRef.current = sections.map(
         (section) => blockElsRef.current[section.startBlockIndex]?.offsetTop ?? 0
       );
-      engineRef.current!.setMaxPosition(content.scrollHeight - viewport.clientHeight);
+      const maxPosition = content.scrollHeight - viewport.clientHeight;
+      requireEngine().setMaxPosition(maxPosition);
+      setContentFits(maxPosition <= 0);
     };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(viewport);
     observer.observe(content);
     return () => observer.disconnect();
-  }, [sections, blocks]);
+  }, [sections, blocks, requireEngine]);
 
   // Gamepad + scrolling. When paused without a controller this drops to a low
   // polling rate to avoid spending battery on a permanent 60 fps loop.
@@ -503,8 +533,9 @@ function Prompter({
       rafId = requestAnimationFrame(loop);
     };
     const scheduleNext = () => {
+      const engine = requireEngine();
       if (
-        engineRef.current!.state.playing ||
+        engine.state.playing ||
         gamepadConnectedRef.current ||
         dragRef.current
       ) {
@@ -515,9 +546,9 @@ function Prompter({
     };
     const loop = (now: number) => {
       scheduled = false;
-      const engine = engineRef.current!;
+      const engine = requireEngine();
       const pad = getActiveGamepad();
-      const frame = controllerRef.current!.update(pad, now);
+      const frame = requireController().update(pad, now);
       const padId = pad?.id ?? null;
       if (padId !== padIdRef.current) {
         padIdRef.current = padId;
@@ -549,7 +580,8 @@ function Prompter({
       // acciones del lector y el scroll manual quedan suspendidos.
       if (inputEnabled) {
         for (const action of frame.actions) applyActionRef.current(action);
-        const direction = Math.sign(manualVelocity) as -1 | 0 | 1;
+        const direction: -1 | 0 | 1 =
+          manualVelocity > 0 ? 1 : manualVelocity < 0 ? -1 : 0;
         engine.setManual(direction, Math.abs(manualVelocity));
       } else {
         if (
@@ -578,13 +610,15 @@ function Prompter({
         sectionIdxRef.current = idx;
         setSectionIdx(idx);
       }
-      const timeDisplay = `${Math.round(position)}:${Math.round(engine.maxPosition)}:${settingsRef.current.speed}`;
+      const timeDisplay = `${Math.round(position)}:${Math.round(engine.maxPosition)}:${settingsRef.current.speed}:${engine.state.temporarySpeedMultiplier}`;
       if (timeDisplay !== lastTimeDisplayRef.current) {
         lastTimeDisplayRef.current = timeDisplay;
-        const speed = settingsRef.current.speed;
-        if (elapsedRef.current) elapsedRef.current.textContent = formatDuration(position / speed);
+        const effectiveSpeed = settingsRef.current.speed * engine.state.temporarySpeedMultiplier;
+        if (elapsedRef.current) elapsedRef.current.textContent = formatDuration(position / effectiveSpeed);
         if (remainingRef.current) {
-          remainingRef.current.textContent = formatDuration((engine.maxPosition - position) / speed);
+          remainingRef.current.textContent = formatDuration(
+            (engine.maxPosition - position) / effectiveSpeed
+          );
         }
       }
       scheduleNext();
@@ -592,11 +626,11 @@ function Prompter({
     wakeLoopRef.current = requestSoon;
     requestSoon();
     const onGamepadConnected = () => {
-      controllerRef.current!.acceptNextConnectionInput();
+      requireController().acceptNextConnectionInput();
       requestSoon();
     };
     const onVisibility = () => {
-      engineRef.current!.resetClock();
+      requireEngine().resetClock();
       requestSoon();
     };
     window.addEventListener('gamepadconnected', onGamepadConnected);
@@ -608,7 +642,7 @@ function Prompter({
       document.removeEventListener('visibilitychange', onVisibility);
       wakeLoopRef.current = () => undefined;
     };
-  }, []);
+  }, [requireEngine, requireController]);
 
   // Once playback is underway, give the controls one second before fading
   // them away. Any setting interaction or open panel restarts the idle period.
@@ -639,6 +673,40 @@ function Prompter({
     }
   }, [controlsVisible]);
 
+  // Teclado: con los controles ocultos no hay superficie táctil que los
+  // devuelva. Cualquier tecla los revela; Tab enfoca Play directamente y
+  // Espacio pausa/reanuda, también como atajo con los controles visibles.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (panelRef.current !== 'none') return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      if (
+        event.target instanceof HTMLElement &&
+        event.target.closest('button, a[href], input, textarea, select, [tabindex]')
+      ) {
+        return;
+      }
+      if (event.key === 'Tab') {
+        event.preventDefault();
+        setControlsVisible(true);
+        requestAnimationFrame(() => playButtonRef.current?.focus());
+        return;
+      }
+      if (event.key === 'Escape') {
+        setControlsVisible(true);
+        return;
+      }
+      if (event.key === ' ') {
+        event.preventDefault();
+        togglePlayRef.current(true);
+        return;
+      }
+      setControlsVisible(true);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
   // Scroll manual táctil + tap para mostrar/ocultar controles.
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (panel !== 'none') return;
@@ -653,7 +721,7 @@ function Prompter({
     const dy = e.clientY - drag.y;
     if (Math.abs(dy) > 4) drag.moved = true;
     drag.y = e.clientY;
-    const engine = engineRef.current!;
+    const engine = requireEngine();
     engine.seek(engine.state.position - dy);
     wakeLoopRef.current();
   };
@@ -665,17 +733,17 @@ function Prompter({
     }
   };
 
-  const contentStyle = {
+  const contentStyle = cssVars({
     '--prompter-font-size': `${settings.fontSize}px`,
     '--prompter-margin': `${settings.horizontalMargin}%`
-  } as CSSProperties;
+  });
   const adjustmentStyle = adjustmentFeedback
-    ? ({
+    ? cssVars({
         '--adjustment-progress': `${adjustmentProgress(
           adjustmentFeedback.key,
           adjustmentFeedback.value
         )}%`
-      } as CSSProperties)
+      })
     : undefined;
 
   return (
@@ -872,10 +940,13 @@ function Prompter({
               </button>
               <button
                 type="button"
+                ref={playButtonRef}
                 className={styles.playButton}
                 data-testid="play-pause"
                 data-playing={playing}
                 data-counting={countdown !== null}
+                disabled={contentFits && countdown === null}
+                title={contentFits ? 'This script fits on the screen' : undefined}
                 onClick={() => togglePlay(true)}
               >
                 <Icon name={playing || countdown !== null ? 'pause' : 'play'} />

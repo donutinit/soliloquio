@@ -210,7 +210,7 @@ describe('readImportedFiles', () => {
       ok: false,
       fileName: 'photo.png',
       code: 'unsupported-type',
-      error: 'Choose a Markdown (.md, .markdown), plain-text (.txt), or backup (.json) file'
+      error: 'Choose a Markdown (.md, .markdown) or plain-text (.txt) file'
     });
   });
 });

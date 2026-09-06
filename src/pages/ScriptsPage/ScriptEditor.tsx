@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Script } from '../../types';
 import { updateScript } from '../../services/database';
+import { registerPendingSaveFlush } from '../../services/pendingSaves';
 import { useModalFocus } from '../../app/useModalFocus';
 import { Icon } from '../../components/Icon';
 import styles from './ScriptsPage.module.css';
@@ -83,12 +84,19 @@ export function ScriptEditor({
     mountedRef.current = true;
     const flushOnPageHide = () => void persistLatest();
     window.addEventListener('pagehide', flushOnPageHide);
+    // Una recarga automática (actualización) vacía la cola antes de recargar.
+    const unregister = registerPendingSaveFlush(() => persistLatest());
     return () => {
+      unregister();
       mountedRef.current = false;
       window.removeEventListener('pagehide', flushOnPageHide);
       if (timerRef.current) clearTimeout(timerRef.current);
       const payload = normalized(latestRef.current);
-      if (!sameEditable(payload, committedRef.current)) void updateScript(script.id, payload);
+      if (!sameEditable(payload, committedRef.current)) {
+        updateScript(script.id, payload).catch((error) => {
+          console.warn('Save on exit failed', error);
+        });
+      }
     };
   }, [persistLatest, script.id]);
 

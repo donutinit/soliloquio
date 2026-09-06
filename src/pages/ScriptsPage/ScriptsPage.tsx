@@ -3,7 +3,6 @@ import {
   useEffect,
   useRef,
   useState,
-  type CSSProperties,
   type ReactNode
 } from 'react';
 import type { PrompterSettings, Script } from '../../types';
@@ -22,12 +21,8 @@ import {
   MAX_BACKUP_IMPORT_FILE_BYTES,
   readImportedFiles
 } from '../../features/import/importFiles';
-import {
-  exportBackupFile,
-  exportScriptFile,
-  makeBackup,
-  parseBackup
-} from '../../features/export/backup';
+import { makeBackup, parseBackup } from '../../features/export/backup';
+import { exportBackupFile, exportScriptFile } from '../../services/exportFiles';
 import { prompterHash } from '../../app/router';
 import { checkForPWAUpdate } from '../../services/pwa';
 import { applyKeepScreenAwake } from '../../services/keepAwake';
@@ -35,6 +30,7 @@ import { useModalFocus } from '../../app/useModalFocus';
 import { Icon } from '../../components/Icon';
 import { scriptExcerpt } from '../../features/scripts/excerpt';
 import { SCRIPT_CARD_TITLE_LIMITS } from '../../features/settings/settings';
+import { cssVars } from '../../styles/cssVars';
 import { ScriptEditor } from './ScriptEditor';
 import { AppSettingsPanel, type AppUpdateState } from './AppSettingsPanel';
 import { GamepadSettingsPanel } from './GamepadSettingsPanel';
@@ -266,7 +262,9 @@ export function ScriptsPage({
     setBusy(true);
     setOperationError(null);
     try {
-      await exportBackupFile(makeBackup(await listScripts(), await getSettings()));
+      await exportBackupFile(
+        makeBackup(await listScripts(), await getSettings(), new Date().toISOString())
+      );
       setNotice('Backup prepared. Keep it somewhere safe.');
     } catch {
       setOperationError('The backup could not be exported.');
@@ -396,11 +394,11 @@ export function ScriptsPage({
 
   const menuScript = menuId ? scripts.find((script) => script.id === menuId) : undefined;
   const editingScript = editingId ? scripts.find((script) => script.id === editingId) : undefined;
-  const pageStyle = {
+  const pageStyle = cssVars({
     '--script-card-title-size': `${
       appSettings?.scriptCardTitleSize ?? SCRIPT_CARD_TITLE_LIMITS.default
     }px`
-  } as CSSProperties;
+  });
 
   return (
     <div className={styles.page} style={pageStyle} aria-busy={busy}>
@@ -486,7 +484,9 @@ export function ScriptsPage({
       )}
       {importErrors.length > 0 && (
         <div className={styles.importErrors} role="alert">
-          {importErrors.map((error) => <p key={error}>{error}</p>)}
+          {importErrors.map((error, index) => (
+            <p key={`${index}-${error}`}>{error}</p>
+          ))}
           <button type="button" onClick={() => setImportErrors([])}>Dismiss</button>
         </div>
       )}

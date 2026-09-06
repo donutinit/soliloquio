@@ -117,7 +117,7 @@ test('reports unsupported files chosen through the native picker', async ({ page
     buffer: Buffer.from('not really an image')
   });
   await expect(page.getByRole('alert')).toContainText(
-    'Choose a Markdown (.md, .markdown), plain-text (.txt), or backup (.json) file'
+    'Choose a Markdown (.md, .markdown) or plain-text (.txt) file'
   );
 });
 

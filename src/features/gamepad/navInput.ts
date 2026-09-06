@@ -113,7 +113,8 @@ export class GamepadNavReader {
 
     const moves: NavDirection[] = [];
     for (const [, direction] of DPAD_BUTTONS) {
-      if (this.directions.get(direction)!.update(pressed[direction], nowMs)) {
+      const machine = this.directions.get(direction);
+      if (machine && machine.update(pressed[direction], nowMs)) {
         moves.push(direction);
       }
     }

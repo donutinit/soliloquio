@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { DEFAULT_GAMEPAD_BINDINGS, type GamepadAction, type GamepadBindings } from '../../types';
-import { getActiveGamepad } from '../../features/gamepad/controller';
+import { getActiveGamepad } from '../../services/gamepads';
 import {
   gamepadIconName,
   identifyController,
@@ -56,6 +56,10 @@ export function GamepadSettingsPanel({
   const [pro3, setPro3] = useState(false);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [diagnostics, setDiagnostics] = useState<Diagnostics>(null);
+  const listenStateRef = useRef({ bindings, family, onChange });
+  useEffect(() => {
+    listenStateRef.current = { bindings, family, onChange };
+  });
 
   // Estado de conexión: el Gamepad API solo expone el mando tras una pulsación.
   useEffect(() => {
@@ -77,9 +81,13 @@ export function GamepadSettingsPanel({
   }, []);
 
   // Al asignar: el siguiente botón que se pulse queda ligado a la acción.
+  // Solo depende de `listening`: el resto se lee por ref para no re-crear el
+  // intervalo en cada render del padre.
   useEffect(() => {
     if (!listening) return;
     const interval = setInterval(() => {
+      const { bindings: currentBindings, family: currentFamily, onChange: currentOnChange } =
+        listenStateRef.current;
       const pad = getActiveGamepad();
       if (!pad) return;
       const rawIndex = pad.buttons.findIndex((b) => b.pressed || b.value > 0.5);
@@ -97,19 +105,19 @@ export function GamepadSettingsPanel({
         (needs8BitDoFaceButtonNormalization(pad.id)
           ? translateNintendoFaceButtonIndex(rawIndex)
           : rawIndex);
-      const result = assignBinding(bindings, listening, index);
-      onChange(result.bindings);
+      const result = assignBinding(currentBindings, listening, index);
+      currentOnChange(result.bindings);
       setFeedback(
         result.swappedWith
-          ? `${actionLabel(listening)} is now ${buttonLabel(index, family)}; ${actionLabel(
+          ? `${actionLabel(listening)} is now ${buttonLabel(index, currentFamily)}; ${actionLabel(
               result.swappedWith
-            )} moved to ${buttonLabel(bindings[listening], family)}.`
-          : `${actionLabel(listening)} is now ${buttonLabel(index, family)}.`
+            )} moved to ${buttonLabel(currentBindings[listening], currentFamily)}.`
+          : `${actionLabel(listening)} is now ${buttonLabel(index, currentFamily)}.`
       );
       setListening(null);
     }, LISTEN_POLL_MS);
     return () => clearInterval(interval);
-  }, [listening, bindings, family, onChange]);
+  }, [listening]);
 
   // Modo diagnóstico: estado crudo de botones y ejes.
   useEffect(() => {
@@ -194,7 +202,7 @@ export function GamepadSettingsPanel({
             ? '8BitDo Micro profile: D-pad controls scrolling; hold Select with B for sections or with the D-pad for text and margins. Reserved controls are fixed.'
             : pro3
               ? '8BitDo Pro 3 profile: B confirms and A goes back. For independent extras in Safari, map L4/R4/PL/PR on the controller to Select+A / Select+B / Select+X / Select+Y, then assign them here.'
-            : 'Tap an action, then press the controller button you want for it. Assigning a busy button swaps the two actions. Stick axes always scroll.'}
+            : 'Tap an action, then press the controller button you want for it. Assigning a busy button swaps the two actions. Sticks scroll on standard-mapped controllers.'}
       </p>
       {feedback && !error && (
         <p className={styles.gamepadFeedback} data-testid="gamepad-feedback" role="status">

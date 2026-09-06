@@ -43,6 +43,7 @@ export function useRoute(): [Route, (hash: string) => void] {
   }, []);
 
   const navigate = useCallback((hash: string) => {
+    if (window.location.hash === hash) return;
     window.location.hash = hash;
   }, []);
 

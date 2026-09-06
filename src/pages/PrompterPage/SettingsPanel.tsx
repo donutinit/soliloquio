@@ -10,6 +10,18 @@ import styles from './PrompterPage.module.css';
 
 type SettingKey = 'speed' | 'fontSize' | 'horizontalMargin';
 
+/**
+ * La retroalimentación visual de ajuste interesa sobre todo cuando el valor lo
+ * mueve el mando (click sintético con la navegación activa); con teclado o
+ * dedo el propio control ya muestra el cambio.
+ */
+function isGamepadDriven(event: { nativeEvent: Event }): boolean {
+  return (
+    !event.nativeEvent.isTrusted &&
+    document.documentElement.dataset.gamepadNav === 'true'
+  );
+}
+
 function SettingRow({
   label,
   testId,
@@ -33,7 +45,7 @@ function SettingRow({
         className={styles.stepButton}
         data-testid={`${testId}-minus`}
         aria-label={`Decrease ${label}`}
-        onClick={(event) => onChange(value - limit.step, !event.nativeEvent.isTrusted)}
+        onClick={(event) => onChange(value - limit.step, isGamepadDriven(event))}
       >
         −
       </button>
@@ -45,16 +57,14 @@ function SettingRow({
         step={limit.step}
         value={value}
         aria-label={label}
-        onChange={(event) =>
-          onChange(Number(event.target.value), !event.nativeEvent.isTrusted)
-        }
+        onChange={(event) => onChange(Number(event.target.value), isGamepadDriven(event))}
       />
       <button
         type="button"
         className={styles.stepButton}
         data-testid={`${testId}-plus`}
         aria-label={`Increase ${label}`}
-        onClick={(event) => onChange(value + limit.step, !event.nativeEvent.isTrusted)}
+        onClick={(event) => onChange(value + limit.step, isGamepadDriven(event))}
       >
         +
       </button>

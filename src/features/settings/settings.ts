@@ -20,11 +20,17 @@ export const COUNTDOWN_LIMITS: Limit = { min: 0, max: 10, step: 1, default: 0 };
 export const SETTINGS_SCHEMA_VERSION = 4;
 
 /** Máximo índice de botón aceptado; cubre mandos no estándar con botones extra. */
-const MAX_BUTTON_INDEX = 31;
+export const MAX_BUTTON_INDEX = 31;
 
+/**
+ * Reduce un valor al rango declarado y lo alinea con el paso del límite, de
+ * modo que un valor persistido fuera de rejilla no sobreviva a la lectura.
+ */
 export function clampToLimit(value: number, limit: Limit): number {
   if (!Number.isFinite(value)) return limit.default;
-  return Math.min(limit.max, Math.max(limit.min, value));
+  const steps = Math.round((value - limit.min) / limit.step);
+  const snapped = limit.min + steps * limit.step;
+  return Math.min(limit.max, Math.max(limit.min, snapped));
 }
 
 export function defaultSettings(): PrompterSettings {
@@ -127,20 +133,28 @@ export function normalizeBindings(raw: unknown, legacyMapping?: unknown): Gamepa
   return candidate;
 }
 
+/**
+ * Solo acepta números reales: cadenas, nulos y booleanos de datos antiguos o
+ * corruptos caen al valor por defecto en vez de colarse como 0/1.
+ */
+function toFiniteNumber(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : Number.NaN;
+}
+
 export function normalizeSettings(raw: unknown): PrompterSettings {
   const partial = (raw && typeof raw === 'object' ? raw : {}) as Partial<PrompterSettings> & {
     controllerMapping?: unknown;
   };
   return {
-    speed: clampToLimit(Number(partial.speed), SPEED_LIMITS),
-    fontSize: clampToLimit(Number(partial.fontSize), FONT_LIMITS),
-    horizontalMargin: clampToLimit(Number(partial.horizontalMargin), MARGIN_LIMITS),
+    speed: clampToLimit(toFiniteNumber(partial.speed), SPEED_LIMITS),
+    fontSize: clampToLimit(toFiniteNumber(partial.fontSize), FONT_LIMITS),
+    horizontalMargin: clampToLimit(toFiniteNumber(partial.horizontalMargin), MARGIN_LIMITS),
     scriptCardTitleSize: clampToLimit(
-      Number(partial.scriptCardTitleSize),
+      toFiniteNumber(partial.scriptCardTitleSize),
       SCRIPT_CARD_TITLE_LIMITS
     ),
     countdownSeconds: Math.round(
-      clampToLimit(Number(partial.countdownSeconds), COUNTDOWN_LIMITS)
+      clampToLimit(toFiniteNumber(partial.countdownSeconds), COUNTDOWN_LIMITS)
     ),
     // Solo un false explícito lo desactiva: datos antiguos sin el campo quedan activados.
     keepScreenAwake: partial.keepScreenAwake !== false,

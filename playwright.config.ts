@@ -7,7 +7,8 @@ export default defineConfig({
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: 'http://127.0.0.1:4173',
-    viewport: { width: 390, height: 844 }
+    viewport: { width: 390, height: 844 },
+    trace: 'on-first-retry'
   },
   projects: [{ name: 'chromium', use: { browserName: 'chromium' } }],
   webServer: {

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRoute } from './router';
 import { useGamepadNavigation } from './useGamepadNavigation';
+import { ErrorBoundary } from './ErrorBoundary';
 import { ScriptsPage } from '../pages/ScriptsPage/ScriptsPage';
 import { PrompterPage } from '../pages/PrompterPage/PrompterPage';
 import { getSettings, openDatabase } from '../services/database';
@@ -61,7 +62,7 @@ export function App() {
   }
 
   return (
-    <>
+    <ErrorBoundary>
       {route.page === 'scripts' ? (
         <ScriptsPage
           navigate={navigateFromScripts}
@@ -75,6 +76,6 @@ export function App() {
           returnToScripts={returnToScripts}
         />
       )}
-    </>
+    </ErrorBoundary>
   );
 }

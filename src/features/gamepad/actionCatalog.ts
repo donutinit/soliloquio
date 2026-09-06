@@ -1,6 +1,7 @@
 import { GAMEPAD_ACTIONS, type GamepadAction, type GamepadBindings } from '../../types';
 import type { ControllerFamily } from './controllerIdentity';
 import { pro3VirtualButton } from './pro3Profile';
+import { MAX_BUTTON_INDEX } from '../settings/settings';
 
 export type ActionInfo = {
   action: GamepadAction;
@@ -155,6 +156,9 @@ export function assignBinding(
   action: GamepadAction,
   index: number
 ): AssignResult {
+  if (!Number.isInteger(index) || index < 0 || index > MAX_BUTTON_INDEX) {
+    return { bindings };
+  }
   const conflict = GAMEPAD_ACTIONS.find(
     (other) => other !== action && bindings[other] === index
   );

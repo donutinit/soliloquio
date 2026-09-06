@@ -47,7 +47,7 @@ describe('Soliloquio backups', () => {
 
   it('does not emit retired reading-position data in new backups', () => {
     const legacyRuntimeScript = { ...script, lastPosition: 480.5 };
-    const backup = makeBackup([legacyRuntimeScript], defaultSettings());
+    const backup = makeBackup([legacyRuntimeScript], defaultSettings(), '2026-01-01T00:00:00Z');
 
     expect(backup.scripts).toEqual([script]);
     expect(backup.scripts[0]).not.toHaveProperty('lastPosition');
@@ -56,7 +56,7 @@ describe('Soliloquio backups', () => {
   it('rejects unknown and malformed files', () => {
     expect(() => parseBackup('nope')).toThrow('valid JSON');
     expect(() => parseBackup('{"kind":"something-else"}')).toThrow('not a supported');
-    const backup = makeBackup([script], defaultSettings());
+    const backup = makeBackup([script], defaultSettings(), '2026-01-01T00:00:00Z');
     expect(() => parseBackup(JSON.stringify({ ...backup, scripts: [{ title: 'broken' }] }))).toThrow(
       'invalid scripts'
     );

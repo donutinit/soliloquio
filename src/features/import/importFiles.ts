@@ -65,7 +65,7 @@ export async function readImportedFiles(files: File[]): Promise<ImportOutcome[]>
         ok: false,
         fileName: file.name,
         code: 'unsupported-type',
-        error: 'Choose a Markdown (.md, .markdown), plain-text (.txt), or backup (.json) file'
+        error: 'Choose a Markdown (.md, .markdown) or plain-text (.txt) file'
       });
       continue;
     }

@@ -30,6 +30,14 @@ describe('clampToLimit', () => {
   it('valores no numéricos caen al valor por defecto', () => {
     expect(clampToLimit(Number.NaN, SPEED_LIMITS)).toBe(SPEED_LIMITS.default);
   });
+
+  it('alinea valores fuera de rejilla con el paso del límite', () => {
+    expect(clampToLimit(12.3, SPEED_LIMITS)).toBe(10);
+    expect(clampToLimit(57.4, SPEED_LIMITS)).toBe(55);
+    expect(clampToLimit(21, FONT_LIMITS)).toBe(22);
+    expect(clampToLimit(23, FONT_LIMITS)).toBe(24);
+    expect(clampToLimit(2.6, MARGIN_LIMITS)).toBe(3);
+  });
 });
 
 describe('normalizeSettings', () => {
@@ -52,6 +60,21 @@ describe('normalizeSettings', () => {
     expect(normalizeSettings({ scriptCardTitleSize: 500 }).scriptCardTitleSize).toBe(
       SCRIPT_CARD_TITLE_LIMITS.max
     );
+  });
+
+  it('rechaza valores no numéricos en lugar de coercerlos', () => {
+    const normalized = normalizeSettings({
+      speed: '55',
+      fontSize: null,
+      horizontalMargin: true,
+      scriptCardTitleSize: '',
+      countdownSeconds: undefined
+    });
+    expect(normalized.speed).toBe(SPEED_LIMITS.default);
+    expect(normalized.fontSize).toBe(FONT_LIMITS.default);
+    expect(normalized.horizontalMargin).toBe(MARGIN_LIMITS.default);
+    expect(normalized.scriptCardTitleSize).toBe(SCRIPT_CARD_TITLE_LIMITS.default);
+    expect(normalized.countdownSeconds).toBe(COUNTDOWN_LIMITS.default);
   });
 
   it('conserva asignaciones válidas y descarta las inválidas', () => {

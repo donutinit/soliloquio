@@ -283,19 +283,21 @@ export class GamepadController {
       return (!reservedDpad && rawActionPressed(action)) || comboAction === action;
     };
 
-    const events = {} as Record<GamepadAction, HoldButtonEvents>;
+    const events: Partial<Record<GamepadAction, HoldButtonEvents>> = {};
     for (const action of GAMEPAD_ACTIONS) {
       let pressed = isPressed(action);
       if (this.suppressed.has(action)) {
         if (pressed) pressed = false;
         else this.suppressed.delete(action);
       }
-      events[action] = this.machines.get(action)!.update(pressed, nowMs);
+      const machine = this.machines.get(action);
+      if (machine) events[action] = machine.update(pressed, nowMs);
     }
 
     const actions: GamepadAction[] = [];
     for (const action of GAMEPAD_ACTIONS) {
       const e = events[action];
+      if (!e) continue;
       const trigger = ACTION_TRIGGERS[action];
       const fired =
         trigger === 'short'
@@ -321,22 +323,27 @@ export class GamepadController {
         }
       }
     } else {
-      if (events.togglePlay.holdActive) velocity += DEFAULT_MANUAL_SCROLL_SPEED;
-      if (events.resetToStart.holdActive) velocity -= DEFAULT_MANUAL_SCROLL_SPEED;
-      if (events.speedUp.holdActive) {
+      if (events.togglePlay?.holdActive) velocity += DEFAULT_MANUAL_SCROLL_SPEED;
+      if (events.resetToStart?.holdActive) velocity -= DEFAULT_MANUAL_SCROLL_SPEED;
+      if (events.speedUp?.holdActive) {
         velocity += triggerValue(button('speedUp')) * DEFAULT_MANUAL_SCROLL_SPEED;
       }
-      if (events.speedDown.holdActive) {
+      if (events.speedDown?.holdActive) {
         velocity -= triggerValue(button('speedDown')) * DEFAULT_MANUAL_SCROLL_SPEED;
       }
-      velocity +=
-        applyDeadzone(pad.axes[3] ?? 0, STICK_DEADZONE) *
-        DEFAULT_MANUAL_SCROLL_SPEED *
-        RIGHT_STICK_FACTOR;
-      velocity +=
-        applyDeadzone(pad.axes[1] ?? 0, STICK_DEADZONE) *
-        DEFAULT_MANUAL_SCROLL_SPEED *
-        LEFT_STICK_FACTOR;
+      // Los índices de ejes solo tienen significado garantizado en el layout
+      // estándar; en mandos no estándar se ignoran los sticks (los botones y
+      // el remapeo siguen disponibles).
+      if (pad.mapping === 'standard') {
+        velocity +=
+          applyDeadzone(pad.axes[3] ?? 0, STICK_DEADZONE) *
+          DEFAULT_MANUAL_SCROLL_SPEED *
+          RIGHT_STICK_FACTOR;
+        velocity +=
+          applyDeadzone(pad.axes[1] ?? 0, STICK_DEADZONE) *
+          DEFAULT_MANUAL_SCROLL_SPEED *
+          LEFT_STICK_FACTOR;
+      }
     }
 
     return {
@@ -346,18 +353,4 @@ export class GamepadController {
       connected: true
     };
   }
-}
-
-export function getActiveGamepad(): Gamepad | null {
-  if (typeof navigator === 'undefined' || typeof navigator.getGamepads !== 'function') {
-    return null;
-  }
-  try {
-    for (const pad of navigator.getGamepads()) {
-      if (pad && pad.connected) return pad;
-    }
-  } catch {
-    // algunos navegadores lanzan si el documento no está activo
-  }
-  return null;
 }

@@ -73,6 +73,16 @@ describe('markdownToBlocks', () => {
       { type: 'text', text: 'dos' }
     ]);
   });
+
+  it('separa el texto alrededor de HTML inline en vez de pegar palabras', () => {
+    const blocks = markdownToBlocks('línea uno<br>línea dos');
+    expect(blocks).toEqual([{ type: 'text', text: 'línea uno línea dos' }]);
+  });
+
+  it('conserva el texto rodeado por etiquetas inline desconocidas', () => {
+    const blocks = markdownToBlocks('antes <span>marcado</span> después');
+    expect(blocks).toEqual([{ type: 'text', text: 'antes marcado después' }]);
+  });
 });
 
 describe('textToBlocks', () => {

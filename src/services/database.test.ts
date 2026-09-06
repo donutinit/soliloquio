@@ -64,6 +64,16 @@ describe('guiones', () => {
     expect(await listScripts(db)).toHaveLength(0);
   });
 
+  it('updateScript falla en vez de resurrectar un guion borrado', async () => {
+    const db = freshDb();
+    const script = await createScript({ title: 'Uno', content: 'hola', format: 'markdown' }, db);
+    await deleteScript(script.id, db);
+    await expect(updateScript(script.id, { content: 'cambio tardío' }, db)).rejects.toThrow(
+      /no longer exists/
+    );
+    expect(await getScript(script.id, db)).toBeUndefined();
+  });
+
   it('lista los títulos en orden natural, incluyendo secuencias numéricas', async () => {
     const db = freshDb();
     const titles = ['VID143', 'VID2', 'VID001', 'VID4', 'VID02'];

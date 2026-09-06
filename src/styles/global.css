@@ -12,6 +12,8 @@
   --focus: #ffafd0;
   --danger: #ff716f;
   --success: #5bd393;
+  --reading-bg: #000;
+  --reading-text: #fff;
   color-scheme: dark;
 }
 
