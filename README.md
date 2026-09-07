@@ -37,7 +37,7 @@ scripts/          PWA icon generation and shaolin deployment
 
 ### Install on iPhone
 
-1. Open `https://tele.vondiego.com` in Safari.
+1. Open `https://soli.vondiego.com` in Safari.
 2. Tap Share, then **Add to Home Screen**.
 3. Open the installed app for a full-screen, offline experience.
 
@@ -254,12 +254,12 @@ curl --fail http://127.0.0.1:45543/healthz
 
 ## Reverse proxy
 
-TLS terminates on an existing external nginx instance that proxies `tele.vondiego.com` to the
+TLS terminates on an existing external nginx instance that proxies `soli.vondiego.com` to the
 published port on `shaolin`. No proxy changes are needed during normal application deployment.
 
 ```nginx
 server {
-  server_name tele.vondiego.com;
+  server_name soli.vondiego.com;
   location / {
     proxy_pass http://192.168.50.161:45543;
     proxy_set_header Host $host;

@@ -41,13 +41,13 @@ test('does not claim a backup exists when sharing is cancelled', async ({ page }
 
 test('offers a backup-first handoff on the legacy origin', async ({ page, browserName }) => {
   test.skip(browserName !== 'chromium', 'The test hostname is mapped by the Chromium project.');
-  await page.goto('http://soli.vondiego.com:4173/');
+  await page.goto('http://tele.vondiego.com:4173/');
 
   const notice = page.getByTestId('legacy-origin-notice');
   await expect(notice).toContainText('on-device library is separate');
   await expect(notice.getByRole('link', { name: 'Open current app' })).toHaveAttribute(
     'href',
-    'https://tele.vondiego.com'
+    'https://soli.vondiego.com'
   );
   const downloadPromise = page.waitForEvent('download');
   await notice.getByRole('button', { name: 'Export backup' }).click();

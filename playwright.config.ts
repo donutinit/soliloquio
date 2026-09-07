@@ -16,7 +16,10 @@ export default defineConfig({
       use: {
         browserName: 'chromium',
         launchOptions: {
-          args: ['--host-resolver-rules=MAP soli.vondiego.com 127.0.0.1', '--no-proxy-server']
+          args: [
+            '--host-resolver-rules=MAP soli.vondiego.com 127.0.0.1,MAP tele.vondiego.com 127.0.0.1',
+            '--no-proxy-server'
+          ]
         }
       }
     },

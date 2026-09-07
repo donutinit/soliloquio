@@ -16,7 +16,7 @@ through the GitHub Actions gate. Production deployment is deliberately out of sc
 
 ## 2. One canonical public origin
 
-- [ ] Make `https://soli.vondiego.com` the canonical URL in tracked documentation and metadata.
+- [x] Make `https://soli.vondiego.com` the canonical URL in tracked documentation and metadata.
 - [x] Warn visitors on the legacy origin that browser storage is separate.
 - [x] Give legacy-origin users a direct backup-first migration path without redirecting away from
   their existing IndexedDB data.
