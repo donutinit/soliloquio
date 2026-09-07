@@ -59,6 +59,6 @@ export default defineConfig({
     target: 'es2020'
   },
   preview: {
-    allowedHosts: ['soli.vondiego.com']
+    allowedHosts: ['soli.vondiego.com', 'tele.vondiego.com']
   }
 });
