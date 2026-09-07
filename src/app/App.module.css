@@ -1,4 +1,4 @@
-.updateBanner {
+.updateError {
   position: fixed;
   top: calc(env(safe-area-inset-top, 0px) + 8px);
   left: 50%;
@@ -14,7 +14,7 @@
   font-size: 14px;
 }
 
-.updateBanner button {
+.updateError button {
   min-height: 44px;
   padding: 0 16px;
   border-radius: 10px;

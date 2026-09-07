@@ -8,17 +8,17 @@ through the GitHub Actions gate. Production deployment is deliberately out of sc
 
 ## 1. Data safety and honest outcomes
 
-- [ ] Make pending-save flushes fail closed and block update reloads after any persistence error.
-- [ ] Register App Settings saves with the global pending-save coordinator.
-- [ ] Surface an actionable update error instead of silently discarding failed saves.
-- [ ] Distinguish shared, downloaded, and cancelled exports; never report cancellation as success.
+- [x] Make pending-save flushes fail closed and block update reloads after any persistence error.
+- [x] Register App Settings saves with the global pending-save coordinator.
+- [x] Surface an actionable update error instead of silently discarding failed saves.
+- [x] Distinguish shared, downloaded, and cancelled exports; never report cancellation as success.
 - [ ] Add unit and E2E regression coverage for rejected saves and cancelled backups.
 
 ## 2. One canonical public origin
 
 - [ ] Make `https://tele.vondiego.com` the canonical URL in tracked documentation and metadata.
-- [ ] Warn visitors on the legacy origin that browser storage is separate.
-- [ ] Give legacy-origin users a direct backup-first migration path without redirecting away from
+- [x] Warn visitors on the legacy origin that browser storage is separate.
+- [x] Give legacy-origin users a direct backup-first migration path without redirecting away from
   their existing IndexedDB data.
 - [ ] Cover the migration notice and backup action with E2E tests.
 

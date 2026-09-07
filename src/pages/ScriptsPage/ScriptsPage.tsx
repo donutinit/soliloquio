@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode
@@ -31,6 +32,11 @@ import { Icon } from '../../components/Icon';
 import { scriptExcerpt } from '../../features/scripts/excerpt';
 import { SCRIPT_CARD_TITLE_LIMITS } from '../../features/settings/settings';
 import { cssVars } from '../../styles/cssVars';
+import { registerPendingSaveFlush } from '../../services/pendingSaves';
+import {
+  CANONICAL_APP_ORIGIN,
+  isLegacyAppOrigin
+} from '../../features/origin/originMigration';
 import { ScriptEditor } from './ScriptEditor';
 import { AppSettingsPanel, type AppUpdateState } from './AppSettingsPanel';
 import { GamepadSettingsPanel } from './GamepadSettingsPanel';
@@ -110,6 +116,8 @@ export function ScriptsPage({
     void refresh();
   }, [refresh]);
 
+  useEffect(() => registerPendingSaveFlush(() => appSettingsSaveRef.current), []);
+
   useEffect(() => {
     let cancelled = false;
     const loadVersion = appSettingsChangeVersionRef.current;
@@ -145,11 +153,19 @@ export function ScriptsPage({
     restoredGamepadFocusRef.current = true;
   }, [initialGamepadFocusId, scripts]);
 
-  const filtered = query.trim()
-    ? scripts.filter((script) =>
-        `${script.title}\n${script.content}`.toLowerCase().includes(query.trim().toLowerCase())
-      )
-    : scripts;
+  const libraryEntries = useMemo(
+    () => scripts.map((script) => ({
+      script,
+      excerpt: scriptExcerpt(script.content) || 'Empty',
+      searchText: `${script.title}\n${script.content}`.toLocaleLowerCase()
+    })),
+    [scripts]
+  );
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  const filtered = normalizedQuery
+    ? libraryEntries.filter(({ searchText }) => searchText.includes(normalizedQuery))
+    : libraryEntries;
+  const legacyOrigin = isLegacyAppOrigin(window.location.hostname);
 
   const handleNew = async () => {
     setBusy(true);
@@ -262,10 +278,12 @@ export function ScriptsPage({
     setBusy(true);
     setOperationError(null);
     try {
-      await exportBackupFile(
+      const delivery = await exportBackupFile(
         makeBackup(await listScripts(), await getSettings(), new Date().toISOString())
       );
-      setNotice('Backup prepared. Keep it somewhere safe.');
+      if (delivery !== 'cancelled') {
+        setNotice('Backup exported. Keep it somewhere safe.');
+      }
     } catch {
       setOperationError('The backup could not be exported.');
     } finally {
@@ -370,13 +388,15 @@ export function ScriptsPage({
   const handleCheckForUpdate = async () => {
     setUpdateState('checking');
     setUpdateError(null);
-    await appSettingsSaveRef.current.catch(() => undefined);
     try {
+      await appSettingsSaveRef.current;
       const result = await checkForPWAUpdate();
       setUpdateState(result);
     } catch {
       setUpdateState('error');
-      setUpdateError('Could not check for updates. Check your connection and try again.');
+      setUpdateError(
+        'The update was not applied. Make sure your latest settings are saved and that you are online, then try again.'
+      );
     }
   };
 
@@ -470,6 +490,26 @@ export function ScriptsPage({
         </div>
       </header>
 
+      {legacyOrigin && (
+        <aside className={styles.originNotice} data-testid="legacy-origin-notice" role="alert">
+          <div>
+            <strong>This is the legacy app address.</strong>
+            <span>
+              Its on-device library is separate. Export a backup here before moving to the current
+              address.
+            </span>
+          </div>
+          <div className={styles.originNoticeActions}>
+            <button type="button" disabled={busy} onClick={() => void handleBackup()}>
+              Export backup
+            </button>
+            <a href={CANONICAL_APP_ORIGIN} target="_blank" rel="noreferrer">
+              Open current app
+            </a>
+          </div>
+        </aside>
+      )}
+
       {operationError && (
         <div className={styles.operationMessage} role="alert">
           <span>{operationError}</span>
@@ -518,7 +558,7 @@ export function ScriptsPage({
         </div>
       ) : (
         <ul className={styles.grid}>
-          {filtered.map((script) => (
+          {filtered.map(({ script, excerpt }) => (
             <li key={script.id} className={styles.card} data-testid="script-card">
               <button
                 ref={(element) => {
@@ -533,7 +573,7 @@ export function ScriptsPage({
                 onClick={() => navigate(prompterHash(script.id))}
               >
                 <span className={styles.cardTitle} data-testid="card-title">{script.title}</span>
-                <span className={styles.cardExcerpt}>{scriptExcerpt(script.content) || 'Empty'}</span>
+                <span className={styles.cardExcerpt}>{excerpt}</span>
               </button>
               <button
                 type="button"

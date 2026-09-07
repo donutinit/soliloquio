@@ -92,7 +92,7 @@ describe('exportFiles', () => {
     vi.stubGlobal('navigator', {});
     vi.useFakeTimers();
 
-    await exportScriptFile({ ...script, title: 'Mi guion' });
+    await expect(exportScriptFile({ ...script, title: 'Mi guion' })).resolves.toBe('downloaded');
 
     const anchor = anchors[0];
     expect(anchor?.clicked).toBe(1);
@@ -118,7 +118,7 @@ describe('exportFiles', () => {
     };
     vi.stubGlobal('navigator', navigatorStub);
 
-    await exportScriptFile(script);
+    await expect(exportScriptFile(script)).resolves.toBe('shared');
 
     expect(shared).toHaveLength(1);
     expect(urls).toHaveLength(0);
@@ -135,7 +135,7 @@ describe('exportFiles', () => {
     };
     vi.stubGlobal('navigator', navigatorStub);
 
-    await exportScriptFile(script);
+    await expect(exportScriptFile(script)).resolves.toBe('cancelled');
 
     expect(anchors).toHaveLength(0);
   });
@@ -151,7 +151,7 @@ describe('exportFiles', () => {
     };
     vi.stubGlobal('navigator', navigatorStub);
 
-    await exportScriptFile(script);
+    await expect(exportScriptFile(script)).resolves.toBe('downloaded');
 
     expect(anchors[0]?.clicked).toBe(1);
     expect(urls).toHaveLength(1);

@@ -15,5 +15,5 @@ export function registerPendingSaveFlush(flush: PendingSaveFlush): () => void {
 }
 
 export async function flushPendingSaves(): Promise<void> {
-  await Promise.allSettled(Array.from(flushes, (flush) => flush()));
+  await Promise.all(Array.from(flushes, (flush) => flush()));
 }

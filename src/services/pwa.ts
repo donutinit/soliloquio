@@ -7,11 +7,42 @@ const UPDATE_CHECK_INTERVAL_MS = 60_000;
 const REGISTRATION_WAIT_MS = 5_000;
 
 export type PWAUpdateResult = 'up-to-date' | 'updating' | 'unsupported' | 'not-ready';
+export type PWAUpdateErrorListener = (message: string | null) => void;
 
 let setupStarted = false;
 let serviceWorkerUrl: string | null = null;
 let serviceWorkerRegistration: ServiceWorkerRegistration | null = null;
 let applyServiceWorkerUpdate: ((reloadPage?: boolean) => Promise<void>) | null = null;
+let updateError: string | null = null;
+const updateErrorListeners = new Set<PWAUpdateErrorListener>();
+
+const SAVE_FAILURE_MESSAGE =
+  'Update paused because your latest changes could not be saved. Free device storage, then retry.';
+
+function setUpdateError(message: string | null): void {
+  updateError = message;
+  for (const listener of updateErrorListeners) listener(message);
+}
+
+export function subscribeToPWAUpdateError(listener: PWAUpdateErrorListener): () => void {
+  updateErrorListeners.add(listener);
+  listener(updateError);
+  return () => {
+    updateErrorListeners.delete(listener);
+  };
+}
+
+export async function applyPendingPWAUpdate(): Promise<void> {
+  if (!applyServiceWorkerUpdate) throw new Error('The app update is not ready');
+  try {
+    await flushPendingSaves();
+  } catch (error) {
+    setUpdateError(SAVE_FAILURE_MESSAGE);
+    throw error;
+  }
+  setUpdateError(null);
+  await applyServiceWorkerUpdate(true);
+}
 
 async function findRegistration(): Promise<ServiceWorkerRegistration | null> {
   if (serviceWorkerRegistration) return serviceWorkerRegistration;
@@ -50,8 +81,7 @@ export async function checkForPWAUpdate(): Promise<PWAUpdateResult> {
 
   const result = await checkRegistrationForUpdate(registration, swUrl);
   if (result === 'updating' && registration.waiting && applyServiceWorkerUpdate) {
-    await flushPendingSaves();
-    void applyServiceWorkerUpdate(true);
+    await applyPendingPWAUpdate();
   }
   return result;
 }
@@ -68,7 +98,9 @@ export function setupPWA(): void {
   const updateSW = registerSW({
     immediate: true,
     onNeedRefresh() {
-      void flushPendingSaves().then(() => updateSW(true));
+      void applyPendingPWAUpdate().catch((error) => {
+        console.warn('App update paused until pending saves succeed', error);
+      });
     },
     onOfflineReady() {
       // La app ya funciona sin conexión; no hace falta molestar al usuario.

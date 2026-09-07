@@ -5,7 +5,11 @@ import { ErrorBoundary } from './ErrorBoundary';
 import { ScriptsPage } from '../pages/ScriptsPage/ScriptsPage';
 import { PrompterPage } from '../pages/PrompterPage/PrompterPage';
 import { getSettings, openDatabase } from '../services/database';
-import { setupPWA } from '../services/pwa';
+import {
+  applyPendingPWAUpdate,
+  setupPWA,
+  subscribeToPWAUpdateError
+} from '../services/pwa';
 import { applyKeepScreenAwake } from '../services/keepAwake';
 import styles from './App.module.css';
 
@@ -14,6 +18,7 @@ export function App() {
   const [ready, setReady] = useState(false);
   const [initializationError, setInitializationError] = useState(false);
   const [gamepadReturnFocusId, setGamepadReturnFocusId] = useState<string | undefined>();
+  const [updateError, setUpdateError] = useState<string | null>(null);
 
   const navigateFromScripts = useCallback(
     (hash: string) => {
@@ -34,12 +39,14 @@ export function App() {
   useGamepadNavigation(route.page === 'prompter' ? 'prompter' : 'scripts');
 
   useEffect(() => {
+    const unsubscribe = subscribeToPWAUpdateError(setUpdateError);
     void openDatabase()
       .then(() => setInitializationError(false))
       .catch(() => setInitializationError(true))
       .finally(() => setReady(true));
     // Auto-update: aplica y recarga en cuanto haya versión nueva publicada.
     setupPWA();
+    return unsubscribe;
   }, []);
 
   // Pantalla encendida mientras la app está abierta, si el ajuste lo permite.
@@ -63,6 +70,14 @@ export function App() {
 
   return (
     <ErrorBoundary>
+      {updateError && (
+        <div className={styles.updateError} role="alert">
+          <span>{updateError}</span>
+          <button type="button" onClick={() => void applyPendingPWAUpdate().catch(() => undefined)}>
+            Retry update
+          </button>
+        </div>
+      )}
       {route.page === 'scripts' ? (
         <ScriptsPage
           navigate={navigateFromScripts}

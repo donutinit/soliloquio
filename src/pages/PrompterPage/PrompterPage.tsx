@@ -281,7 +281,11 @@ function Prompter({
   // Una recarga automática (actualización del Service Worker) primero vacía
   // el guardado pendiente; IndexedDB es la única copia de estos ajustes.
   useEffect(() => {
-    const unregister = registerPendingSaveFlush(() => persistSettings());
+    const unregister = registerPendingSaveFlush(async () => {
+      if (!(await persistSettings())) {
+        throw new Error('Prompter settings could not be saved');
+      }
+    });
     return () => {
       unregister();
       void persistSettings();

@@ -13,13 +13,15 @@ function safeFileName(value: string): string {
  * Entrega un archivo al usuario: Web Share API con archivos cuando está
  * disponible y acepta el tipo, y descarga por ancla oculta en el resto.
  */
-export async function shareOrDownload(file: File): Promise<void> {
+export type ExportDelivery = 'shared' | 'downloaded' | 'cancelled';
+
+export async function shareOrDownload(file: File): Promise<ExportDelivery> {
   if (navigator.share && navigator.canShare?.({ files: [file] })) {
     try {
       await navigator.share({ files: [file], title: file.name });
-      return;
+      return 'shared';
     } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') return;
+      if (error instanceof DOMException && error.name === 'AbortError') return 'cancelled';
     }
   }
   const url = URL.createObjectURL(file);
@@ -35,9 +37,10 @@ export async function shareOrDownload(file: File): Promise<void> {
     anchor.remove();
     URL.revokeObjectURL(url);
   }, 1000);
+  return 'downloaded';
 }
 
-export function exportScriptFile(script: Script): Promise<void> {
+export function exportScriptFile(script: Script): Promise<ExportDelivery> {
   const extension = script.format === 'markdown' ? 'md' : 'txt';
   const type = script.format === 'markdown' ? 'text/markdown' : 'text/plain';
   return shareOrDownload(
@@ -45,7 +48,7 @@ export function exportScriptFile(script: Script): Promise<void> {
   );
 }
 
-export function exportBackupFile(backup: SoliloquioBackup): Promise<void> {
+export function exportBackupFile(backup: SoliloquioBackup): Promise<ExportDelivery> {
   const date = backup.exportedAt.slice(0, 10) || 'backup';
   return shareOrDownload(
     new File([JSON.stringify(backup, null, 2)], `soliloquio-backup-${date}.json`, {

@@ -40,7 +40,7 @@ export function ScriptEditor({
   const mountedRef = useRef(true);
   latestRef.current = { title, content };
 
-  const persistLatest = useCallback((): Promise<boolean> => {
+  const persistLatest = useCallback((): Promise<void> => {
     if (timerRef.current) {
       clearTimeout(timerRef.current);
       timerRef.current = null;
@@ -48,7 +48,7 @@ export function ScriptEditor({
     const payload = normalized(latestRef.current);
     if (sameEditable(payload, committedRef.current)) {
       if (mountedRef.current) setSaveState('saved');
-      return Promise.resolve(true);
+      return Promise.resolve();
     }
     if (mountedRef.current) setSaveState('saving');
     const operation = saveQueueRef.current.then(async () => {
@@ -59,13 +59,12 @@ export function ScriptEditor({
         if (mountedRef.current && sameEditable(normalized(latestRef.current), payload)) {
           setSaveState('saved');
         }
-        return true;
-      } catch {
+      } catch (error) {
         if (mountedRef.current) setSaveState('error');
-        return false;
+        throw error;
       }
     });
-    saveQueueRef.current = operation.then(() => undefined);
+    saveQueueRef.current = operation.catch(() => undefined);
     return operation;
   }, [onSaved, script.id]);
 
@@ -101,10 +100,20 @@ export function ScriptEditor({
   }, [persistLatest, script.id]);
 
   const close = async () => {
-    if (await persistLatest()) onClose();
+    try {
+      await persistLatest();
+      onClose();
+    } catch {
+      // The visible retry state keeps the editor open with its in-memory draft.
+    }
   };
   const openPrompter = async () => {
-    if (await persistLatest()) onOpenPrompter();
+    try {
+      await persistLatest();
+      onOpenPrompter();
+    } catch {
+      // Never navigate away from an unsaved draft.
+    }
   };
   const dialogRef = useModalFocus<HTMLDivElement>(() => void close());
 
