@@ -6,6 +6,8 @@
 		X-Content-Type-Options nosniff
 		Referrer-Policy no-referrer
 		X-Frame-Options SAMEORIGIN
+		Content-Security-Policy "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'self'; form-action 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'"
+		Permissions-Policy "accelerometer=(), camera=(), geolocation=(), gyroscope=(), microphone=(), payment=(), usb=(), gamepad=(self), screen-wake-lock=(self)"
 	}
 
 	handle /healthz {
@@ -16,7 +18,10 @@
 		# El Service Worker, el manifest y el documento no se cachean para que
 		# las actualizaciones de la PWA se detecten; los assets con hash sí.
 		@nocache path /sw.js /registerSW.js /manifest.webmanifest /index.html /
-		header @nocache Cache-Control "no-cache, must-revalidate"
+		header @nocache {
+			Cache-Control "no-store, no-cache, must-revalidate"
+			CDN-Cache-Control "no-store"
+		}
 		@assets path /assets/*
 		header @assets Cache-Control "public, max-age=31536000, immutable"
 

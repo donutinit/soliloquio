@@ -419,7 +419,7 @@ export function ScriptsPage({
   });
 
   return (
-    <div className={styles.page} style={pageStyle} aria-busy={busy}>
+    <main className={styles.page} style={pageStyle} aria-busy={busy}>
       <header className={styles.header} data-testid="library-header">
         <h1>Scripts</h1>
         <div className={styles.headerActions} data-testid="library-header-actions">
@@ -693,6 +693,6 @@ export function ScriptsPage({
           onClose={() => setGamepadOpen(false)}
         />
       )}
-    </div>
+    </main>
   );
 }

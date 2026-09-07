@@ -16,7 +16,7 @@ through the GitHub Actions gate. Production deployment is deliberately out of sc
 
 ## 2. One canonical public origin
 
-- [ ] Make `https://tele.vondiego.com` the canonical URL in tracked documentation and metadata.
+- [ ] Make `https://soli.vondiego.com` the canonical URL in tracked documentation and metadata.
 - [x] Warn visitors on the legacy origin that browser storage is separate.
 - [x] Give legacy-origin users a direct backup-first migration path without redirecting away from
   their existing IndexedDB data.
@@ -36,7 +36,7 @@ through the GitHub Actions gate. Production deployment is deliberately out of sc
 - [x] Replace translucent low-contrast focus rings with an immediate 3:1+ indicator.
 - [x] Preserve the purpose-built black/white reading surface.
 - [x] Verify 320, 375, 414, and 768 px layouts and prevent horizontal overflow.
-- [ ] Add automated accessibility checks for core library and prompter states.
+- [x] Add automated accessibility checks for core library and prompter states.
 
 ## 5. Performance and offline weight
 
@@ -47,18 +47,18 @@ through the GitHub Actions gate. Production deployment is deliberately out of sc
 
 ## 6. Browser and security coverage
 
-- [ ] Add a focused Playwright WebKit project for browser-portable core workflows.
-- [ ] Keep Chromium-only gamepad emulation isolated where WebKit cannot provide the API.
-- [ ] Add a tested Content Security Policy and harden service-worker cache headers.
-- [ ] Pin GitHub Actions and container bases to immutable commits/digests.
-- [ ] Prevent an existing commit-addressed image tag from being overwritten.
+- [x] Add a focused Playwright WebKit project for browser-portable core workflows.
+- [x] Keep Chromium-only gamepad emulation isolated where WebKit cannot provide the API.
+- [x] Add a tested Content Security Policy and harden service-worker cache headers.
+- [x] Pin GitHub Actions and container bases to immutable commits/digests.
+- [x] Prevent an existing commit-addressed image tag from being overwritten.
 - [ ] Protect `main`, require the CI check, require action SHA pinning where GitHub permits, and
   enable dependency security updates.
 
 ## 7. Dependencies and maintainability
 
-- [ ] Upgrade vulnerable development tooling and regenerate `package-lock.json`.
-- [ ] Confirm the resulting dependency tree has no known audit findings.
+- [x] Upgrade vulnerable development tooling and regenerate `package-lock.json`.
+- [x] Confirm the resulting dependency tree has no known audit findings.
 - [x] Remove obsolete update-banner styles.
 - [ ] Extract cohesive prompter responsibilities where doing so reduces the current hotspot
   without destabilizing playback.

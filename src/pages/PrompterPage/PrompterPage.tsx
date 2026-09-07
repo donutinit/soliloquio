@@ -751,7 +751,7 @@ function Prompter({
     : undefined;
 
   return (
-    <div className={styles.page} data-testid="prompter-page">
+    <main className={styles.page} data-testid="prompter-page">
       <div
         ref={viewportRef}
         className={styles.viewport}
@@ -1014,6 +1014,6 @@ function Prompter({
           onClose={() => setPanel('none')}
         />
       )}
-    </div>
+    </main>
   );
 }

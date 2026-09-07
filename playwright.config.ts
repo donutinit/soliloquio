@@ -19,6 +19,16 @@ export default defineConfig({
           args: ['--host-resolver-rules=MAP soli.vondiego.com 127.0.0.1', '--no-proxy-server']
         }
       }
+    },
+    {
+      name: 'webkit',
+      testIgnore: [
+        '**/gamepad-config.spec.ts',
+        '**/gamepad-nav.spec.ts',
+        '**/gamepad.spec.ts',
+        '**/micro-gamepad.spec.ts'
+      ],
+      use: { browserName: 'webkit' }
     }
   ],
   webServer: {
