@@ -60,7 +60,7 @@ through the GitHub Actions gate. Production deployment is deliberately out of sc
 - [x] Upgrade vulnerable development tooling and regenerate `package-lock.json`.
 - [x] Confirm the resulting dependency tree has no known audit findings.
 - [x] Remove obsolete update-banner styles.
-- [ ] Extract cohesive prompter responsibilities where doing so reduces the current hotspot
+- [x] Extract cohesive prompter responsibilities where doing so reduces the current hotspot
   without destabilizing playback.
 - [ ] Update README validation, browser-support, update, and release documentation.
 

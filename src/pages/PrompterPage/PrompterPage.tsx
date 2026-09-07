@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import type { PrompterSettings, Script } from '../../types';
-import { getScript, getSettings, saveSettings } from '../../services/database';
+import { getScript, getSettings } from '../../services/database';
 import { applyKeepScreenAwake } from '../../services/keepAwake';
-import { registerPendingSaveFlush } from '../../services/pendingSaves';
 import { getActiveGamepad } from '../../services/gamepads';
 import { scriptToBlocks } from '../../features/markdown/flatten';
 import { buildSections, currentSectionIndex, stepSection } from '../../features/sections/sections';
@@ -19,12 +18,18 @@ import {
 import {
   FONT_LIMITS,
   MARGIN_LIMITS,
-  SPEED_LIMITS,
-  clampToLimit
+  SPEED_LIMITS
 } from '../../features/settings/settings';
 import { SettingsPanel } from './SettingsPanel';
 import { SectionNav } from './SectionNav';
 import { ControllerGuide } from './ControllerGuide';
+import { ReadingSurface } from './ReadingSurface';
+import { AdjustmentFeedbackToast } from './AdjustmentFeedbackToast';
+import { usePrompterSettings } from './usePrompterSettings';
+import { usePlaybackControls } from './usePlaybackControls';
+import { usePrompterKeyboard } from './usePrompterKeyboard';
+import { formatDuration } from './prompterDisplay';
+import type { Panel } from './usePrompterKeyboard';
 import { editorHash } from '../../app/router';
 import { Icon } from '../../components/Icon';
 import { cssVars } from '../../styles/cssVars';
@@ -34,56 +39,6 @@ import styles from './PrompterPage.module.css';
 const READING_LINE_FRACTION = 0.4;
 const IDLE_POLL_INTERVAL_MS = 250;
 const PLAYBACK_CONTROLS_AUTO_HIDE_MS = 1000;
-const ADJUSTMENT_FEEDBACK_HOLD_MS = 720;
-const ADJUSTMENT_FEEDBACK_EXIT_MS = 220;
-
-type Panel = 'none' | 'settings' | 'sections' | 'controllerGuide';
-type AdjustableSetting = 'speed' | 'fontSize' | 'horizontalMargin';
-type AdjustmentFeedback = {
-  key: AdjustableSetting;
-  value: number;
-  phase: 'visible' | 'exiting';
-};
-
-const ADJUSTMENT_DISPLAY: Record<
-  AdjustableSetting,
-  { label: string; unit: string; min: number; max: number }
-> = {
-  speed: {
-    label: 'Speed',
-    unit: '',
-    min: SPEED_LIMITS.min,
-    max: SPEED_LIMITS.max
-  },
-  fontSize: {
-    label: 'Text size',
-    unit: 'px',
-    min: FONT_LIMITS.min,
-    max: FONT_LIMITS.max
-  },
-  horizontalMargin: {
-    label: 'Margins',
-    unit: '%',
-    min: MARGIN_LIMITS.min,
-    max: MARGIN_LIMITS.max
-  }
-};
-
-function adjustmentProgress(key: AdjustableSetting, value: number): number {
-  const display = ADJUSTMENT_DISPLAY[key];
-  return ((value - display.min) / (display.max - display.min)) * 100;
-}
-
-function formatDuration(seconds: number): string {
-  if (!Number.isFinite(seconds) || seconds < 0) return '--:--';
-  const rounded = Math.round(seconds);
-  const hours = Math.floor(rounded / 3600);
-  const minutes = Math.floor((rounded % 3600) / 60);
-  const remainingSeconds = rounded % 60;
-  return hours > 0
-    ? `${hours}:${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`
-    : `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
-}
 
 export function PrompterPage({
   scriptId,
@@ -169,12 +124,16 @@ function Prompter({
   const blocks = useMemo(() => scriptToBlocks(script), [script]);
   const sections = useMemo(() => buildSections(blocks), [blocks]);
 
-  const [settings, setSettingsState] = useState(initialSettings);
-  const settingsRef = useRef(settings);
-  settingsRef.current = settings;
+  const {
+    settings,
+    settingsRef,
+    updateSetting,
+    persistSettings,
+    storageError,
+    dismissStorageError,
+    adjustmentFeedback
+  } = usePrompterSettings(initialSettings);
 
-  const [playing, setPlaying] = useState(false);
-  const [countdown, setCountdown] = useState<number | null>(null);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [controlsActivity, setControlsActivity] = useState(0);
   const [panel, setPanel] = useState<Panel>('none');
@@ -182,8 +141,6 @@ function Prompter({
   const [gamepadConnected, setGamepadConnected] = useState(false);
   const [padFamily, setPadFamily] = useState<ControllerFamily>('playstation');
   const [padModel, setPadModel] = useState<'micro' | 'pro3' | null>(null);
-  const [storageError, setStorageError] = useState<string | null>(null);
-  const [adjustmentFeedback, setAdjustmentFeedback] = useState<AdjustmentFeedback | null>(null);
   const [contentFits, setContentFits] = useState(false);
 
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -198,11 +155,7 @@ function Prompter({
   const previousPanelRef = useRef<Panel>('none');
   const gamepadConnectedRef = useRef(false);
   const padIdRef = useRef<string | null>(null);
-  const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const countdownRef = useRef<number | null>(null);
   const dragRef = useRef<{ y: number; moved: boolean; startedAt: number } | null>(null);
-  const settingsDirtyRef = useRef(false);
-  const settingsSaveRef = useRef<Promise<boolean>>(Promise.resolve(true));
   const wakeLoopRef = useRef<() => void>(() => undefined);
   const elapsedRef = useRef<HTMLSpanElement>(null);
   const remainingRef = useRef<HTMLSpanElement>(null);
@@ -210,8 +163,6 @@ function Prompter({
   const renderedPositionRef = useRef(Number.NaN);
   const exitingRef = useRef(false);
   const manualWakeActiveRef = useRef(false);
-  const adjustmentExitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const adjustmentRemoveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const engineRef = useRef<ScrollEngine | null>(null);
   if (!engineRef.current) {
@@ -236,6 +187,17 @@ function Prompter({
     return controller;
   }, []);
 
+  const revealControls = useCallback(() => setControlsVisible(true), []);
+
+  const { playing, setPlaying, countdown, togglePlay, resetToStart } = usePlaybackControls({
+    requireEngine,
+    settingsRef,
+    wakeLoopRef,
+    revealControls
+  });
+  const togglePlayRef = useRef(togglePlay);
+  togglePlayRef.current = togglePlay;
+
   useEffect(() => {
     requireEngine().state.baseSpeed = settings.speed;
   }, [settings.speed, requireEngine]);
@@ -254,44 +216,6 @@ function Prompter({
     previousPanelRef.current = panel;
   }, [panel, requireController]);
 
-  const persistSettings = useCallback((): Promise<boolean> => {
-    if (!settingsDirtyRef.current) return settingsSaveRef.current;
-    const snapshot = settingsRef.current;
-    const operation = settingsSaveRef.current.then(async () => {
-      try {
-        await saveSettings(snapshot);
-        if (settingsRef.current === snapshot) settingsDirtyRef.current = false;
-        return true;
-      } catch {
-        setStorageError('Settings could not be saved. Check available device storage.');
-        return false;
-      }
-    });
-    settingsSaveRef.current = operation;
-    return operation;
-  }, []);
-
-  // Persist settings after a short idle period and once more when leaving the route.
-  useEffect(() => {
-    if (settings === initialSettings) return;
-    const timer = setTimeout(() => void persistSettings(), 400);
-    return () => clearTimeout(timer);
-  }, [settings, initialSettings, persistSettings]);
-
-  // Una recarga automática (actualización del Service Worker) primero vacía
-  // el guardado pendiente; IndexedDB es la única copia de estos ajustes.
-  useEffect(() => {
-    const unregister = registerPendingSaveFlush(async () => {
-      if (!(await persistSettings())) {
-        throw new Error('Prompter settings could not be saved');
-      }
-    });
-    return () => {
-      unregister();
-      void persistSettings();
-    };
-  }, [persistSettings]);
-
   const jumpToSection = useCallback(
     (idx: number) => {
       const target = stepSection(idx, 0, sections.length);
@@ -303,93 +227,6 @@ function Prompter({
       wakeLoopRef.current();
     },
     [sections.length, requireEngine]
-  );
-
-  const clearCountdown = useCallback(() => {
-    if (countdownTimerRef.current) {
-      clearInterval(countdownTimerRef.current);
-      countdownTimerRef.current = null;
-    }
-    countdownRef.current = null;
-    setCountdown(null);
-  }, []);
-
-  const resetToStart = useCallback(() => {
-    clearCountdown();
-    const engine = requireEngine();
-    engine.state.playing = false;
-    engine.seek(0);
-    setPlaying(false);
-    setControlsVisible(true);
-    wakeLoopRef.current();
-  }, [clearCountdown, requireEngine]);
-
-  const togglePlay = useCallback((revealControlsOnStop: boolean) => {
-    // A gamepad action does not emit a DOM click, so explicitly retry a wake
-    // lock here after a transient browser denial or an iOS lifecycle release.
-    applyKeepScreenAwake(settingsRef.current.keepScreenAwake);
-
-    if (countdownRef.current !== null) {
-      clearCountdown();
-      if (revealControlsOnStop) setControlsVisible(true);
-      return;
-    }
-
-    const engine = requireEngine();
-    if (engine.state.playing) {
-      engine.state.playing = false;
-      setPlaying(false);
-      if (revealControlsOnStop) setControlsVisible(true);
-      wakeLoopRef.current();
-      return;
-    }
-
-    // Un guion que cabe entero en pantalla no tiene recorrido: Play no arranca
-    // una cuenta atrás ni un desplazamiento imposible.
-    if (engine.maxPosition <= 0) {
-      setControlsVisible(true);
-      return;
-    }
-
-    if (engine.state.position >= engine.maxPosition - 1) {
-      engine.seek(0);
-    }
-
-    const seconds = settingsRef.current.countdownSeconds;
-    if (seconds > 0) {
-      countdownRef.current = seconds;
-      setCountdown(seconds);
-      countdownTimerRef.current = setInterval(() => {
-        const current = countdownRef.current;
-        if (current === null) return;
-        if (current <= 1) {
-          clearCountdown();
-          applyKeepScreenAwake(settingsRef.current.keepScreenAwake);
-          engine.state.playing = true;
-          setPlaying(true);
-          wakeLoopRef.current();
-          return;
-        }
-        countdownRef.current = current - 1;
-        setCountdown(current - 1);
-      }, 1000);
-      return;
-    }
-
-    engine.state.playing = true;
-    setPlaying(true);
-    wakeLoopRef.current();
-  }, [clearCountdown, requireEngine]);
-  const togglePlayRef = useRef(togglePlay);
-  togglePlayRef.current = togglePlay;
-
-  useEffect(
-    () => () => {
-      if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
-      if (adjustmentExitTimerRef.current) clearTimeout(adjustmentExitTimerRef.current);
-      if (adjustmentRemoveTimerRef.current) clearTimeout(adjustmentRemoveTimerRef.current);
-    },
-    []
   );
 
   const exitToScripts = useCallback((restoreGamepadFocus: boolean) => {
@@ -409,40 +246,6 @@ function Prompter({
       else exitingRef.current = false;
     });
   }, [navigate, persistSettings, script.id]);
-
-  const showAdjustmentFeedback = useCallback((key: AdjustableSetting, value: number) => {
-    if (adjustmentExitTimerRef.current) clearTimeout(adjustmentExitTimerRef.current);
-    if (adjustmentRemoveTimerRef.current) clearTimeout(adjustmentRemoveTimerRef.current);
-    adjustmentExitTimerRef.current = null;
-    adjustmentRemoveTimerRef.current = null;
-    setAdjustmentFeedback({ key, value, phase: 'visible' });
-    adjustmentExitTimerRef.current = setTimeout(() => {
-      adjustmentExitTimerRef.current = null;
-      setAdjustmentFeedback((current) =>
-        current ? { ...current, phase: 'exiting' } : null
-      );
-      adjustmentRemoveTimerRef.current = setTimeout(() => {
-        adjustmentRemoveTimerRef.current = null;
-        setAdjustmentFeedback(null);
-      }, ADJUSTMENT_FEEDBACK_EXIT_MS);
-    }, ADJUSTMENT_FEEDBACK_HOLD_MS);
-  }, []);
-
-  const updateSetting = useCallback(
-    (key: AdjustableSetting, value: number, showFeedback = false) => {
-      const limit =
-        key === 'speed' ? SPEED_LIMITS : key === 'fontSize' ? FONT_LIMITS : MARGIN_LIMITS;
-      const normalizedValue = clampToLimit(value, limit);
-      const current = settingsRef.current;
-      if (current[key] === normalizedValue) return;
-      const next = { ...current, [key]: normalizedValue };
-      settingsRef.current = next;
-      settingsDirtyRef.current = true;
-      setSettingsState(next);
-      if (showFeedback) showAdjustmentFeedback(key, normalizedValue);
-    },
-    [showAdjustmentFeedback]
-  );
 
   const applyAction = useCallback(
     (action: GamepadAction) => {
@@ -646,7 +449,7 @@ function Prompter({
       document.removeEventListener('visibilitychange', onVisibility);
       wakeLoopRef.current = () => undefined;
     };
-  }, [requireEngine, requireController]);
+  }, [requireEngine, requireController, setPlaying, settingsRef]);
 
   // Once playback is underway, give the controls one second before fading
   // them away. Any setting interaction or open panel restarts the idle period.
@@ -677,39 +480,7 @@ function Prompter({
     }
   }, [controlsVisible]);
 
-  // Teclado: con los controles ocultos no hay superficie táctil que los
-  // devuelva. Cualquier tecla los revela; Tab enfoca Play directamente y
-  // Espacio pausa/reanuda, también como atajo con los controles visibles.
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (panelRef.current !== 'none') return;
-      if (event.metaKey || event.ctrlKey || event.altKey) return;
-      if (
-        event.target instanceof HTMLElement &&
-        event.target.closest('button, a[href], input, textarea, select, [tabindex]')
-      ) {
-        return;
-      }
-      if (event.key === 'Tab') {
-        event.preventDefault();
-        setControlsVisible(true);
-        requestAnimationFrame(() => playButtonRef.current?.focus());
-        return;
-      }
-      if (event.key === 'Escape') {
-        setControlsVisible(true);
-        return;
-      }
-      if (event.key === ' ') {
-        event.preventDefault();
-        togglePlayRef.current(true);
-        return;
-      }
-      setControlsVisible(true);
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
+  usePrompterKeyboard({ panelRef, togglePlayRef, playButtonRef, revealControls });
 
   // Scroll manual táctil + tap para mostrar/ocultar controles.
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -741,14 +512,6 @@ function Prompter({
     '--prompter-font-size': `${settings.fontSize}px`,
     '--prompter-margin': `${settings.horizontalMargin}%`
   });
-  const adjustmentStyle = adjustmentFeedback
-    ? cssVars({
-        '--adjustment-progress': `${adjustmentProgress(
-          adjustmentFeedback.key,
-          adjustmentFeedback.value
-        )}%`
-      })
-    : undefined;
 
   return (
     <main className={styles.page} data-testid="prompter-page">
@@ -761,43 +524,13 @@ function Prompter({
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
       >
-        <div ref={contentRef} className={styles.content} style={contentStyle} data-testid="prompter-content">
-          <div
-            role="heading"
-            aria-level={1}
-            className={`${styles.heading} ${styles.scriptTitleHeading}`}
-            data-block-type="script-title"
-          >
-            {script.title}
-          </div>
-          {blocks.map((block, index) =>
-            block.type === 'heading' ? (
-              <div
-                key={index}
-                ref={(el) => {
-                  blockElsRef.current[index] = el;
-                }}
-                role="heading"
-                aria-level={block.level}
-                className={styles.heading}
-                data-block-type="heading"
-              >
-                {block.text}
-              </div>
-            ) : (
-              <p
-                key={index}
-                ref={(el) => {
-                  blockElsRef.current[index] = el;
-                }}
-                className={styles.text}
-                data-block-type="text"
-              >
-                {block.text}
-              </p>
-            )
-          )}
-        </div>
+        <ReadingSurface
+          title={script.title}
+          blocks={blocks}
+          contentStyle={contentStyle}
+          contentRef={contentRef}
+          blockElsRef={blockElsRef}
+        />
       </div>
 
       {countdown !== null && (
@@ -810,41 +543,13 @@ function Prompter({
       {storageError && (
         <div className={styles.storageError} role="alert">
           <span>{storageError}</span>
-          <button type="button" onClick={() => setStorageError(null)}>
+          <button type="button" onClick={dismissStorageError}>
             Dismiss
           </button>
         </div>
       )}
 
-      {adjustmentFeedback && (
-        <div
-          className={`${styles.adjustmentFeedback} ${
-            adjustmentFeedback.phase === 'exiting' ? styles.adjustmentFeedbackExiting : ''
-          }`}
-          style={adjustmentStyle}
-          data-testid="adjustment-feedback"
-          data-setting={adjustmentFeedback.key}
-          data-phase={adjustmentFeedback.phase}
-          role="status"
-          aria-live="polite"
-        >
-          <span className={styles.adjustmentLabel}>
-            {ADJUSTMENT_DISPLAY[adjustmentFeedback.key].label}
-          </span>
-          <strong
-            className={styles.adjustmentValue}
-            data-testid="adjustment-feedback-value"
-          >
-            <span>{adjustmentFeedback.value}</span>
-            {ADJUSTMENT_DISPLAY[adjustmentFeedback.key].unit && (
-              <span className={styles.adjustmentUnit}>
-                {ADJUSTMENT_DISPLAY[adjustmentFeedback.key].unit}
-              </span>
-            )}
-          </strong>
-          <span className={styles.adjustmentMeter} aria-hidden="true" />
-        </div>
-      )}
+      {adjustmentFeedback && <AdjustmentFeedbackToast feedback={adjustmentFeedback} />}
 
       {controlsVisible && !playing && (
           <header className={styles.topBar} data-testid="top-controls">
