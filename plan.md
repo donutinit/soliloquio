@@ -52,7 +52,7 @@ through the GitHub Actions gate. Production deployment is deliberately out of sc
 - [x] Add a tested Content Security Policy and harden service-worker cache headers.
 - [x] Pin GitHub Actions and container bases to immutable commits/digests.
 - [x] Prevent an existing commit-addressed image tag from being overwritten.
-- [ ] Protect `main`, require the CI check, require action SHA pinning where GitHub permits, and
+- [x] Protect `main`, require the CI check, require action SHA pinning where GitHub permits, and
   enable dependency security updates.
 
 ## 7. Dependencies and maintainability
@@ -62,15 +62,15 @@ through the GitHub Actions gate. Production deployment is deliberately out of sc
 - [x] Remove obsolete update-banner styles.
 - [x] Extract cohesive prompter responsibilities where doing so reduces the current hotspot
   without destabilizing playback.
-- [ ] Update README validation, browser-support, update, and release documentation.
+- [x] Update README validation, browser-support, update, and release documentation.
 
 ## Completion gate
 
-- [ ] `npm run typecheck`
-- [ ] `npm run lint`
-- [ ] `npm test -- --run`
-- [ ] `npm run build`
-- [ ] Chromium and WebKit Playwright suites
-- [ ] `git diff --check`
-- [ ] Exact final commit green in GitHub Actions, including multi-architecture image publication
-- [ ] Clean worktree with no unrelated or generated artifacts
+- [x] `npm run typecheck`
+- [x] `npm run lint`
+- [x] `npm test -- --run`
+- [x] `npm run build`
+- [x] Chromium and WebKit Playwright suites
+- [x] `git diff --check`
+- [x] Exact final commit green in GitHub Actions, including multi-architecture image publication
+- [x] Clean worktree with no unrelated or generated artifacts

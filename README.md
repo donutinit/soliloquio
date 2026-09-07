@@ -13,9 +13,15 @@ built to be driven hands-off with a Bluetooth controller.
 This project is maintained without Node or npm on the development host:
 
 - **Validation:** typecheck, lint, Vitest, build, and Playwright run in GitHub Actions on every
-  push and pull request through `.github/workflows/ci.yml`.
+  push and pull request through `.github/workflows/ci.yml`. The E2E gate runs a Chromium project
+  (including simulated-gamepad coverage) and a WebKit project for browser-portable workflows; a
+  green push also publishes the multi-architecture container image.
 - **Lockfile:** regenerate `package-lock.json` with the manual `lockfile.yml` workflow, download
   its artifact, and commit the result.
+- **Supply chain:** every GitHub Action is pinned to a full commit SHA (enforced by a static
+  config test), container base images are pinned by digest, `main` rejects force pushes and
+  deletions with the CI check required for non-administrators, and Dependabot security updates
+  are enabled.
 - If Docker is available elsewhere, an optional local check is:
   `docker run --rm -it -v "$PWD":/app -w /app node:24-alpine sh -c "npm ci && npm test -- --run"`
 
@@ -28,7 +34,7 @@ src/
   pages/          Script library/editor and teleprompter
   features/       Markdown, sections, scrolling, gamepad, settings, import, backup
   services/       IndexedDB, PWA registration, screen wake lock
-tests/e2e/        Playwright coverage for Chromium
+tests/e2e/        Playwright coverage (Chromium and WebKit projects)
 deploy/           Server Compose file
 scripts/          PWA icon generation and shaolin deployment
 ```
@@ -202,22 +208,35 @@ the combinations as L4/R4/PL/PR and consumes their component buttons so they do 
 Select or the face-button action. Browsers that expose additional raw button indices remain
 supported directly.
 
+## Browser support
+
+- The product targets iOS Safari and the installed home-screen PWA; the reading surface works in
+  any modern browser.
+- CI covers Chromium and WebKit. Gamepad coverage runs only in the Chromium project with a
+  simulated Gamepad API, because WebKit cannot provide gamepads to Playwright.
+- Wake Lock, sharing, and file pickers degrade gracefully when the browser does not support them
+  or denies permission; a capability failure never blocks the core reader.
+- Final validation on iOS Safari with a physical controller still requires real hardware.
+
 ## Safari and iOS notes
 
 - Safari exposes a controller only after a button is pressed while the page is in the foreground.
 - Screen Wake Lock requires a supported browser and may be denied in Low Power Mode.
-- Final validation on iOS Safari and a physical DualShock 4 still requires real hardware. CI uses
-  Chromium and a simulated Gamepad API.
 
 ## Container image
 
 CI publishes a multi-architecture image for `linux/amd64` and `linux/arm64` to
 `ghcr.io/donutinit/soliloquio`. Images receive `latest`, commit-addressed `sha-<commit>`, and
-semantic version tags. The build uses `node:24-alpine` and serves only the final `dist/`
-directory from `caddy:2-alpine`.
+semantic version tags. The build uses a digest-pinned `node:24-alpine` builder and serves only the
+final `dist/` directory from a digest-pinned `caddy:2-alpine` runtime.
 
-The document, manifest, and service worker use `no-cache`; hashed assets are immutable. The image
-package must remain public so deployment can pull it anonymously.
+Commit-addressed tags are immutable: CI refuses to overwrite an existing `sha-<commit>` image,
+and pushing a `v*` tag repoints its release tags at the image of that exact commit.
+
+The document, manifest, and service worker are served with `no-store, no-cache, must-revalidate`
+plus `CDN-Cache-Control: no-store`; hashed assets are immutable. Responses carry a restrictive
+Content-Security-Policy and a Permissions-Policy that leaves gamepad and wake-lock access to the
+app itself. The image package must remain public so deployment can pull it anonymously.
 
 ## Deployment to `shaolin`
 

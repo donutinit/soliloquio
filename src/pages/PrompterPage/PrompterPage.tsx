@@ -298,7 +298,7 @@ function Prompter({
           break;
       }
     },
-    [togglePlay, resetToStart, exitToScripts, jumpToSection, updateSetting, sections.length]
+    [togglePlay, resetToStart, exitToScripts, jumpToSection, updateSetting, sections.length, settingsRef]
   );
   const applyActionRef = useRef(applyAction);
   applyActionRef.current = applyAction;
