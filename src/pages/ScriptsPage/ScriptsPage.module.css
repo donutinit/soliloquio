@@ -25,10 +25,10 @@
   display: flex;
   gap: 0;
   padding: 2px;
-  border: 1px solid rgb(255 255 255 / 9%);
+  border: 1px solid var(--white-09);
   border-radius: 24px;
   background: var(--surface);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 14%);
+  box-shadow: 0 8px 24px var(--black-14);
 }
 
 .headerIconButton,
@@ -41,7 +41,7 @@
   place-items: center;
   border: 0;
   border-radius: 14px;
-  background: transparent;
+  background: var(--transparent);
 }
 
 .importControl {
@@ -69,14 +69,14 @@
 }
 
 .importControl:focus-within {
-  outline: 3px solid color-mix(in srgb, var(--focus) 35%, transparent);
+  outline: 3px solid var(--focus);
   outline-offset: 2px;
 }
 
 .primaryIconButton {
   border-radius: 20px;
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-ink);
 }
 
 .searchRow {
@@ -225,10 +225,10 @@
   min-height: 168px;
   display: flex;
   overflow: hidden;
-  border: 1px solid rgb(255 255 255 / 8%);
+  border: 1px solid var(--white-08);
   border-radius: 20px;
   background: var(--surface);
-  box-shadow: 0 8px 22px rgb(0 0 0 / 13%);
+  box-shadow: 0 8px 22px var(--black-13);
   transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
 }
 
@@ -239,14 +239,14 @@
   position: absolute;
   inset: 0;
   z-index: 2;
-  border: 3px solid transparent;
+  border: 3px solid var(--transparent);
   border-radius: 19px;
   pointer-events: none;
 }
 
 :global([data-gamepad-nav]) .card:focus-within {
   transform: translateY(-1px);
-  box-shadow: 0 14px 34px rgb(0 0 0 / 28%);
+  box-shadow: 0 14px 34px var(--black-28);
 }
 
 :global([data-gamepad-nav]) .card:focus-within::after,
@@ -272,6 +272,7 @@
   border: 0;
   background: none;
   text-align: left;
+  white-space: normal;
 }
 
 .cardTitle {
@@ -283,6 +284,7 @@
 }
 
 .cardExcerpt {
+  width: 100%;
   color: var(--text-dim);
   font-size: 13px;
   line-height: 1.45;
@@ -313,7 +315,7 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  background: rgb(0 0 0 / 72%);
+  background: var(--black-72);
   animation: fadeIn 140ms ease-out;
 }
 
@@ -330,9 +332,9 @@
   border-bottom: 0;
   border-radius: 24px 24px 0 0;
   background: var(--surface-2);
-  box-shadow: 0 -18px 60px rgb(0 0 0 / 35%);
+  box-shadow: 0 -18px 60px var(--black-35);
   animation: sheetUp 180ms ease-out;
-  scrollbar-color: var(--border-strong) transparent;
+  scrollbar-color: var(--border-strong) var(--transparent);
   scrollbar-width: thin;
 }
 
@@ -582,7 +584,7 @@
   height: 20px;
   border-radius: 50%;
   background: var(--text-dim);
-  box-shadow: 0 2px 6px rgb(0 0 0 / 32%);
+  box-shadow: 0 2px 6px var(--black-32);
   transition: transform 140ms ease, background 140ms ease;
 }
 
@@ -593,12 +595,12 @@
 
 .switchControl input:checked + span::after {
   transform: translateX(18px);
-  background: #fff;
+  background: var(--reading-text);
 }
 
 .switchControl:focus-within {
   border-radius: 999px;
-  outline: 3px solid color-mix(in srgb, var(--focus) 28%, transparent);
+  outline: 3px solid var(--focus);
   outline-offset: 1px;
 }
 
@@ -608,7 +610,7 @@
 
 .appSettingRow select:focus-visible {
   border-color: var(--focus);
-  outline: 3px solid color-mix(in srgb, var(--focus) 28%, transparent);
+  outline: 3px solid var(--focus);
   outline-offset: 1px;
 }
 
@@ -891,7 +893,7 @@
   border-radius: 12px;
   background: var(--surface);
   color: var(--text-dim);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   word-break: break-all;
 }
@@ -964,7 +966,7 @@
 
 .editorTitle {
   padding: 8px 6px;
-  border: 1px solid transparent;
+  border: 1px solid var(--transparent);
   border-radius: 10px;
   background: none;
   font-size: 24px;
@@ -983,18 +985,18 @@
   resize: none;
 }
 
-.editorContent:focus,
-.search:focus {
+.editorContent:focus-visible,
+.search:focus-visible {
   border-color: var(--focus);
-  outline: 3px solid color-mix(in srgb, var(--focus) 28%, transparent);
+  outline: 3px solid var(--focus);
   outline-offset: 1px;
 }
 
-.editorTitle:focus {
-  border-color: color-mix(in srgb, var(--focus) 55%, transparent);
-  outline: 2px solid color-mix(in srgb, var(--focus) 18%, transparent);
+.editorTitle:focus-visible {
+  border-color: var(--focus);
+  outline: 3px solid var(--focus);
   outline-offset: 1px;
-  background: color-mix(in srgb, var(--focus) 4%, transparent);
+  background: color-mix(in srgb, var(--focus) 4%, var(--transparent));
 }
 
 .visuallyHidden {
@@ -1026,7 +1028,7 @@
   .card:hover {
     border-color: var(--border-strong);
     transform: translateY(-1px);
-    box-shadow: 0 12px 28px rgb(0 0 0 / 20%);
+    box-shadow: 0 12px 28px var(--black-20);
   }
 }
 
@@ -1086,6 +1088,17 @@
 
   .headerActions {
     padding: 1px;
+  }
+}
+
+@media (max-width: 340px) {
+  .header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .headerActions {
+    align-self: flex-end;
   }
 }
 

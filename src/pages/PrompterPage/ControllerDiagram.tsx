@@ -1,9 +1,9 @@
 import type { GamepadAction } from '../../types';
 import type { ControllerFamily } from '../../features/gamepad/controllerIdentity';
-import dualShock4Image from '../../assets/controllers/dualshock-4.png';
-import xboxImage from '../../assets/controllers/xbox.png';
-import microImage from '../../assets/controllers/8bitdo-micro.png';
-import pro3Image from '../../assets/controllers/8bitdo-pro-3.png';
+import dualShock4Image from '../../assets/controllers/dualshock-4.webp';
+import xboxImage from '../../assets/controllers/xbox.webp';
+import microImage from '../../assets/controllers/8bitdo-micro.webp';
+import pro3Image from '../../assets/controllers/8bitdo-pro-3.webp';
 import styles from './PrompterPage.module.css';
 
 export type ControllerDiagramEntry = {

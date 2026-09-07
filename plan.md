@@ -31,18 +31,18 @@ through the GitHub Actions gate. Production deployment is deliberately out of sc
 
 ## 4. Cohesive, accessible interface
 
-- [ ] Consolidate colors and font stacks into named global tokens.
-- [ ] Generate the PWA favicon/icons and manifest colors from the same brand token source.
-- [ ] Replace translucent low-contrast focus rings with an immediate 3:1+ indicator.
-- [ ] Preserve the purpose-built black/white reading surface.
-- [ ] Verify 320, 375, 414, and 768 px layouts and prevent horizontal overflow.
+- [x] Consolidate colors and font stacks into named global tokens.
+- [x] Generate the PWA favicon/icons and manifest colors from the same brand token source.
+- [x] Replace translucent low-contrast focus rings with an immediate 3:1+ indicator.
+- [x] Preserve the purpose-built black/white reading surface.
+- [x] Verify 320, 375, 414, and 768 px layouts and prevent horizontal overflow.
 - [ ] Add automated accessibility checks for core library and prompter states.
 
 ## 5. Performance and offline weight
 
 - [x] Stop rescanning and cleaning every full script body on each search keystroke/render.
 - [x] Cache lightweight library presentation/search data until the script collection changes.
-- [ ] Optimize oversized controller artwork and keep nonessential guide images out of precache.
+- [x] Optimize oversized controller artwork and keep nonessential guide images out of precache.
 - [x] Add deterministic tests for search/excerpt indexing.
 
 ## 6. Browser and security coverage
@@ -59,7 +59,7 @@ through the GitHub Actions gate. Production deployment is deliberately out of sc
 
 - [ ] Upgrade vulnerable development tooling and regenerate `package-lock.json`.
 - [ ] Confirm the resulting dependency tree has no known audit findings.
-- [ ] Remove obsolete update-banner styles.
+- [x] Remove obsolete update-banner styles.
 - [ ] Extract cohesive prompter responsibilities where doing so reduces the current hotspot
   without destabilizing playback.
 - [ ] Update README validation, browser-support, update, and release documentation.

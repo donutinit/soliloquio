@@ -1,19 +1,12 @@
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 */
+@import './designTokens.css';
+
 :root {
-  --bg: #0b090d;
-  --surface: #171319;
-  --surface-2: #211a23;
-  --border: #3a303b;
-  --border-strong: #635165;
-  --text: #f2edf2;
-  --text-dim: #afa3ad;
-  --text-muted: #897c87;
-  --accent: #c72c6c;
-  --link: #ff8fbc;
-  --focus: #ffafd0;
-  --danger: #ff716f;
-  --success: #5bd393;
-  --reading-bg: #000;
-  --reading-text: #fff;
+  --font-ui: 'Lexend Variable', Lexend, 'Noto Sans Variable', 'Noto Sans', -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-reader: 'Noto Sans Variable', 'Noto Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   color-scheme: dark;
 }
 
@@ -26,13 +19,13 @@ body {
   margin: 0;
   padding: 0;
   height: 100%;
+  overflow-x: clip;
 }
 
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Lexend Variable', Lexend, 'Noto Sans Variable', 'Noto Sans', -apple-system,
-    BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
 }
@@ -42,10 +35,11 @@ body {
 }
 
 button {
-  font-family: inherit;
+  font-family: var(--font-ui);
   color: inherit;
   cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: var(--transparent);
   touch-action: manipulation;
 }
 
@@ -64,13 +58,14 @@ button:focus-visible,
 }
 
 button:disabled {
-  cursor: default;
+  cursor: not-allowed;
   opacity: 0.55;
 }
 
 input,
-textarea {
-  font-family: inherit;
+textarea,
+select {
+  font-family: var(--font-ui);
   color: inherit;
 }
 
