@@ -3,8 +3,8 @@
 *A teleprompter for your soliloquy.*
 
 An offline-first teleprompter PWA designed for iPhone and Safari. It has no backend, accounts,
-or analytics. Scripts and preferences live only in the browser through IndexedDB, and playback
-can be controlled with a DualShock 4 or another standard gamepad.
+or analytics. Scripts and preferences live only in the browser through IndexedDB, and reading is
+built to be driven hands-off with a Bluetooth controller.
 
 **Public URL:** https://soli.vondiego.com
 
@@ -94,6 +94,21 @@ home-screen PWA is generally more resilient.
   checks the service worker directly against the server, and installs a newer version immediately.
 
 ## Controllers
+
+Soliloquio is designed around controller-driven delivery. In the intended setup the iPhone sits
+mounted next to the lens as the prompter, and a Bluetooth controller — in your hand, on the desk,
+or a compact 8BitDo Micro held out of frame — runs the whole take:
+
+- Start and pause from where you stand, without walking to the phone or breaking eyeline.
+- Hold a face button to scrub back for a retake and find your place; triggers scroll
+  proportionally to how far they are pressed.
+- Jump between sections mid-take, and nudge speed, text size, or margins without opening panels:
+  adjustments appear as a centered HUD over the text and fade away on their own.
+- Operate the entire app the same way — the library, settings, and every panel answer to the
+  d-pad or stick — so a recording session never requires touching the screen.
+- Buttons vary between consoles and browsers, and people hold controllers differently while
+  speaking. That is why every reader action can be remapped, hold behaviors travel with the
+  action rather than the button, and the layout can be reset at any time.
 
 Pair a Bluetooth controller in iOS settings (for a DualShock 4, hold **PS + Share** until the
 light bar flashes). Once the app is open, press any button so the browser exposes the
