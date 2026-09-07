@@ -59,12 +59,16 @@ test('al detectar el mando enfoca el primer guion y permite navegarlo', async ({
   await pressNav(page, DPAD_DOWN);
   await expect(page.getByTestId('open-prompter').nth(1)).toBeFocused();
 
-  // The overflow menu remains available to touch/keyboard, but controller
-  // confirm must neither open it nor leave focus trapped on it.
-  await card.getByTestId('card-menu').focus();
+  // The d-pad can reach the overflow menu, so controller-only operation also
+  // covers editing, exporting, duplicating, and deleting scripts.
+  await cardMain.focus();
+  await pressNav(page, DPAD_RIGHT);
+  await expect(card.getByTestId('card-menu')).toBeFocused();
   await pressNav(page, SOUTH);
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.getByTestId('menu-edit')).toBeFocused();
+  await pressNav(page, EAST);
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Help' })).toBeFocused();
 
   // Sur activa el elemento enfocado: con una tarjeta enfocada, abre el prompter.
   await cardMain.focus();
@@ -117,9 +121,7 @@ test('Share opens the controller guide and R3 opens section navigation', async (
   await waitForNavReady(page);
   await expect(page.getByRole('button', { name: 'Done' })).toBeFocused();
   await pressNav(page, DPAD_DOWN);
-  await expect
-    .poll(() => page.evaluate(() => document.activeElement?.getAttribute('data-testid') ?? ''))
-    .toMatch(/^controller-guide-/);
+  await expect(page.getByRole('button', { name: 'Done' })).toBeFocused();
 
   await pressNav(page, EAST);
   await expect(page.getByTestId('controller-guide')).toHaveCount(0);

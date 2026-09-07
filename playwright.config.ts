@@ -10,7 +10,17 @@ export default defineConfig({
     viewport: { width: 390, height: 844 },
     trace: 'on-first-retry'
   },
-  projects: [{ name: 'chromium', use: { browserName: 'chromium' } }],
+  projects: [
+    {
+      name: 'chromium',
+      use: {
+        browserName: 'chromium',
+        launchOptions: {
+          args: ['--host-resolver-rules=MAP soli.vondiego.com 127.0.0.1', '--no-proxy-server']
+        }
+      }
+    }
+  ],
   webServer: {
     command: 'npm run preview',
     url: 'http://127.0.0.1:4173',

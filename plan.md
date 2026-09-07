@@ -12,7 +12,7 @@ through the GitHub Actions gate. Production deployment is deliberately out of sc
 - [x] Register App Settings saves with the global pending-save coordinator.
 - [x] Surface an actionable update error instead of silently discarding failed saves.
 - [x] Distinguish shared, downloaded, and cancelled exports; never report cancellation as success.
-- [ ] Add unit and E2E regression coverage for rejected saves and cancelled backups.
+- [x] Add unit and E2E regression coverage for rejected saves and cancelled backups.
 
 ## 2. One canonical public origin
 
@@ -20,14 +20,14 @@ through the GitHub Actions gate. Production deployment is deliberately out of sc
 - [x] Warn visitors on the legacy origin that browser storage is separate.
 - [x] Give legacy-origin users a direct backup-first migration path without redirecting away from
   their existing IndexedDB data.
-- [ ] Cover the migration notice and backup action with E2E tests.
+- [x] Cover the migration notice and backup action with E2E tests.
 
 ## 3. Accurate, controller-complete interaction
 
-- [ ] Include script option menus in controller spatial navigation.
-- [ ] Update controller navigation tests and product copy to match the supported workflow.
-- [ ] Remove non-interactive controller-guide items from the tab/gamepad order.
-- [ ] Correct countdown and factory-reset descriptions so they match actual behavior.
+- [x] Include script option menus in controller spatial navigation.
+- [x] Update controller navigation tests and product copy to match the supported workflow.
+- [x] Remove non-interactive controller-guide items from the tab/gamepad order.
+- [x] Correct countdown and factory-reset descriptions so they match actual behavior.
 
 ## 4. Cohesive, accessible interface
 
@@ -40,10 +40,10 @@ through the GitHub Actions gate. Production deployment is deliberately out of sc
 
 ## 5. Performance and offline weight
 
-- [ ] Stop rescanning and cleaning every full script body on each search keystroke/render.
-- [ ] Cache lightweight library presentation/search data until the script collection changes.
+- [x] Stop rescanning and cleaning every full script body on each search keystroke/render.
+- [x] Cache lightweight library presentation/search data until the script collection changes.
 - [ ] Optimize oversized controller artwork and keep nonessential guide images out of precache.
-- [ ] Add deterministic tests for search/excerpt indexing.
+- [x] Add deterministic tests for search/excerpt indexing.
 
 ## 6. Browser and security coverage
 

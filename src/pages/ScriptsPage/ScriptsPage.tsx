@@ -1,5 +1,6 @@
 import {
   useCallback,
+  useDeferredValue,
   useEffect,
   useMemo,
   useRef,
@@ -29,7 +30,10 @@ import { checkForPWAUpdate } from '../../services/pwa';
 import { applyKeepScreenAwake } from '../../services/keepAwake';
 import { useModalFocus } from '../../app/useModalFocus';
 import { Icon } from '../../components/Icon';
-import { scriptExcerpt } from '../../features/scripts/excerpt';
+import {
+  buildScriptLibraryIndex,
+  filterScriptLibraryIndex
+} from '../../features/scripts/libraryIndex';
 import { SCRIPT_CARD_TITLE_LIMITS } from '../../features/settings/settings';
 import { cssVars } from '../../styles/cssVars';
 import { registerPendingSaveFlush } from '../../services/pendingSaves';
@@ -153,18 +157,12 @@ export function ScriptsPage({
     restoredGamepadFocusRef.current = true;
   }, [initialGamepadFocusId, scripts]);
 
-  const libraryEntries = useMemo(
-    () => scripts.map((script) => ({
-      script,
-      excerpt: scriptExcerpt(script.content) || 'Empty',
-      searchText: `${script.title}\n${script.content}`.toLocaleLowerCase()
-    })),
-    [scripts]
+  const libraryEntries = useMemo(() => buildScriptLibraryIndex(scripts), [scripts]);
+  const deferredQuery = useDeferredValue(query);
+  const filtered = useMemo(
+    () => filterScriptLibraryIndex(libraryEntries, deferredQuery),
+    [deferredQuery, libraryEntries]
   );
-  const normalizedQuery = query.trim().toLocaleLowerCase();
-  const filtered = normalizedQuery
-    ? libraryEntries.filter(({ searchText }) => searchText.includes(normalizedQuery))
-    : libraryEntries;
   const legacyOrigin = isLegacyAppOrigin(window.location.hostname);
 
   const handleNew = async () => {
@@ -579,7 +577,6 @@ export function ScriptsPage({
                 type="button"
                 className={styles.cardMenuButton}
                 data-testid="card-menu"
-                data-gamepad-nav-exclude
                 aria-label={`Options for ${script.title}`}
                 disabled={busy}
                 onClick={() => openMenu(script.id)}

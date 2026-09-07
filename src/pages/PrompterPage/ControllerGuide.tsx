@@ -125,7 +125,7 @@ export function ControllerGuide({
 
           <ol className={styles.controllerLegend} aria-label="Controller button assignments">
             {entries.map(({ action, marker, buttonIndex, hint }) => (
-              <li key={action} data-testid={`controller-guide-${action}`} tabIndex={0}>
+              <li key={action} data-testid={`controller-guide-${action}`}>
                 <span className={styles.controllerLegendMarker}>{marker}</span>
                 <span className={styles.controllerLegendText}>
                   <strong>{actionLabel(action)}</strong>

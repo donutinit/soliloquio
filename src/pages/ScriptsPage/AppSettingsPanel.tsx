@@ -67,7 +67,7 @@ export function AppSettingsPanel({
           <div className={styles.appSettingRow}>
             <label htmlFor="countdown-seconds">
               <strong>Start countdown</strong>
-              <span>Used before a fresh start. Resuming from pause stays immediate.</span>
+              <span>Runs before every start, including resume.</span>
             </label>
             <select
               id="countdown-seconds"
@@ -181,8 +181,8 @@ export function AppSettingsPanel({
         <section className={styles.dangerZone}>
           <h3>Factory reset</h3>
           <p>
-            Permanently erases every script and setting, then restores an empty library and the
-            defaults.
+            Permanently erases every script and setting, then restores the first-run Read me first
+            script and default settings.
           </p>
           {confirmingReset ? (
             <div className={styles.resetConfirmation} role="alert">
