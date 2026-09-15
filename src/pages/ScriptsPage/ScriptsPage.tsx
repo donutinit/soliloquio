@@ -352,6 +352,12 @@ export function ScriptsPage({
       'The script card title size could not be saved.'
     );
 
+  const updateSingleColumnLibrary = (enabled: boolean) =>
+    updateAppSettings(
+      { singleColumnLibrary: enabled },
+      'The script card layout could not be saved.'
+    );
+
   const updateKeepAwake = (enabled: boolean) =>
     updateAppSettings({ keepScreenAwake: enabled }, 'The screen setting could not be saved.');
 
@@ -412,6 +418,8 @@ export function ScriptsPage({
 
   const menuScript = menuId ? scripts.find((script) => script.id === menuId) : undefined;
   const editingScript = editingId ? scripts.find((script) => script.id === editingId) : undefined;
+  // Mientras cargan los ajustes se usa el valor por defecto (una columna) para evitar un salto.
+  const singleColumnLibrary = appSettings?.singleColumnLibrary ?? true;
   const pageStyle = cssVars({
     '--script-card-title-size': `${
       appSettings?.scriptCardTitleSize ?? SCRIPT_CARD_TITLE_LIMITS.default
@@ -555,7 +563,13 @@ export function ScriptsPage({
           )}
         </div>
       ) : (
-        <ul className={styles.grid}>
+        <ul
+          className={
+            singleColumnLibrary ? `${styles.grid} ${styles.singleColumn}` : styles.grid
+          }
+          data-testid="script-grid"
+          data-layout={singleColumnLibrary ? 'single-column' : 'grid'}
+        >
           {filtered.map(({ script, excerpt }) => (
             <li key={script.id} className={styles.card} data-testid="script-card">
               <button
@@ -678,6 +692,7 @@ export function ScriptsPage({
           busy={busy || updateState === 'checking'}
           onCountdownChange={(seconds) => void updateCountdown(seconds)}
           onScriptCardTitleSizeChange={(size) => void updateScriptCardTitleSize(size)}
+          onSingleColumnLibraryChange={(enabled) => void updateSingleColumnLibrary(enabled)}
           onKeepAwakeChange={(enabled) => void updateKeepAwake(enabled)}
           onOpenGamepad={() => setGamepadOpen(true)}
           onCheckForUpdate={() => void handleCheckForUpdate()}

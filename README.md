@@ -64,6 +64,9 @@ scripts/          PWA icon generation and shaolin deployment
   `VID10`.
 - Script cards omit timestamps and use 25 px titles by default; their title size is adjustable in
   App Settings for easier reading at a distance.
+- The **One card per row** toggle in App Settings (on by default) shows the library as a single
+  column of wide cards in both portrait and landscape; turn it off to restore the multi-column
+  grid on wider screens.
 - Export one script from its options menu or create a complete JSON backup from the download
   button in the library header.
 - Restoring a backup merges its scripts into the current library and restores its preferences.

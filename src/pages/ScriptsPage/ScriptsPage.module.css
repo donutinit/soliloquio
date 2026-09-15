@@ -220,6 +220,12 @@
   gap: 12px;
 }
 
+/* Una tarjeta por fila: rectángulos anchos tanto en vertical como en horizontal. */
+.singleColumn {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+
 .card {
   position: relative;
   min-height: 168px;
@@ -292,6 +298,14 @@
   display: -webkit-box;
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
+}
+
+.singleColumn .card {
+  min-height: 124px;
+}
+
+.singleColumn .cardExcerpt {
+  -webkit-line-clamp: 2;
 }
 
 .cardMenuButton {

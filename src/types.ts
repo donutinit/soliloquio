@@ -103,6 +103,7 @@ export type PrompterSettings = {
   fontSize: number;
   horizontalMargin: number;
   scriptCardTitleSize: number;
+  singleColumnLibrary: boolean;
   countdownSeconds: number;
   keepScreenAwake: boolean;
   controllerBindings: GamepadBindings;

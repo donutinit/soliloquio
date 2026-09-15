@@ -85,6 +85,46 @@ test('script card title size defaults to 25px and remains editable', async ({ pa
   await expect(page.getByTestId('card-title').first()).toHaveCSS('font-size', '26px');
 });
 
+test('shows one card per row in both orientations by default and can restore the grid', async ({
+  page
+}) => {
+  await createSampleScript(page, 'Welcome to Soliloquio');
+  const grid = page.getByTestId('script-grid');
+  const cards = page.getByTestId('script-card');
+  await expect(cards).toHaveCount(2);
+
+  const cardBoxes = async () => {
+    const first = await cards.nth(0).boundingBox();
+    const second = await cards.nth(1).boundingBox();
+    if (!first || !second) throw new Error('Script cards have no bounding box.');
+    return { first, second };
+  };
+
+  for (const viewport of [
+    { width: 390, height: 844 },
+    { width: 844, height: 390 }
+  ]) {
+    await page.setViewportSize(viewport);
+    await expect(grid).toHaveAttribute('data-layout', 'single-column');
+    const { first, second } = await cardBoxes();
+    expect(second.y).toBeGreaterThan(first.y + first.height - 1);
+    expect(Math.abs(second.x - first.x)).toBeLessThan(1);
+    expect(first.width).toBeGreaterThan(first.height);
+  }
+
+  await page.getByTestId('app-settings-button').click();
+  const toggle = page.getByTestId('single-column-setting');
+  await expect(toggle).toBeChecked();
+  await toggle.uncheck();
+  await page.getByRole('button', { name: 'Done' }).click();
+  await expect(grid).toHaveAttribute('data-layout', 'grid');
+  const { first, second } = await cardBoxes();
+  expect(Math.abs(second.y - first.y)).toBeLessThan(1);
+
+  await page.reload();
+  await expect(page.getByTestId('script-grid')).toHaveAttribute('data-layout', 'grid');
+});
+
 test('factory reset requires confirmation and restores the complete first-run state', async ({ page }) => {
   await page.getByTestId('new-script').click();
   await page.getByTestId('editor-title').fill('Temporary script');
@@ -96,6 +136,7 @@ test('factory reset requires confirmation and restores the complete first-run st
   await page.getByTestId('app-settings-button').click();
   await page.getByTestId('countdown-setting').selectOption('6');
   await page.getByTestId('keep-awake-setting').uncheck();
+  await page.getByTestId('single-column-setting').uncheck();
   await page.getByTestId('factory-reset').click();
   await expect(page.getByTestId('factory-reset-confirm')).toHaveText('Erase everything');
   await page.getByTestId('factory-reset-confirm').click();
@@ -110,4 +151,5 @@ test('factory reset requires confirmation and restores the complete first-run st
   await page.getByTestId('app-settings-button').click();
   await expect(page.getByTestId('countdown-setting')).toHaveValue('0');
   await expect(page.getByTestId('keep-awake-setting')).toBeChecked();
+  await expect(page.getByTestId('single-column-setting')).toBeChecked();
 });

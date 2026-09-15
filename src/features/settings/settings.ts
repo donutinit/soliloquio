@@ -39,6 +39,7 @@ export function defaultSettings(): PrompterSettings {
     fontSize: FONT_LIMITS.default,
     horizontalMargin: MARGIN_LIMITS.default,
     scriptCardTitleSize: SCRIPT_CARD_TITLE_LIMITS.default,
+    singleColumnLibrary: true,
     countdownSeconds: COUNTDOWN_LIMITS.default,
     keepScreenAwake: true,
     controllerBindings: { ...DEFAULT_GAMEPAD_BINDINGS }
@@ -153,6 +154,8 @@ export function normalizeSettings(raw: unknown): PrompterSettings {
       toFiniteNumber(partial.scriptCardTitleSize),
       SCRIPT_CARD_TITLE_LIMITS
     ),
+    // Solo un false explícito vuelve a la cuadrícula: datos antiguos quedan en una columna.
+    singleColumnLibrary: partial.singleColumnLibrary !== false,
     countdownSeconds: Math.round(
       clampToLimit(toFiniteNumber(partial.countdownSeconds), COUNTDOWN_LIMITS)
     ),

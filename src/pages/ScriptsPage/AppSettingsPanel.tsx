@@ -24,6 +24,7 @@ export function AppSettingsPanel({
   busy,
   onCountdownChange,
   onScriptCardTitleSizeChange,
+  onSingleColumnLibraryChange,
   onKeepAwakeChange,
   onOpenGamepad,
   onCheckForUpdate,
@@ -37,6 +38,7 @@ export function AppSettingsPanel({
   busy: boolean;
   onCountdownChange: (seconds: number) => void;
   onScriptCardTitleSizeChange: (size: number) => void;
+  onSingleColumnLibraryChange: (enabled: boolean) => void;
   onKeepAwakeChange: (enabled: boolean) => void;
   onOpenGamepad: () => void;
   onCheckForUpdate: () => void;
@@ -107,6 +109,23 @@ export function AppSettingsPanel({
               <output htmlFor="script-card-title-size" data-testid="card-title-size-value">
                 {settings.scriptCardTitleSize}px
               </output>
+            </span>
+          </div>
+          <div className={styles.appSettingRow}>
+            <label htmlFor="single-column-library">
+              <strong>One card per row</strong>
+              <span>Shows scripts as wide cards in portrait and landscape.</span>
+            </label>
+            <span className={styles.switchControl}>
+              <input
+                id="single-column-library"
+                type="checkbox"
+                data-testid="single-column-setting"
+                checked={settings.singleColumnLibrary}
+                disabled={busy}
+                onChange={(event) => onSingleColumnLibraryChange(event.target.checked)}
+              />
+              <span aria-hidden="true" />
             </span>
           </div>
           <div className={styles.appSettingRow}>

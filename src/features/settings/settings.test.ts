@@ -162,6 +162,13 @@ describe('normalizeSettings', () => {
     expect(normalizeSettings({ keepScreenAwake: false }).keepScreenAwake).toBe(false);
   });
 
+  it('shows one script card per row by default and only an explicit false restores the grid', () => {
+    expect(defaultSettings().singleColumnLibrary).toBe(true);
+    expect(normalizeSettings({}).singleColumnLibrary).toBe(true);
+    expect(normalizeSettings({ singleColumnLibrary: 0 }).singleColumnLibrary).toBe(true);
+    expect(normalizeSettings({ singleColumnLibrary: false }).singleColumnLibrary).toBe(false);
+  });
+
   it('keeps the countdown disabled by default and normalizes whole seconds', () => {
     expect(defaultSettings().countdownSeconds).toBe(0);
     expect(normalizeSettings({ countdownSeconds: 4.6 }).countdownSeconds).toBe(5);
