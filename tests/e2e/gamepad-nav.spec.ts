@@ -93,6 +93,8 @@ test('dentro de un modal el foco queda atrapado y Este lo cierra', async ({ page
   await pressNav(page, DPAD_DOWN);
   await expect(page.getByTestId('card-title-size-setting')).toBeFocused();
   await pressNav(page, DPAD_DOWN);
+  await expect(page.getByTestId('single-column-setting')).toBeFocused();
+  await pressNav(page, DPAD_DOWN);
   await expect(page.getByTestId('keep-awake-setting')).toBeFocused();
 
   await pressNav(page, EAST);
