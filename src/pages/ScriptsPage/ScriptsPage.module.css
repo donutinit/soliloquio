@@ -79,9 +79,11 @@
   color: var(--accent-ink);
 }
 
-/* Separadores finos entre acciones: una sola barra, no botones sueltos. */
+/* Separadores finos entre acciones: una sola barra, no botones sueltos. Se
+   pintan con una sombra interior para no restar ni un píxel al área táctil del
+   selector de archivos, que debe cubrir su control completo. */
 .headerActions > :not(:first-child) {
-  border-left: 1px solid var(--border);
+  box-shadow: inset 1px 0 0 var(--border);
 }
 
 .searchRow {
