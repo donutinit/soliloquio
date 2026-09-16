@@ -47,6 +47,26 @@ test('opening the prompter immediately flushes pending edits', async ({ page }) 
   await expect(page.locator('[data-block-type="text"]')).toHaveText('This must not be lost.');
 });
 
+test('switching edit routes shows the selected script instead of the previous draft', async ({ page }) => {
+  await createSampleScripts(page);
+  await cardByTitle(page, 'Quick notes').getByTestId('open-prompter').click();
+  const firstHash = await page.evaluate(() => window.location.hash);
+  await page.getByTestId('back-to-scripts').click();
+  await cardByTitle(page, 'Welcome to Soliloquio').getByTestId('open-prompter').click();
+  const secondHash = await page.evaluate(() => window.location.hash);
+  await page.getByTestId('back-to-scripts').click();
+
+  await page.evaluate((hash) => {
+    window.location.hash = hash.replace('/prompter/', '/edit/');
+  }, firstHash);
+  await expect(page.getByTestId('editor-title')).toHaveValue('Quick notes');
+  await page.evaluate((hash) => {
+    window.location.hash = hash.replace('/prompter/', '/edit/');
+  }, secondHash);
+  await expect(page.getByTestId('editor-title')).toHaveValue('Welcome to Soliloquio');
+  await expect(page.getByTestId('editor-content')).toHaveValue(/This sample script/);
+});
+
 test('dialogs trap focus and close with Escape', async ({ page }) => {
   await createSampleScript(page, 'Quick notes');
   await cardByTitle(page, 'Quick notes').getByTestId('card-menu').click();

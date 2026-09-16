@@ -17,6 +17,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
 /**
  * Validates a script at the backup boundary and copies only canonical fields.
  * Version 1 backups may contain retired or future extra properties; accepting
@@ -81,10 +85,20 @@ export function parseBackup(raw: string): SoliloquioBackup {
   if (!Array.isArray(parsed.scripts)) {
     throw new Error('The backup contains invalid scripts.');
   }
+  if (
+    !isRecord(parsed.settings) ||
+    !isFiniteNumber(parsed.settings.speed) ||
+    !isFiniteNumber(parsed.settings.fontSize) ||
+    !isFiniteNumber(parsed.settings.horizontalMargin)
+  ) {
+    throw new Error('The backup contains invalid settings.');
+  }
   const scripts: Script[] = [];
+  const ids = new Set<string>();
   for (const value of parsed.scripts) {
     const script = parseScript(value);
-    if (!script) throw new Error('The backup contains invalid scripts.');
+    if (!script || ids.has(script.id)) throw new Error('The backup contains invalid scripts.');
+    ids.add(script.id);
     scripts.push(script);
   }
   return {

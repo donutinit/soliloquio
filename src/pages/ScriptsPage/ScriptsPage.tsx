@@ -676,6 +676,7 @@ export function ScriptsPage({
 
       {editingScript && (
         <ScriptEditor
+          key={editingScript.id}
           script={editingScript}
           onSaved={refresh}
           onClose={() => {

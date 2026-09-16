@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Script } from '../../types';
 import { updateScript } from '../../services/database';
+import { DraftSaveQueue, type EditableScript } from '../../features/scripts/draftSaveQueue';
 import { registerPendingSaveFlush } from '../../services/pendingSaves';
 import { useModalFocus } from '../../app/useModalFocus';
 import { Icon } from '../../components/Icon';
@@ -9,15 +10,6 @@ import styles from './ScriptsPage.module.css';
 const AUTOSAVE_DEBOUNCE_MS = 500;
 
 type SaveState = 'saved' | 'pending' | 'saving' | 'error';
-type EditableScript = { title: string; content: string };
-
-function normalized(editable: EditableScript): EditableScript {
-  return { title: editable.title.trim() || 'Untitled', content: editable.content };
-}
-
-function sameEditable(a: EditableScript, b: EditableScript): boolean {
-  return a.title === b.title && a.content === b.content;
-}
 
 export function ScriptEditor({
   script,
@@ -35,53 +27,51 @@ export function ScriptEditor({
   const [saveState, setSaveState] = useState<SaveState>('saved');
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestRef = useRef<EditableScript>({ title, content });
-  const committedRef = useRef<EditableScript>({ title: script.title, content: script.content });
-  const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const saveQueueRef = useRef<DraftSaveQueue | null>(null);
   const mountedRef = useRef(true);
   latestRef.current = { title, content };
+  const saveQueue = saveQueueRef.current ?? new DraftSaveQueue(
+    { title: script.title, content: script.content },
+    () => latestRef.current,
+    (draft) => updateScript(script.id, draft),
+    onSaved
+  );
+  saveQueueRef.current = saveQueue;
 
   const persistLatest = useCallback((): Promise<void> => {
     if (timerRef.current) {
       clearTimeout(timerRef.current);
       timerRef.current = null;
     }
-    const payload = normalized(latestRef.current);
-    if (sameEditable(payload, committedRef.current)) {
-      if (mountedRef.current) setSaveState('saved');
-      return Promise.resolve();
-    }
     if (mountedRef.current) setSaveState('saving');
-    const operation = saveQueueRef.current.then(async () => {
-      try {
-        await updateScript(script.id, payload);
-        committedRef.current = payload;
-        await onSaved();
-        if (mountedRef.current && sameEditable(normalized(latestRef.current), payload)) {
-          setSaveState('saved');
-        }
-      } catch (error) {
+    return saveQueue.flush().then(
+      () => {
+        if (mountedRef.current) setSaveState('saved');
+      },
+      (error: unknown) => {
         if (mountedRef.current) setSaveState('error');
         throw error;
       }
-    });
-    saveQueueRef.current = operation.catch(() => undefined);
-    return operation;
-  }, [onSaved, script.id]);
+    );
+  }, [saveQueue]);
 
   useEffect(() => {
-    if (sameEditable(normalized({ title, content }), committedRef.current)) return;
+    if (saveQueue.isCurrentSaved()) return;
     setSaveState('pending');
     if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => void persistLatest(), AUTOSAVE_DEBOUNCE_MS);
+    timerRef.current = setTimeout(
+      () => void persistLatest().catch(() => undefined),
+      AUTOSAVE_DEBOUNCE_MS
+    );
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [content, persistLatest, title]);
+  }, [content, persistLatest, saveQueue, title]);
 
   // Route changes and page suspension must not discard edits still inside the debounce window.
   useEffect(() => {
     mountedRef.current = true;
-    const flushOnPageHide = () => void persistLatest();
+    const flushOnPageHide = () => void persistLatest().catch(() => undefined);
     window.addEventListener('pagehide', flushOnPageHide);
     // Una recarga automática (actualización) vacía la cola antes de recargar.
     const unregister = registerPendingSaveFlush(() => persistLatest());
@@ -90,14 +80,13 @@ export function ScriptEditor({
       mountedRef.current = false;
       window.removeEventListener('pagehide', flushOnPageHide);
       if (timerRef.current) clearTimeout(timerRef.current);
-      const payload = normalized(latestRef.current);
-      if (!sameEditable(payload, committedRef.current)) {
-        updateScript(script.id, payload).catch((error) => {
+      if (!saveQueue.isCurrentSaved()) {
+        void saveQueue.flush().catch((error) => {
           console.warn('Save on exit failed', error);
         });
       }
     };
-  }, [persistLatest, script.id]);
+  }, [persistLatest, saveQueue]);
 
   const close = async () => {
     try {
@@ -173,7 +162,10 @@ export function ScriptEditor({
         className={styles.editorTitle}
         value={title}
         placeholder="Title"
-        onChange={(event) => setTitle(event.target.value)}
+        onChange={(event) => {
+          latestRef.current = { ...latestRef.current, title: event.target.value };
+          setTitle(event.target.value);
+        }}
       />
       <label className={styles.visuallyHidden} htmlFor="editor-content">
         Script content
@@ -188,7 +180,10 @@ export function ScriptEditor({
             ? 'Write your script here. Markdown headings (#) create sections.'
             : 'Write your plain-text script here. Convert it to Markdown to create sections.'
         }
-        onChange={(event) => setContent(event.target.value)}
+        onChange={(event) => {
+          latestRef.current = { ...latestRef.current, content: event.target.value };
+          setContent(event.target.value);
+        }}
       />
     </div>
   );

@@ -71,5 +71,20 @@ describe('Soliloquio backups', () => {
     expect(() =>
       parseBackup(JSON.stringify({ ...backup, scripts: [{ ...script, id: '  ' }] }))
     ).toThrow('invalid scripts');
+    expect(() =>
+      parseBackup(JSON.stringify({ ...backup, scripts: [script, script] }))
+    ).toThrow('invalid scripts');
+    expect(() => parseBackup(JSON.stringify({ ...backup, settings: null }))).toThrow(
+      'invalid settings'
+    );
+    expect(() => parseBackup(JSON.stringify({ ...backup, settings: [] }))).toThrow(
+      'invalid settings'
+    );
+    expect(() => parseBackup(JSON.stringify({ ...backup, settings: {} }))).toThrow(
+      'invalid settings'
+    );
+    expect(() =>
+      parseBackup(JSON.stringify({ ...backup, settings: { ...backup.settings, speed: 'fast' } }))
+    ).toThrow('invalid settings');
   });
 });
