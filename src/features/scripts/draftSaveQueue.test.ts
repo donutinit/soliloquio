@@ -69,7 +69,9 @@ describe('editor draft saves', () => {
 
   it('allows a failed write to be retried', async () => {
     const current = { title: 'Draft', content: 'Unsaved' };
-    const save = vi.fn(async (_draft: EditableScript) => undefined)
+    const save = vi.fn(async (draft: EditableScript) => {
+      expect(draft).toEqual(current);
+    })
       .mockRejectedValueOnce(new Error('storage full'))
       .mockResolvedValue(undefined);
     const queue = new DraftSaveQueue(

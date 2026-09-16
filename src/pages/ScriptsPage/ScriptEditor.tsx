@@ -27,16 +27,16 @@ export function ScriptEditor({
   const [saveState, setSaveState] = useState<SaveState>('saved');
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestRef = useRef<EditableScript>({ title, content });
-  const saveQueueRef = useRef<DraftSaveQueue | null>(null);
   const mountedRef = useRef(true);
   latestRef.current = { title, content };
-  const saveQueue = saveQueueRef.current ?? new DraftSaveQueue(
-    { title: script.title, content: script.content },
-    () => latestRef.current,
-    (draft) => updateScript(script.id, draft),
-    onSaved
+  const [saveQueue] = useState(
+    () => new DraftSaveQueue(
+      { title: script.title, content: script.content },
+      () => latestRef.current,
+      (draft) => updateScript(script.id, draft),
+      onSaved
+    )
   );
-  saveQueueRef.current = saveQueue;
 
   const persistLatest = useCallback((): Promise<void> => {
     if (timerRef.current) {
