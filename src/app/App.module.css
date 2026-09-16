@@ -10,7 +10,6 @@
   width: max-content;
   max-width: calc(100% - 24px);
   padding: 10px 16px;
-  border-radius: 12px;
   background: var(--surface-2);
   border: 1px solid var(--border);
   font-size: 14px;
@@ -26,7 +25,6 @@
 .updateError button {
   min-height: 44px;
   padding: 0 16px;
-  border-radius: 10px;
   border: none;
   background: var(--accent);
   color: var(--accent-ink);
@@ -64,7 +62,6 @@
   min-height: 44px;
   padding: 0 20px;
   border: 0;
-  border-radius: 12px;
   background: var(--accent);
   color: var(--accent-ink);
   font-weight: 700;

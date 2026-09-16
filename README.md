@@ -92,7 +92,7 @@ home-screen PWA is generally more resilient.
   touch, mouse, and keyboard changes in the interface remain unobtrusive.
 - The two compact time values estimate elapsed and remaining reading time at the current speed.
 - The script title is the first line of the prompter. It and all Markdown headings use an
-  underlined Noto Sans treatment at one-half of the reading text size.
+  underlined Atkinson Hyperlegible Next treatment at one-half of the reading text size.
 - The **Keep screen awake** toggle in App Settings (on by default) holds a screen wake lock
   anywhere in the app and reacquires it after returning from the background when the browser
   allows it.
@@ -226,6 +226,8 @@ supported directly.
 
 - Safari exposes a controller only after a button is pressed while the page is in the foreground.
 - Screen Wake Lock requires a supported browser and may be denied in Low Power Mode.
+- iOS keeps the Home Screen icon captured at install time, so a new app icon appears only after
+  reinstalling. Removing the installed app can also remove its local scripts: export a backup first.
 
 ## Container image
 

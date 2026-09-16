@@ -1,11 +1,17 @@
-/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 */
+/* Hallmark · genre: editorial · theme: custom Telón · design-system: designTokens.json
+ * vibe: theatre curtain, gilt proscenium, one lit stage · square corners everywhere
+ * display: Big Shoulders Display (uppercase) · UI + reader: Atkinson Hyperlegible Next
+ * pre-emit critique: P5 H4 E4 S5 R5 V5
+ */
 @import './designTokens.css';
 
 :root {
-  --font-ui: 'Lexend Variable', Lexend, 'Noto Sans Variable', 'Noto Sans', -apple-system,
+  --font-ui: 'Atkinson Hyperlegible Next Variable', 'Atkinson Hyperlegible Next', -apple-system,
     BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  --font-reader: 'Noto Sans Variable', 'Noto Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI',
-    Roboto, Helvetica, Arial, sans-serif;
+  --font-reader: 'Atkinson Hyperlegible Next Variable', 'Atkinson Hyperlegible Next', -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-display: 'Big Shoulders Display Variable', 'Big Shoulders Display', 'Arial Narrow',
+    var(--font-ui);
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   color-scheme: dark;
 }
@@ -43,6 +49,20 @@ button {
   touch-action: manipulation;
 }
 
+/* Telón no usa esquinas redondas. Los controles nativos (en especial los de
+   iOS) traen radios propios, así que se anulan en la raíz. */
+button,
+input,
+select,
+textarea {
+  border-radius: 0;
+}
+
+input[type='search'] {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
 button:focus-visible,
 [tabindex]:focus-visible {
   outline: 3px solid var(--focus);
@@ -51,7 +71,7 @@ button:focus-visible,
 
 /* Navegando con gamepad, el foco programático debe verse siempre. El anillo
    es interior (estilo consola) para que ningún ancestro con overflow:hidden
-   pueda recortarlo, como pasa con las tarjetas y las listas redondeadas. */
+   pueda recortarlo, como pasa con las tarjetas y las listas del telón. */
 :root[data-gamepad-nav] :focus {
   outline: 3px solid var(--focus);
   outline-offset: -3px;
@@ -69,6 +89,53 @@ select {
   color: inherit;
 }
 
+/* Deslizadores cuadrados: riel fino y cursor dorado sin redondeo. */
 input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--transparent);
   accent-color: var(--accent);
+}
+
+input[type='range']::-webkit-slider-runnable-track {
+  height: 4px;
+  background: var(--border-strong);
+}
+
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: -8px;
+  border: 0;
+  border-radius: 0;
+  background: var(--accent);
+}
+
+input[type='range']::-moz-range-track {
+  height: 4px;
+  border-radius: 0;
+  background: var(--border-strong);
+}
+
+input[type='range']::-moz-range-progress {
+  height: 4px;
+  background: var(--accent);
+}
+
+input[type='range']::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: 0;
+  background: var(--accent);
+}
+
+input[type='range']:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+input[type='range']:disabled {
+  opacity: 0.55;
 }

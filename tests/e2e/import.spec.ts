@@ -93,7 +93,7 @@ test('el título abre la lectura y los headings son negrita sans subrayada, a la
   expect(styles.scriptTitleDecoration).toBe(styles.headingDecoration);
   expect(styles.headingSize).toBeCloseTo(styles.textSize / 2, 1);
   expect(Number(styles.headingWeight)).toBeGreaterThanOrEqual(700);
-  expect(styles.headingFamily.toLowerCase()).toContain('noto sans');
+  expect(styles.headingFamily.toLowerCase()).toContain('atkinson hyperlegible next');
   expect(styles.headingDecoration).toBe('underline');
   // Prompter en blanco puro sobre negro puro.
   expect(styles.headingColor).toBe('rgb(255, 255, 255)');

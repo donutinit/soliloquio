@@ -53,7 +53,7 @@ test('al detectar el mando enfoca el primer guion y permite navegarlo', async ({
         return `${ring.borderTopColor}|${ring.borderTopLeftRadius}`;
       })
     )
-    .toBe('rgb(255, 175, 208)|19px');
+    .toBe('rgb(249, 227, 167)|0px');
 
   // El d-pad baja al siguiente guion visible.
   await pressNav(page, DPAD_DOWN);

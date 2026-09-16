@@ -62,7 +62,7 @@ const paths: Record<IconName, ReactNode> = {
   ),
   gamepadRetro: (
     <>
-      <rect x="2.5" y="8" width="19" height="9.5" rx="2" />
+      <rect x="2.5" y="8" width="19" height="9.5" />
       <path d="M8 12.75H5m1.5-1.5v3M11.5 12h1.5" />
       <path d="M15.7 14h.01M18.5 11.8h.01" />
     </>
@@ -153,8 +153,8 @@ export function Icon({ name, ...props }: { name: IconName } & SVGProps<SVGSVGEle
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      strokeLinecap="square"
+      strokeLinejoin="miter"
       {...props}
     >
       {paths[name]}
