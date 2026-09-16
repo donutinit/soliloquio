@@ -63,7 +63,7 @@ describe('PWA update application', () => {
     const { setupPWA } = await import('./pwa');
     const { registerSW } = await import('virtual:pwa-register');
     setupPWA();
-    const onRegistered = vi.mocked(registerSW).mock.calls[0]?.[0]?.onRegisteredSW;
+    const onRegistered = vi.mocked(registerSW).mock.calls.at(-1)?.[0]?.onRegisteredSW;
     expect(onRegistered).toBeDefined();
     onRegistered?.('/sw.js', new EventTarget() as ServiceWorkerRegistration);
     expect(registrationCheck).toHaveBeenCalledOnce();
@@ -94,7 +94,8 @@ describe('PWA update application', () => {
     const { checkForPWAUpdate, setupPWA } = await import('./pwa');
     const { registerSW } = await import('virtual:pwa-register');
     setupPWA();
-    const onRegistered = vi.mocked(registerSW).mock.calls[0]?.[0]?.onRegisteredSW;
+    const onRegistered = vi.mocked(registerSW).mock.calls.at(-1)?.[0]?.onRegisteredSW;
+    expect(onRegistered).toBeDefined();
     const registration = new EventTarget() as ServiceWorkerRegistration;
     Object.defineProperty(registration, 'active', { value: { scriptURL: '/sw.js' } });
     onRegistered?.('/sw.js', registration);
