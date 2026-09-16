@@ -87,7 +87,7 @@ describe('PWA update application', () => {
     vi.stubGlobal('navigator', { onLine: true, serviceWorker: {} });
 
     let finishCheck: ((result: 'up-to-date') => void) | undefined;
-    registrationCheck.mockImplementation(
+    registrationCheck.mockImplementationOnce(
       () => new Promise<'up-to-date'>((resolve) => { finishCheck = resolve; })
     );
 
