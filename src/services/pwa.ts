@@ -1,9 +1,7 @@
 import { registerSW } from 'virtual:pwa-register';
-import { checkRegistrationForUpdate } from './pwaUpdate';
+import { checkRegistrationForUpdate, type RegistrationUpdateResult } from './pwaUpdate';
 import { flushPendingSaves } from './pendingSaves';
 
-/** Sin backend no hay push: la app sondea el Service Worker con esta cadencia. */
-const UPDATE_CHECK_INTERVAL_MS = 60_000;
 const REGISTRATION_WAIT_MS = 5_000;
 
 export type PWAUpdateResult = 'up-to-date' | 'updating' | 'unsupported' | 'not-ready';
@@ -13,6 +11,7 @@ let setupStarted = false;
 let serviceWorkerUrl: string | null = null;
 let serviceWorkerRegistration: ServiceWorkerRegistration | null = null;
 let applyServiceWorkerUpdate: ((reloadPage?: boolean) => Promise<void>) | null = null;
+let activeUpdateCheck: Promise<RegistrationUpdateResult> | null = null;
 let updateError: string | null = null;
 const updateErrorListeners = new Set<PWAUpdateErrorListener>();
 
@@ -42,6 +41,18 @@ export async function applyPendingPWAUpdate(): Promise<void> {
   }
   setUpdateError(null);
   await applyServiceWorkerUpdate(true);
+}
+
+function checkServiceWorker(
+  registration: ServiceWorkerRegistration,
+  swUrl: string
+): Promise<RegistrationUpdateResult> {
+  if (activeUpdateCheck) return activeUpdateCheck;
+  const check = checkRegistrationForUpdate(registration, swUrl).finally(() => {
+    activeUpdateCheck = null;
+  });
+  activeUpdateCheck = check;
+  return check;
 }
 
 async function findRegistration(): Promise<ServiceWorkerRegistration | null> {
@@ -79,7 +90,7 @@ export async function checkForPWAUpdate(): Promise<PWAUpdateResult> {
   const swUrl = serviceWorkerUrl ?? registration.active?.scriptURL;
   if (!swUrl) return 'not-ready';
 
-  const result = await checkRegistrationForUpdate(registration, swUrl);
+  const result = await checkServiceWorker(registration, swUrl);
   if (result === 'updating' && registration.waiting && applyServiceWorkerUpdate) {
     await applyPendingPWAUpdate();
   }
@@ -89,8 +100,8 @@ export async function checkForPWAUpdate(): Promise<PWAUpdateResult> {
 /**
  * Auto-update: cuando se detecta una versión nueva se vacían primero los
  * guardados pendientes y la página se recarga sola. La detección ocurre al
- * abrir la app, al volver a primer plano y periódicamente mientras está
- * abierta (solo en primer plano: el retorno ya dispara su propia comprobación).
+ * abrir la app y al volver a primer plano. App Settings y factory reset
+ * también pueden pedir una comprobación explícita.
  */
 export function setupPWA(): void {
   if (setupStarted) return;
@@ -111,11 +122,11 @@ export function setupPWA(): void {
       serviceWorkerRegistration = registration;
       const check = () => {
         if (document.visibilityState !== 'visible') return;
-        checkRegistrationForUpdate(registration, _swUrl).catch((error) => {
+        void checkServiceWorker(registration, _swUrl).catch((error) => {
           console.warn('Background update check failed', error);
         });
       };
-      setInterval(check, UPDATE_CHECK_INTERVAL_MS);
+      check();
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') check();
       });

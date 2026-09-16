@@ -99,8 +99,9 @@ home-screen PWA is generally more resilient.
 - App Settings also provides a confirmed factory reset that atomically erases local scripts and
   preferences, then restores the first-run library (the Read me first script) and the default
   settings.
-- App Settings includes an **Update app** button that bypasses the normal detection interval,
-  checks the service worker directly against the server, and installs a newer version immediately.
+- Soliloquio checks for updates when it opens, returns to the foreground, or completes a factory
+  reset. App Settings includes an **Update app** button for an immediate server check. New versions
+  install automatically after pending changes are saved.
 
 ## Controllers
 
@@ -293,8 +294,8 @@ server {
 
 ## Troubleshooting
 
-- **The app does not update:** updates apply automatically — the app checks on launch, when it
-  returns to the foreground, and every minute while open, then reloads itself. If it seems stale,
+- **The app does not update:** updates apply automatically — the app checks on launch, on returning
+  to the foreground, and after a factory reset, then reloads itself. If it seems stale while open,
   open App Settings and tap **Update app** to force an immediate server check.
 - **A save fails:** keep the editor open, free device storage if needed, and retry. Navigation from
   the editor is blocked until the latest content is safely stored.

@@ -139,7 +139,14 @@ test('factory reset requires confirmation and restores the complete first-run st
   await page.getByTestId('single-column-setting').uncheck();
   await page.getByTestId('factory-reset').click();
   await expect(page.getByTestId('factory-reset-confirm')).toHaveText('Erase everything');
+  await page.evaluate(() => navigator.serviceWorker.ready.then(() => undefined));
+  await page.getByTestId('check-for-update').click();
+  await expect(page.getByTestId('update-status')).toHaveText('You already have the latest version.');
+  const updateRequest = page.waitForRequest((request) =>
+    new URL(request.url()).pathname === '/sw.js' && request.method() === 'GET'
+  );
   await page.getByTestId('factory-reset-confirm').click();
+  await updateRequest;
 
   await expect(page.getByTestId('app-settings-panel')).toHaveCount(0);
   await expect(page.getByRole('status')).toContainText('Factory defaults restored.');

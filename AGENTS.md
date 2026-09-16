@@ -79,8 +79,8 @@ The stack is React 18, strict TypeScript, Vite, Dexie, Vitest, Playwright, and
   to 50 script files, 5 MB each and 20 MB combined; limit each backup to 25 MB. Validate both the
   extension and parsed content, and give file-specific errors.
 - Keep the PWA usable offline. Do not make startup, editing, or playback depend on a network call.
-- Service-worker checks must bypass stale HTTP caches. Preserve checks on startup/registration,
-  foreground return, and the periodic interval, plus the manual check in App Settings.
+- Service-worker checks must bypass stale HTTP caches. Check on startup/registration, foreground
+  return, and after factory reset, plus the manual check in App Settings. Avoid periodic polling.
 - When an update reloads the page, preserve pending user data first.
 
 ### Gamepad and prompter behavior

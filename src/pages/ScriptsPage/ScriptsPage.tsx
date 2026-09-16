@@ -382,6 +382,9 @@ export function ScriptsPage({
       setOperationError(null);
       await refresh();
       setNotice('Factory defaults restored.');
+      void checkForPWAUpdate().catch(() => {
+        setNotice('Factory defaults restored. App update check failed; try Update app when online.');
+      });
     } catch {
       setSettingsError('The app could not be reset. No partial reset was kept.');
     } finally {
