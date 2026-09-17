@@ -268,7 +268,7 @@
 
 .padOn svg,
 .padOff svg {
-  width: 19px;
+  width: 24px;
 }
 
 .padOn {
@@ -396,7 +396,7 @@
 }
 
 .iconButton svg {
-  width: 22px;
+  width: 24px;
 }
 
 .iconButton:active,
@@ -423,7 +423,7 @@
 }
 
 .playButton svg {
-  width: 18px;
+  width: 24px;
 }
 
 .playButton[data-playing='true'] {

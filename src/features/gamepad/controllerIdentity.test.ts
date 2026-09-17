@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  gamepadIconName,
   identifyController,
   is8BitDoMicro,
   is8BitDoPro3,
@@ -81,15 +80,5 @@ describe('identifyController', () => {
     expect(identifyController('Xbox One pad').name).toBe('Xbox controller');
     expect(identifyController('Joy-Con (R)').name).toBe('Nintendo controller');
     expect(identifyController('8BitDo Zero 2').name).toBe('8BitDo controller');
-  });
-});
-
-describe('gamepadIconName', () => {
-  it('asigna un glifo por familia con fallback genérico', () => {
-    expect(gamepadIconName('playstation')).toBe('gamepadPlaystation');
-    expect(gamepadIconName('xbox')).toBe('gamepadXbox');
-    expect(gamepadIconName('nintendo')).toBe('gamepadNintendo');
-    expect(gamepadIconName('8bitdo')).toBe('gamepadRetro');
-    expect(gamepadIconName('generic')).toBe('gamepad');
   });
 });

@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { DEFAULT_GAMEPAD_BINDINGS, type GamepadAction, type GamepadBindings } from '../../types';
 import { getActiveGamepad } from '../../services/gamepads';
 import {
-  gamepadIconName,
   identifyController,
   is8BitDoMicro,
   is8BitDoPro3,
@@ -191,7 +190,7 @@ export function GamepadSettingsPanel({
         data-testid="gamepad-settings-status"
         role="status"
       >
-        <Icon name={padName ? gamepadIconName(family) : 'gamepad'} />
+        <Icon name="gamepad" />
         <span>{padName ?? 'No controller detected. Connect one and press any button.'}</span>
       </div>
 

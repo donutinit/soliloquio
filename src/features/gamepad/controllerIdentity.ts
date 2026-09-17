@@ -1,5 +1,3 @@
-import type { IconName } from '../../components/Icon';
-
 export type ControllerFamily = 'playstation' | 'xbox' | 'nintendo' | '8bitdo' | 'generic';
 
 export type ControllerIdentity = { family: ControllerFamily; name: string };
@@ -63,19 +61,4 @@ export function identifyController(id: string | null | undefined): ControllerIde
     if (pattern.test(normalized)) return { family, name: FAMILY_NAMES[family] };
   }
   return { family: 'generic', name: FAMILY_NAMES.generic };
-}
-
-export function gamepadIconName(family: ControllerFamily): IconName {
-  switch (family) {
-    case 'playstation':
-      return 'gamepadPlaystation';
-    case 'xbox':
-      return 'gamepadXbox';
-    case 'nintendo':
-      return 'gamepadNintendo';
-    case '8bitdo':
-      return 'gamepadRetro';
-    default:
-      return 'gamepad';
-  }
 }

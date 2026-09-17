@@ -9,7 +9,6 @@ import { buildSections, currentSectionIndex, stepSection } from '../../features/
 import { ScrollEngine } from '../../features/prompter/scrollEngine';
 import { GamepadController, type GamepadAction } from '../../features/gamepad/controller';
 import {
-  gamepadIconName,
   identifyController,
   is8BitDoMicro,
   is8BitDoPro3,
@@ -578,7 +577,7 @@ function Prompter({
               title={gamepadConnected ? 'Controller connected' : 'No controller'}
               onClick={() => setPanel('controllerGuide')}
             >
-              <Icon name={gamepadConnected ? gamepadIconName(padFamily) : 'gamepad'} />
+              <Icon name="gamepad" />
             </button>
             <button
               type="button"

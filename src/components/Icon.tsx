@@ -5,10 +5,6 @@ export type IconName =
   | 'download'
   | 'edit'
   | 'gamepad'
-  | 'gamepadNintendo'
-  | 'gamepadPlaystation'
-  | 'gamepadRetro'
-  | 'gamepadXbox'
   | 'help'
   | 'list'
   | 'more'
@@ -22,125 +18,72 @@ export type IconName =
   | 'settings'
   | 'upload';
 
+/**
+ * Sistema de íconos Telón: vectores en retícula de 24 con área viva de 20,
+ * trazo de 2 px en todo, remates cuadrados, esquinas en inglete y diagonales
+ * a 45°. Los macizos se limitan a detalles pequeños (puntos, puntas, dientes).
+ * Las coordenadas son enteras para que el trazo caiga en píxeles exactos a 24 px.
+ */
+function Block({ x, y, width, height }: { x: number; y: number; width: number; height: number }) {
+  return <rect x={x} y={y} width={width} height={height} fill="currentColor" stroke="none" />;
+}
+
 const paths: Record<IconName, ReactNode> = {
-  back: <path d="m15 18-6-6 6-6" />,
-  download: (
-    <>
-      <path d="M12 3v12" />
-      <path d="m7 10 5 5 5-5" />
-      <path d="M5 21h14" />
-    </>
-  ),
+  back: <path d="M15 5L8 12L15 19" />,
+  download: <path d="M12 3V16M7 11L12 16L17 11M4 21H20" />,
   edit: (
     <>
-      <path d="M12 20h9" />
-      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z" />
+      <path d="M4 20V16L15 5L19 9L8 20ZM12 8L16 12M13 20H20" />
+      <path d="M4 20V17L7 20ZM15 5L19 9L16 12L12 8Z" fill="currentColor" stroke="none" />
     </>
   ),
   gamepad: (
     <>
-      <path d="M7.5 9h-2A3.5 3.5 0 0 0 2 12.5v2A3.5 3.5 0 0 0 5.5 18c1.4 0 2.2-1 3-2h7c.8 1 1.6 2 3 2a3.5 3.5 0 0 0 3.5-3.5v-2A3.5 3.5 0 0 0 18.5 9h-2" />
-      <path d="M8 13H5m1.5-1.5v3M16 12h.01M18 14h.01M9 6h6l1.5 3h-9Z" />
-    </>
-  ),
-  // Variantes por familia: mismo cuerpo, distinto detalle facial derecho.
-  gamepadNintendo: (
-    <>
-      <path d="M7.5 9h-2A3.5 3.5 0 0 0 2 12.5v2A3.5 3.5 0 0 0 5.5 18c1.4 0 2.2-1 3-2h7c.8 1 1.6 2 3 2a3.5 3.5 0 0 0 3.5-3.5v-2A3.5 3.5 0 0 0 18.5 9h-2" />
-      <path d="M8 13H5m1.5-1.5v3M9 6h6l1.5 3h-9Z" />
-      <circle cx="15.8" cy="13.8" r="1" />
-      <circle cx="18.4" cy="11.6" r="1" />
-    </>
-  ),
-  gamepadPlaystation: (
-    <>
-      <path d="M7.5 9h-2A3.5 3.5 0 0 0 2 12.5v2A3.5 3.5 0 0 0 5.5 18c1.4 0 2.2-1 3-2h7c.8 1 1.6 2 3 2a3.5 3.5 0 0 0 3.5-3.5v-2A3.5 3.5 0 0 0 18.5 9h-2" />
-      <path d="M8 13H5m1.5-1.5v3M9 6h6l1.5 3h-9Z" />
-      <path d="m15 13 1.7 1.7m0-1.7L15 14.7" />
-      <circle cx="18.6" cy="11.7" r="1" />
-    </>
-  ),
-  gamepadRetro: (
-    <>
-      <rect x="2.5" y="8" width="19" height="9.5" />
-      <path d="M8 12.75H5m1.5-1.5v3M11.5 12h1.5" />
-      <path d="M15.7 14h.01M18.5 11.8h.01" />
-    </>
-  ),
-  gamepadXbox: (
-    <>
-      <path d="M7.5 9h-2A3.5 3.5 0 0 0 2 12.5v2A3.5 3.5 0 0 0 5.5 18c1.4 0 2.2-1 3-2h7c.8 1 1.6 2 3 2a3.5 3.5 0 0 0 3.5-3.5v-2A3.5 3.5 0 0 0 18.5 9h-2" />
-      <path d="M8 13H5m1.5-1.5v3M9 6h6l1.5 3h-9Z" />
-      <path d="M17 11h.01M15.4 12.7h.01M18.6 12.7h.01M17 14.4h.01" />
+      <path d="M2 7H22V19H15V17H9V19H2ZM5 13H9M7 11V15" />
+      <Block x={16} y={9} width={2} height={2} />
+      <Block x={14} y={11} width={2} height={2} />
+      <Block x={18} y={11} width={2} height={2} />
+      <Block x={16} y={13} width={2} height={2} />
     </>
   ),
   help: (
     <>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M9.8 9a2.3 2.3 0 1 1 3.7 1.8c-.9.6-1.5 1-1.5 2.2" />
-      <path d="M12 17h.01" />
+      <path d="M7 8V4H17V12H12V15" />
+      <Block x={11} y={18} width={2} height={2} />
     </>
   ),
   list: (
     <>
-      <path d="M9 6h11M9 12h11M9 18h11" />
-      <path d="M4 6h.01M4 12h.01M4 18h.01" />
+      <path d="M9 6H20M9 12H20M9 18H20" />
+      <Block x={4} y={5} width={2} height={2} />
+      <Block x={4} y={11} width={2} height={2} />
+      <Block x={4} y={17} width={2} height={2} />
     </>
   ),
   more: (
     <>
-      <circle cx="5" cy="12" r="1" fill="currentColor" stroke="none" />
-      <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
-      <circle cx="19" cy="12" r="1" fill="currentColor" stroke="none" />
+      <Block x={3} y={10} width={4} height={4} />
+      <Block x={10} y={10} width={4} height={4} />
+      <Block x={17} y={10} width={4} height={4} />
     </>
   ),
-  nextSection: (
-    <>
-      <path d="M6 6v12" />
-      <path d="m10 9 3 3-3 3" />
-      <path d="M13 12h5" />
-    </>
-  ),
-  pause: (
-    <>
-      <path d="M9 6v12" />
-      <path d="M15 6v12" />
-    </>
-  ),
-  play: <path d="m9 6 9 6-9 6Z" fill="currentColor" stroke="none" />,
-  plus: <path d="M12 5v14M5 12h14" />,
-  previousSection: (
-    <>
-      <path d="M18 6v12" />
-      <path d="m14 9-3 3 3 3" />
-      <path d="M11 12H6" />
-    </>
-  ),
-  reset: (
-    <>
-      <path d="M4 4v6h6" />
-      <path d="M5.5 15a8 8 0 1 0 1-8.5L4 10" />
-    </>
-  ),
-  search: (
-    <>
-      <circle cx="11" cy="11" r="7" />
-      <path d="m16 16 5 5" />
-    </>
-  ),
+  nextSection: <path d="M4 5L14 12L4 19ZM19 5V19" />,
+  pause: <path d="M6 5H10V19H6ZM14 5H18V19H14Z" />,
+  play: <path d="M7 4L19 12L7 20Z" />,
+  plus: <path d="M12 4V20M4 12H20" />,
+  previousSection: <path d="M20 5L10 12L20 19ZM5 5V19" />,
+  reset: <path d="M5 5H19V19H5V11M8 2L5 5L8 8" />,
+  search: <path d="M4 4H14V14H4ZM14 14L20 20" />,
   settings: (
     <>
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6 1.7 1.7 0 0 0 10 3v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z" />
+      <path d="M8 5H16L19 8V16L16 19H8L5 16V8ZM10 10H14V14H10Z" />
+      <Block x={10} y={2} width={4} height={3} />
+      <Block x={10} y={19} width={4} height={3} />
+      <Block x={2} y={10} width={3} height={4} />
+      <Block x={19} y={10} width={3} height={4} />
     </>
   ),
-  upload: (
-    <>
-      <path d="M12 21V9" />
-      <path d="m7 14 5-5 5 5" />
-      <path d="M5 3h14" />
-    </>
-  )
+  upload: <path d="M4 3H20M12 8V21M7 13L12 8L17 13" />
 };
 
 export function Icon({ name, ...props }: { name: IconName } & SVGProps<SVGSVGElement>) {
