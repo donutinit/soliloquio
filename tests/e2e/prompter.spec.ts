@@ -96,6 +96,39 @@ test('Space pausa desde el teclado y no depende de los controles visibles', asyn
   await expect(bottomControls).toBeVisible();
 });
 
+test('desktop wheel and keyboard navigate the reader without taking over focused inputs', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const content = await page.getByTestId('prompter-content').boundingBox();
+  expect(content).not.toBeNull();
+  expect(content!.width).toBeLessThanOrEqual(1060);
+  expect(Math.abs(content!.x - (1440 - content!.width) / 2)).toBeLessThan(2);
+
+  await page.mouse.move(720, 450);
+  await page.mouse.wheel(0, 420);
+  await expect.poll(() => prompterOffset(page)).toBeGreaterThan(0);
+  const afterWheel = await prompterOffset(page);
+
+  await page.keyboard.press('ArrowDown');
+  await expect.poll(() => prompterOffset(page)).toBeGreaterThan(afterWheel);
+  await page.keyboard.press('Home');
+  await expect.poll(() => prompterOffset(page)).toBe(0);
+  await page.keyboard.press('End');
+  await expect.poll(() => prompterOffset(page)).toBeGreaterThan(0);
+  await page.keyboard.press('Home');
+
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByTestId('section-indicator')).toHaveText('2 / 4');
+  await page.keyboard.press('ArrowLeft');
+  await expect(page.getByTestId('section-indicator')).toHaveText('1 / 4');
+  await page.keyboard.press('+');
+  await expect(page.getByTestId('speed-quick-value')).toHaveText('60');
+
+  await page.getByTestId('speed-quick-slider').focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByTestId('section-indicator')).toHaveText('1 / 4');
+  await expect(page.getByTestId('speed-quick-value')).toHaveText('65');
+});
+
 test('un guion corto termina el desplazamiento solo y recupera los controles', async ({ page }) => {
   await page.getByTestId('back-to-scripts').click();
   await page.getByTestId('new-script').click();

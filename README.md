@@ -47,6 +47,12 @@ scripts/          PWA icon generation and shaolin deployment
 2. Tap Share, then **Add to Home Screen**.
 3. Open the installed app for a full-screen, offline experience.
 
+### Install on Android or desktop
+
+Open `https://soli.vondiego.com` in a current browser and use its **Install app** or **Add to
+Home screen** action when offered. The app also works in a regular browser tab; scripts and
+settings stay in that browser's local storage.
+
 ### Scripts and backups
 
 - Create a Markdown script with the plus button.
@@ -85,8 +91,12 @@ home-screen PWA is generally more resilient.
 - Scripts always open at the beginning; reading position is not stored between sessions.
 - Set an optional 0–10 second start countdown from App Settings. It is off by default and does
   run every time automatic scrolling starts, including when resuming from pause.
-- Drag the text for manual scrolling.
+- Drag the text or use a mouse wheel or trackpad for manual scrolling.
 - Tap the reading surface to hide or show controls.
+- On a keyboard, Space starts or pauses. Up/Down scroll manually, Page Up/Down move farther,
+  Home/End jump to the start or end, Left/Right change sections, and +/− adjust speed. Tab
+  reveals hidden controls and focuses playback. Shortcuts leave text fields and sliders to their
+  normal keyboard behavior.
 - Use Settings in the prompter to change speed, text size, or margins. New installs default to
   speed 55 and 60 px text. Adjustments made with a controller appear in a centered range HUD;
   touch, mouse, and keyboard changes in the interface remain unobtrusive.
@@ -214,10 +224,11 @@ supported directly.
 
 ## Browser support
 
-- The product targets iOS Safari and the installed home-screen PWA; the reading surface works in
-  any modern browser.
-- CI covers Chromium and WebKit. Gamepad coverage runs only in the Chromium project with a
-  simulated Gamepad API, because WebKit cannot provide gamepads to Playwright.
+- The app is designed for current desktop, Android, and iOS browsers as an offline-first PWA. The
+  reader accepts touch, mouse, trackpad, keyboard, and supported gamepads.
+- CI covers Chromium and WebKit, including phone touch emulation. Gamepad coverage runs only in
+  the Chromium project with a simulated Gamepad API, because WebKit cannot provide gamepads to
+  Playwright.
 - Wake Lock, sharing, and file pickers degrade gracefully when the browser does not support them
   or denies permission; a capability failure never blocks the core reader.
 - Final validation on iOS Safari with a physical controller still requires real hardware.

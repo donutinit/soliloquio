@@ -26,7 +26,7 @@ Fast and simple, with nothing to take care of.
 
 ## Reading
 
-Controls hide after one second so the camera sees only text. Tap the script, press any key, or press Space to pause or bring them back. Drag the text to scrub.
+Controls hide after one second so the camera sees only text. Tap the script or press a key to bring them back; Space starts or pauses. Drag the text, use a mouse wheel or trackpad, or press Up/Down to scrub.
 
 Markdown headings create sections; jump between them with the arrows or the section list. Speed, text size, and margins are global — one setting for every script.
 

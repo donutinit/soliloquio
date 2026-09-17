@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { PointerEvent as ReactPointerEvent } from 'react';
+import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from 'react';
 import type { PrompterSettings, Script } from '../../types';
 import { getScript, getSettings } from '../../services/database';
 import { applyKeepScreenAwake } from '../../services/keepAwake';
@@ -28,7 +28,7 @@ import { usePrompterSettings } from './usePrompterSettings';
 import { usePlaybackControls } from './usePlaybackControls';
 import { usePrompterKeyboard } from './usePrompterKeyboard';
 import { formatDuration } from './prompterDisplay';
-import type { Panel } from './usePrompterKeyboard';
+import type { KeyboardCommand, Panel } from './usePrompterKeyboard';
 import { editorHash } from '../../app/router';
 import { Icon } from '../../components/Icon';
 import { cssVars } from '../../styles/cssVars';
@@ -228,6 +228,22 @@ function Prompter({
     [sections.length, requireEngine]
   );
 
+  const seekTo = useCallback((position: number) => {
+    const engine = requireEngine();
+    engine.seek(position);
+    const readingLine = (viewportRef.current?.clientHeight ?? 0) * READING_LINE_FRACTION;
+    const index = currentSectionIndex(sectionOffsetsRef.current, engine.state.position, readingLine);
+    sectionIdxRef.current = index;
+    setSectionIdx(index);
+    wakeLoopRef.current();
+  }, [requireEngine]);
+
+  const resetReader = useCallback(() => {
+    resetToStart();
+    sectionIdxRef.current = 0;
+    setSectionIdx(0);
+  }, [resetToStart]);
+
   const exitToScripts = useCallback((restoreGamepadFocus: boolean) => {
     if (exitingRef.current) return;
     exitingRef.current = true;
@@ -254,7 +270,7 @@ function Prompter({
           togglePlay(false);
           break;
         case 'resetToStart':
-          resetToStart();
+          resetReader();
           break;
         case 'backToScripts':
           exitToScripts(true);
@@ -297,7 +313,7 @@ function Prompter({
           break;
       }
     },
-    [togglePlay, resetToStart, exitToScripts, jumpToSection, updateSetting, sections.length, settingsRef]
+    [togglePlay, resetReader, exitToScripts, jumpToSection, updateSetting, sections.length, settingsRef]
   );
   const applyActionRef = useRef(applyAction);
   applyActionRef.current = applyAction;
@@ -479,7 +495,35 @@ function Prompter({
     }
   }, [controlsVisible]);
 
-  usePrompterKeyboard({ panelRef, togglePlayRef, playButtonRef, revealControls });
+  const onKeyboardCommand = useCallback((command: KeyboardCommand) => {
+    if (
+      command === 'prevSection' || command === 'nextSection' ||
+      command === 'speedDown' || command === 'speedUp'
+    ) {
+      applyAction(command);
+      return;
+    }
+    const engine = requireEngine();
+    const pageDistance = Math.max(120, (viewportRef.current?.clientHeight ?? 0) * 0.75);
+    let nextPosition: number;
+    switch (command) {
+      case 'scrollUp': nextPosition = engine.state.position - 80; break;
+      case 'scrollDown': nextPosition = engine.state.position + 80; break;
+      case 'pageUp': nextPosition = engine.state.position - pageDistance; break;
+      case 'pageDown': nextPosition = engine.state.position + pageDistance; break;
+      case 'start': nextPosition = 0; break;
+      case 'end': nextPosition = engine.maxPosition; break;
+    }
+    seekTo(nextPosition);
+  }, [applyAction, requireEngine, seekTo]);
+
+  usePrompterKeyboard({
+    panelRef,
+    togglePlayRef,
+    playButtonRef,
+    revealControls,
+    onCommand: onKeyboardCommand
+  });
 
   // Scroll manual táctil + tap para mostrar/ocultar controles.
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -495,9 +539,7 @@ function Prompter({
     const dy = e.clientY - drag.y;
     if (Math.abs(dy) > 4) drag.moved = true;
     drag.y = e.clientY;
-    const engine = requireEngine();
-    engine.seek(engine.state.position - dy);
-    wakeLoopRef.current();
+    seekTo(requireEngine().state.position - dy);
   };
   const onPointerUp = () => {
     const drag = dragRef.current;
@@ -505,6 +547,15 @@ function Prompter({
     if (drag && !drag.moved && performance.now() - drag.startedAt < 400) {
       setControlsVisible((v) => !v);
     }
+  };
+  const onWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
+    if (panel !== 'none' || event.ctrlKey || event.deltaY === 0) return;
+    const factor = event.deltaMode === 1
+      ? 24
+      : event.deltaMode === 2
+        ? event.currentTarget.clientHeight
+        : 1;
+    seekTo(requireEngine().state.position + event.deltaY * factor);
   };
 
   const contentStyle = cssVars({
@@ -522,6 +573,7 @@ function Prompter({
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
+        onWheel={onWheel}
       >
         <ReadingSurface
           title={script.title}
@@ -633,7 +685,7 @@ function Prompter({
                 className={styles.iconButton}
                 data-testid="reset-position"
                 aria-label="Back to start"
-                onClick={resetToStart}
+                onClick={resetReader}
               >
                 <Icon name="reset" />
               </button>
@@ -654,6 +706,7 @@ function Prompter({
                 data-playing={playing}
                 data-counting={countdown !== null}
                 disabled={contentFits && countdown === null}
+                aria-label={countdown !== null ? 'Cancel countdown' : playing ? 'Pause scrolling' : 'Start scrolling'}
                 title={contentFits ? 'This script fits on the screen' : undefined}
                 onClick={() => togglePlay(true)}
               >

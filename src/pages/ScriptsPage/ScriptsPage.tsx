@@ -442,6 +442,7 @@ export function ScriptsPage({
             onClick={() => setHelpOpen(true)}
           >
             <Icon name="help" />
+            <span className={styles.desktopActionLabel}>Help</span>
           </button>
           <button
             type="button"
@@ -453,6 +454,7 @@ export function ScriptsPage({
             onClick={() => void openAppSettings()}
           >
             <Icon name="settings" />
+            <span className={styles.desktopActionLabel}>Settings</span>
           </button>
           <label
             data-testid="import-button"
@@ -461,6 +463,7 @@ export function ScriptsPage({
             aria-disabled={busy}
           >
             <Icon name="upload" />
+            <span className={styles.desktopActionLabel}>Import</span>
             <input
               data-testid="import-input"
               data-gamepad-nav-exclude
@@ -484,6 +487,7 @@ export function ScriptsPage({
             onClick={() => void handleBackup()}
           >
             <Icon name="download" />
+            <span className={styles.desktopActionLabel}>Backup</span>
           </button>
           <button
             type="button"
@@ -495,6 +499,7 @@ export function ScriptsPage({
             onClick={() => void handleNew()}
           >
             <Icon name="plus" />
+            <span className={styles.desktopActionLabel}>New script</span>
           </button>
         </div>
       </header>

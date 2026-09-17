@@ -21,11 +21,15 @@ export function HelpPanel({ onClose }: { onClose: () => void }) {
         </section>
         <section>
           <h3>2. Read</h3>
-          <p>Tap START for automatic scrolling. Controls hide after one second; tap the script to bring them back, press any key, or use Space to pause. Drag the script to move manually.</p>
+          <p>Press START for automatic scrolling. Controls hide after one second; tap the script or press a key to bring them back. Drag or use the mouse wheel to move manually.</p>
         </section>
         <section>
           <h3>3. Navigate</h3>
           <p>Markdown headings create sections. Use the section buttons or the list to jump between them.</p>
+        </section>
+        <section>
+          <h3>Keyboard</h3>
+          <p>Space starts or pauses. Up/Down scroll, Page Up/Down move farther, Home/End jump to the start or end, Left/Right change sections, and +/− adjust speed. Tab reveals and focuses playback controls.</p>
         </section>
         <section>
           <h3>Controller</h3>

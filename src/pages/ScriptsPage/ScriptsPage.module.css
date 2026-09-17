@@ -45,6 +45,10 @@
   background: var(--transparent);
 }
 
+.desktopActionLabel {
+  display: none;
+}
+
 .importControl {
   overflow: hidden;
   cursor: pointer;
@@ -337,6 +341,7 @@
   width: 100%;
   max-width: 500px;
   max-height: min(82vh, 680px);
+  max-height: min(82dvh, 680px);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -943,6 +948,15 @@
   background: var(--bg);
 }
 
+.editorHeader,
+.editorTitle,
+.editorContent {
+  width: 100%;
+  max-width: 880px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
 .editorHeader {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -1060,6 +1074,33 @@
 
   .sheet {
     border-bottom: 1px solid var(--border);
+  }
+}
+
+@media (min-width: 820px) {
+  .headerIconButton,
+  .importControl,
+  .primaryIconButton {
+    width: auto;
+    min-width: 44px;
+    display: flex;
+    gap: 6px;
+    padding: 0 12px;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .desktopActionLabel {
+    display: inline;
+  }
+
+  .editorTitle {
+    font-size: 32px;
+  }
+
+  .editorContent {
+    padding: 22px 28px;
+    font-size: 18px;
   }
 }
 
