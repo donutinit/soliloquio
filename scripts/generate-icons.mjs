@@ -80,52 +80,107 @@ function hexColor(value) {
 }
 
 const BG = hexColor(designTokens.bg);
-const STAGE = hexColor(designTokens['reading-bg']);
-const ACCENT = hexColor(designTokens.accent);
-const SAMPLES = 4;
+const MARK_COLORS = {
+  G: hexColor(designTokens.accent),
+  D: hexColor(designTokens['gold-shade']),
+  B: hexColor(designTokens.text)
+};
 
-// Arco de proscenio: rectángulo con remate semicircular, centrado en x=32 y con
-// arranque en y=28, medido en el lienzo de 64 unidades del favicon.
-function inArch(u, v, halfWidth, bottom) {
-  if (v > bottom || Math.abs(u - 32) > halfWidth) return false;
-  return v >= 28 || (u - 32) ** 2 + (v - 28) ** 2 <= halfWidth ** 2;
-}
+// Telón en pixel art (manual de identidad, "Tamaños ópticos"). Son dos dibujos
+// hechos para su tamaño, no una reducción: 32 módulos para los íconos de inicio
+// y 16 para el favicon. Leyenda: G dorado, D oro sombra, B hueso, . fondo.
+const MARK_32 = [
+  '................................',
+  '................................',
+  '.GGGGGGGGGGGGGGGGGGGGGGGGGGGGGG.',
+  '.GGGGGGGGGGGGGGGGGGGGGGGGGGGGGG.',
+  '.GGGGGGGGGGGGGGGGGGGGGGGGGGGGGG.',
+  '.GGGGGGGGGGGGGGGGGGGGGGGGGGGGGG.',
+  '.GGDDGGDDGGDDGGDDGGDDGGDDGGDDGG.',
+  '.GDGDGDGDGD..........DGDGDGDGDG.',
+  '.GDGDGDGDGD..........DGDGDGDGDG.',
+  '.GDGDGDGDG............GDGDGDGDG.',
+  '.GDGDGDGDG............GDGDGDGDG.',
+  '.GDGDGDGDG............GDGDGDGDG.',
+  '.GDGDGDGD..............DGDGDGDG.',
+  '.GDGDGDGD..............DGDGDGDG.',
+  '.GDGDGDGD..............DGDGDGDG.',
+  '.GDGDGDG................GDGDGDG.',
+  '.GDGDGDG................GDGDGDG.',
+  '.GDGDGD..................DGDGDG.',
+  '.GDGDGD..................DGDGDG.',
+  '.GDGDGD..................DGDGDG.',
+  '.GDGDG....................GDGDG.',
+  '.BBBBBB..................BBBBBB.',
+  '.BBBBBB..................BBBBBB.',
+  '.GDGDGD..................DGDGDG.',
+  '.GDGDGD..................DGDGDG.',
+  '.GDGDGD..................DGDGDG.',
+  '.GDGDGD..................DGDGDG.',
+  '.GDGDGD..................DGDGDG.',
+  '.GDGDGDG................GDGDGDG.',
+  '.GDGDGDG................GDGDGDG.',
+  '................................',
+  '................................'
+];
 
-function markColor(u, v) {
-  if (u >= 10 && u <= 54 && v >= 46 && v <= 50) return ACCENT;
-  if (inArch(u, v, 15, 48)) return inArch(u, v, 11, 44) ? STAGE : ACCENT;
-  return BG;
-}
+const MARK_16 = [
+  '................',
+  'GGGGGGGGGGGGGGGG',
+  'GGGGGGGGGGGGGGGG',
+  'GDGDGDGDGDGDGDGD',
+  'GDGDG......GDGDG',
+  'GDGDG......GDGDG',
+  'GDGD........DGDG',
+  'GDGD........DGDG',
+  'GDG..........GDG',
+  'GBB..........BBG',
+  'GDG..........GDG',
+  'GDGD........DGDG',
+  'GDGD........DGDG',
+  'GDGDG......GDGDG',
+  'GDGDG......GDGDG',
+  '................'
+];
 
-// El escenario abierto sobre el telón, con esquinas rectas. `pad` encoge la marca
-// hacia la zona segura de los iconos maskable; el fondo siempre llega al borde.
-function icon(size, { pad }) {
-  const scale = 64 / (1 - 2 * pad);
+// Escala la marca por un entero y la centra con un margen de fondo, para que
+// cada módulo caiga en píxeles exactos. El fondo siempre llega al borde.
+function pixelMark(rows, scale, margin) {
   return (x, y) => {
-    const sum = [0, 0, 0];
-    for (let sy = 0; sy < SAMPLES; sy++) {
-      for (let sx = 0; sx < SAMPLES; sx++) {
-        const u = ((x + (sx + 0.5) / SAMPLES) / size - pad) * scale;
-        const v = ((y + (sy + 0.5) / SAMPLES) / size - pad) * scale;
-        const color = markColor(u, v);
-        for (let channel = 0; channel < 3; channel++) sum[channel] += color[channel];
-      }
-    }
-    return [...sum.map((value) => Math.round(value / SAMPLES ** 2)), 255];
+    const cell = rows[Math.floor((y - margin) / scale)]?.[Math.floor((x - margin) / scale)];
+    return MARK_COLORS[cell] ?? BG;
   };
 }
 
-writePng(join(outDir, 'icon-192.png'), 192, icon(192, { pad: 0 }));
-writePng(join(outDir, 'icon-512.png'), 512, icon(512, { pad: 0 }));
-writePng(join(outDir, 'icon-512-maskable.png'), 512, icon(512, { pad: 0.12 }));
-writePng(join(outDir, 'apple-touch-icon.png'), 180, icon(180, { pad: 0 }));
+writePng(join(outDir, 'icon-192.png'), 192, pixelMark(MARK_32, 5, 16));
+writePng(join(outDir, 'icon-512.png'), 512, pixelMark(MARK_32, 14, 32));
+// Maskable: ×9 deja la marca dentro del círculo seguro del 80 %.
+writePng(join(outDir, 'icon-512-maskable.png'), 512, pixelMark(MARK_32, 9, 112));
+writePng(join(outDir, 'apple-touch-icon.png'), 180, pixelMark(MARK_32, 5, 10));
+
+function svgRects(rows) {
+  const rects = [];
+  rows.forEach((row, y) => {
+    for (let x = 0; x < row.length; ) {
+      const color = MARK_COLORS[row[x]];
+      if (!color) {
+        x += 1;
+        continue;
+      }
+      let end = x;
+      while (end < row.length && MARK_COLORS[row[end]] === color) end += 1;
+      rects.push(`  <rect x="${x}" y="${y}" width="${end - x}" height="1" fill="#${color.slice(0, 3).map((c) => c.toString(16).padStart(2, '0')).join('')}"/>`);
+      x = end;
+    }
+  });
+  return rects.join('\n');
+}
 
 writeFileSync(
   join(outDir, 'favicon.svg'),
-  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" fill="${designTokens.bg}"/>
-  <path d="M19 46V28A13 13 0 0 1 45 28V46Z" fill="${designTokens['reading-bg']}" stroke="${designTokens.accent}" stroke-width="4"/>
-  <path d="M10 48H54" stroke="${designTokens.accent}" stroke-width="4"/>
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
+  <rect width="16" height="16" fill="${designTokens.bg}"/>
+${svgRects(MARK_16)}
 </svg>
 `
 );
