@@ -152,11 +152,13 @@ function pixelMark(rows, scale, margin) {
   };
 }
 
-writePng(join(outDir, 'icon-192.png'), 192, pixelMark(MARK_32, 5, 16));
-writePng(join(outDir, 'icon-512.png'), 512, pixelMark(MARK_32, 14, 32));
+// Los íconos de inicio dejan ~16 % de aire por lado: iOS y muchos launchers
+// recortan esquinas redondeadas y la bambalina no debe tocarlas.
+writePng(join(outDir, 'icon-192.png'), 192, pixelMark(MARK_32, 4, 32));
+writePng(join(outDir, 'icon-512.png'), 512, pixelMark(MARK_32, 11, 80));
 // Maskable: ×9 deja la marca dentro del círculo seguro del 80 %.
 writePng(join(outDir, 'icon-512-maskable.png'), 512, pixelMark(MARK_32, 9, 112));
-writePng(join(outDir, 'apple-touch-icon.png'), 180, pixelMark(MARK_32, 5, 10));
+writePng(join(outDir, 'apple-touch-icon.png'), 180, pixelMark(MARK_32, 4, 26));
 
 function svgRects(rows) {
   const rects = [];
