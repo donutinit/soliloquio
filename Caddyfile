@@ -6,12 +6,21 @@
 		X-Content-Type-Options nosniff
 		Referrer-Policy no-referrer
 		X-Frame-Options SAMEORIGIN
+		Strict-Transport-Security "max-age=15552000"
 		Content-Security-Policy "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'self'; form-action 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'"
 		Permissions-Policy "accelerometer=(), camera=(), geolocation=(), gyroscope=(), microphone=(), payment=(), usb=(), gamepad=(self), screen-wake-lock=(self)"
 	}
 
 	handle /healthz {
 		respond "ok" 200
+	}
+
+	# A missing immutable asset must fail explicitly, never receive the SPA shell.
+	handle /assets/* {
+		header Cache-Control "public, max-age=31536000, immutable" {
+			match status 2xx
+		}
+		file_server
 	}
 
 	handle {
@@ -22,9 +31,6 @@
 			Cache-Control "no-store, no-cache, must-revalidate"
 			CDN-Cache-Control "no-store"
 		}
-		@assets path /assets/*
-		header @assets Cache-Control "public, max-age=31536000, immutable"
-
 		try_files {path} /index.html
 		file_server
 	}

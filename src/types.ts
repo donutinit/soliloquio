@@ -13,7 +13,7 @@ export type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6;
 
 export type PrompterBlock =
   | { type: 'heading'; level: HeadingLevel; text: string; sectionId: string }
-  | { type: 'text'; text: string };
+  | { type: 'text'; text: string; continuation?: true };
 
 export const DEFAULT_DUALSHOCK_MAPPING = {
   cross: 0,

@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from 'react';
-import type { PrompterSettings, Script } from '../../types';
+import type { PrompterBlock, PrompterSettings, Script } from '../../types';
 import { getScript, getSettings } from '../../services/database';
 import { applyKeepScreenAwake } from '../../services/keepAwake';
 import { getActiveGamepad } from '../../services/gamepads';
-import { scriptToBlocks } from '../../features/markdown/flatten';
 import { buildSections, currentSectionIndex, stepSection } from '../../features/sections/sections';
 import { ScrollEngine } from '../../features/prompter/scrollEngine';
 import { GamepadController, type GamepadAction } from '../../features/gamepad/controller';
@@ -50,13 +49,16 @@ export function PrompterPage({
 }) {
   const [script, setScript] = useState<Script | null>(null);
   const [settings, setSettings] = useState<PrompterSettings | null>(null);
+  const [blocks, setBlocks] = useState<PrompterBlock[] | null>(null);
   const [missing, setMissing] = useState(false);
   const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
+    let parserWorker: Worker | null = null;
     setScript(null);
     setSettings(null);
+    setBlocks(null);
     setMissing(false);
     setLoadError(false);
     void Promise.all([getScript(scriptId), getSettings()])
@@ -66,14 +68,48 @@ export function PrompterPage({
           setMissing(true);
           return;
         }
-        setScript(loadedScript);
-        setSettings(loadedSettings);
+        const ready = (parsedBlocks: PrompterBlock[]) => {
+          if (cancelled) return;
+          setScript(loadedScript);
+          setSettings(loadedSettings);
+          setBlocks(parsedBlocks);
+        };
+        const parseOnMainThread = () => {
+          void import('../../features/markdown/flatten')
+            .then(({ scriptToBlocks }) => ready(scriptToBlocks(loadedScript)))
+            .catch(() => {
+              if (!cancelled) setLoadError(true);
+            });
+        };
+        try {
+          parserWorker = new Worker(
+            new URL('../../features/markdown/parse.worker.ts', import.meta.url),
+            { type: 'module' }
+          );
+          parserWorker.onmessage = (event: MessageEvent<{ blocks?: PrompterBlock[]; error?: true }>) => {
+            parserWorker?.terminate();
+            parserWorker = null;
+            if (event.data.blocks) ready(event.data.blocks);
+            else if (!cancelled) setLoadError(true);
+          };
+          parserWorker.onerror = () => {
+            parserWorker?.terminate();
+            parserWorker = null;
+            if (!cancelled) parseOnMainThread();
+          };
+          parserWorker.postMessage({ content: loadedScript.content, format: loadedScript.format });
+        } catch {
+          parserWorker?.terminate();
+          parserWorker = null;
+          parseOnMainThread();
+        }
       })
       .catch(() => {
         if (!cancelled) setLoadError(true);
       });
     return () => {
       cancelled = true;
+      parserWorker?.terminate();
     };
   }, [scriptId]);
 
@@ -97,12 +133,13 @@ export function PrompterPage({
     );
   }
 
-  if (!script || !settings) return <div className={styles.missing} role="status">Opening script…</div>;
+  if (!script || !settings || !blocks) return <div className={styles.missing} role="status">Opening script…</div>;
 
   return (
     <Prompter
       script={script}
       initialSettings={settings}
+      blocks={blocks}
       navigate={navigate}
       returnToScripts={returnToScripts}
     />
@@ -112,15 +149,16 @@ export function PrompterPage({
 function Prompter({
   script,
   initialSettings,
+  blocks,
   navigate,
   returnToScripts
 }: {
   script: Script;
   initialSettings: PrompterSettings;
+  blocks: PrompterBlock[];
   navigate: (hash: string) => void;
   returnToScripts: (focusScriptId?: string) => void;
 }) {
-  const blocks = useMemo(() => scriptToBlocks(script), [script]);
   const sections = useMemo(() => buildSections(blocks), [blocks]);
 
   const {

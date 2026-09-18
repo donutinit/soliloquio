@@ -49,6 +49,7 @@ export function ReadingSurface({
               blockElsRef.current[index] = el;
             }}
             className={styles.text}
+            data-continuation={block.continuation ? 'true' : undefined}
             data-block-type="text"
           >
             {block.text}

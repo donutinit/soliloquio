@@ -72,13 +72,25 @@ export function ScriptEditor({
   useEffect(() => {
     mountedRef.current = true;
     const flushOnPageHide = () => void persistLatest().catch(() => undefined);
+    const flushOnHidden = () => {
+      if (document.visibilityState === 'hidden') flushOnPageHide();
+    };
+    const warnOnUnsavedExit = (event: BeforeUnloadEvent) => {
+      if (saveQueue.isCurrentSaved()) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
     window.addEventListener('pagehide', flushOnPageHide);
+    window.addEventListener('beforeunload', warnOnUnsavedExit);
+    document.addEventListener('visibilitychange', flushOnHidden);
     // Una recarga automática (actualización) vacía la cola antes de recargar.
     const unregister = registerPendingSaveFlush(() => persistLatest());
     return () => {
       unregister();
       mountedRef.current = false;
       window.removeEventListener('pagehide', flushOnPageHide);
+      window.removeEventListener('beforeunload', warnOnUnsavedExit);
+      document.removeEventListener('visibilitychange', flushOnHidden);
       if (timerRef.current) clearTimeout(timerRef.current);
       if (!saveQueue.isCurrentSaved()) {
         void saveQueue.flush().catch((error) => {

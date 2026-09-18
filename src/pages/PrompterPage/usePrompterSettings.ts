@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PrompterSettings } from '../../types';
 import { saveSettings } from '../../services/database';
 import { registerPendingSaveFlush } from '../../services/pendingSaves';
+import { saveUntilUnchanged } from '../../features/settings/saveUntilUnchanged';
 import {
   FONT_LIMITS,
   MARGIN_LIMITS,
@@ -31,17 +32,17 @@ export function usePrompterSettings(initialSettings: PrompterSettings) {
   const adjustmentRemoveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const persistSettings = useCallback((): Promise<boolean> => {
-    if (!settingsDirtyRef.current) return settingsSaveRef.current;
-    const snapshot = settingsRef.current;
     const operation = settingsSaveRef.current.then(async () => {
+      if (!settingsDirtyRef.current) return true;
       try {
-        await saveSettings(snapshot);
-        if (settingsRef.current === snapshot) settingsDirtyRef.current = false;
-        return true;
+        await saveUntilUnchanged(() => settingsRef.current, saveSettings);
+        settingsDirtyRef.current = false;
       } catch {
         setStorageError('Settings could not be saved. Check available device storage.');
         return false;
       }
+      setStorageError(null);
+      return true;
     });
     settingsSaveRef.current = operation;
     return operation;
@@ -62,8 +63,16 @@ export function usePrompterSettings(initialSettings: PrompterSettings) {
         throw new Error('Prompter settings could not be saved');
       }
     });
+    const flushOnHidden = () => {
+      if (document.visibilityState === 'hidden') void persistSettings();
+    };
+    const flushOnPageHide = () => void persistSettings();
+    document.addEventListener('visibilitychange', flushOnHidden);
+    window.addEventListener('pagehide', flushOnPageHide);
     return () => {
       unregister();
+      document.removeEventListener('visibilitychange', flushOnHidden);
+      window.removeEventListener('pagehide', flushOnPageHide);
       void persistSettings();
     };
   }, [persistSettings]);

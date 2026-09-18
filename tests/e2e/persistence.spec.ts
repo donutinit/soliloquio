@@ -56,3 +56,18 @@ test('a setting changed immediately before leaving is persisted', async ({ page 
   await page.getByTestId('settings-toggle').click();
   await expect(page.getByTestId('font-value')).toHaveText('62px');
 });
+
+test('hiding the editor starts a pending save before page shutdown', async ({ page }) => {
+  await page.goto('/');
+  await page.getByTestId('new-script').click();
+  await page.getByTestId('editor-content').fill('Saved on backgrounding');
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await expect(page.getByTestId('save-status')).toHaveText('Saved');
+  await page.reload();
+  await cardByTitle(page, 'New script').getByTestId('card-menu').click();
+  await page.getByTestId('menu-edit').click();
+  await expect(page.getByTestId('editor-content')).toHaveValue('Saved on backgrounding');
+});

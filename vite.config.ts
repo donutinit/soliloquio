@@ -20,6 +20,7 @@ export default defineConfig({
         short_name: 'Soliloquio',
         description: 'A teleprompter for your soliloquy. Private, offline, with controller support.',
         lang: 'en',
+        id: '/',
         display: 'standalone',
         orientation: 'any',
         start_url: '/',

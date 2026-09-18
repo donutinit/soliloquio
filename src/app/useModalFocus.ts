@@ -30,6 +30,20 @@ export function useModalFocus<T extends HTMLElement>(onClose: () => void) {
     const modal = modalRef.current;
     if (!modal) return;
 
+    // ARIA describes modality, while inert enforces it for pointer, keyboard,
+    // and assistive-technology navigation outside the active dialog.
+    const inerted: HTMLElement[] = [];
+    let branch: HTMLElement = modal;
+    for (let parent = branch.parentElement; parent; parent = parent.parentElement) {
+      for (const sibling of parent.children) {
+        if (sibling instanceof HTMLElement && sibling !== branch && !sibling.inert) {
+          sibling.inert = true;
+          inerted.push(sibling);
+        }
+      }
+      branch = parent;
+    }
+
     const focusables = () =>
       Array.from(modal.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(isRendered);
     const frame = requestAnimationFrame(() => {
@@ -70,6 +84,7 @@ export function useModalFocus<T extends HTMLElement>(onClose: () => void) {
     return () => {
       cancelAnimationFrame(frame);
       document.removeEventListener('keydown', onKeyDown);
+      for (const sibling of inerted) sibling.inert = false;
       previousFocus?.focus();
     };
   }, []);

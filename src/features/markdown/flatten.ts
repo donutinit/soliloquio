@@ -5,6 +5,21 @@ import type { Parent, PhrasingContent, Root, RootContent } from 'mdast';
 import type { HeadingLevel, PrompterBlock, Script } from '../../types';
 
 const parser = unified().use(remarkParse).use(remarkGfm);
+const LARGE_SCRIPT_CHARS = 200_000;
+const MAX_TEXT_CHUNK_CHARS = 4_096;
+
+function pushTextChunks(blocks: PrompterBlock[], text: string): void {
+  let offset = 0;
+  while (offset < text.length) {
+    const end = Math.min(offset + MAX_TEXT_CHUNK_CHARS, text.length);
+    blocks.push({
+      type: 'text',
+      text: text.slice(offset, end),
+      ...(offset > 0 ? { continuation: true as const } : {})
+    });
+    offset = end;
+  }
+}
 
 function collapseWhitespace(text: string): string {
   return text.replace(/\s+/g, ' ').trim();
@@ -124,8 +139,67 @@ export function textToBlocks(content: string): PrompterBlock[] {
     .map((text) => ({ type: 'text' as const, text }));
 }
 
+/** Keep large scripts readable without creating one DOM element per short paragraph. */
+export function compactTextBlocks(blocks: PrompterBlock[]): PrompterBlock[] {
+  const compacted: PrompterBlock[] = [];
+  let text = '';
+  const flush = () => {
+    if (text) pushTextChunks(compacted, text);
+    text = '';
+  };
+  for (const block of blocks) {
+    if (block.type === 'heading') {
+      flush();
+      compacted.push(block);
+      continue;
+    }
+    if (block.text.length > MAX_TEXT_CHUNK_CHARS) {
+      flush();
+      pushTextChunks(compacted, block.text);
+      continue;
+    }
+    if (text && text.length + block.text.length + 2 > MAX_TEXT_CHUNK_CHARS) flush();
+    text += text ? `\n\n${block.text}` : block.text;
+  }
+  flush();
+  return compacted;
+}
+
+function largeTextToBlocks(content: string): PrompterBlock[] {
+  const compacted: PrompterBlock[] = [];
+  let text = '';
+  let start = 0;
+  const flush = () => {
+    if (text) pushTextChunks(compacted, text);
+    text = '';
+  };
+  const addParagraph = (value: string) => {
+    const paragraph = collapseWhitespace(value);
+    if (!paragraph) return;
+    if (paragraph.length > MAX_TEXT_CHUNK_CHARS) {
+      flush();
+      pushTextChunks(compacted, paragraph);
+      return;
+    }
+    if (text && text.length + paragraph.length + 2 > MAX_TEXT_CHUNK_CHARS) flush();
+    text += text ? `\n\n${paragraph}` : paragraph;
+  };
+  const separator = /\n\s*\n/g;
+  for (let match = separator.exec(content); match; match = separator.exec(content)) {
+    addParagraph(content.slice(start, match.index));
+    start = separator.lastIndex;
+  }
+  addParagraph(content.slice(start));
+  flush();
+  return compacted;
+}
+
 export function scriptToBlocks(script: Pick<Script, 'content' | 'format'>): PrompterBlock[] {
-  return script.format === 'markdown'
-    ? markdownToBlocks(script.content)
-    : textToBlocks(script.content);
+  if (script.format === 'text') {
+    return script.content.length > LARGE_SCRIPT_CHARS
+      ? largeTextToBlocks(script.content)
+      : textToBlocks(script.content);
+  }
+  const blocks = markdownToBlocks(script.content);
+  return script.content.length > LARGE_SCRIPT_CHARS ? compactTextBlocks(blocks) : blocks;
 }
