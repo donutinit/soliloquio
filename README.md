@@ -62,6 +62,8 @@ settings stay in that browser's local storage.
 - Import `.md`, `.markdown`, `.txt`, or a Soliloquio `.json` backup.
 - The import control is a directly tappable native file picker for reliable use in installed iOS
   web apps; file extensions are validated safely after selection.
+- Large scripts are parsed in a background worker when supported. Long plain-text scripts are
+  grouped into reading blocks so they do not create one element per short paragraph.
 - A selection can contain up to 50 script files, with a 5 MB limit per script and a 20 MB
   combined limit. Soliloquio JSON backups have a separate 25 MB limit.
 - Markdown headings create navigable sections. Plain-text scripts can be converted to Markdown
@@ -80,6 +82,9 @@ settings stay in that browser's local storage.
 Everything remains in IndexedDB on the current device. Clearing site data removes the library,
 so keep regular backups. iOS may purge Safari site data after prolonged inactivity; an installed
 home-screen PWA is generally more resilient.
+The editor saves after a short pause and when the app is hidden. If a write is still pending when
+you close a browser tab, browsers that support it warn before leaving; use **Scripts** or
+**Prompter** in the editor to wait for the save explicitly.
 
 ### Reading controls
 

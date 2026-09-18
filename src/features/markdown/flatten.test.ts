@@ -99,4 +99,19 @@ describe('textToBlocks', () => {
       { type: 'text', text: '# no es heading' }
     ]);
   });
+
+  it('mantiene el contenido de un guion largo con un número acotado de bloques', () => {
+    const content = 'Line\n\n'.repeat(50_000).trim();
+    const blocks = scriptToBlocks({ content, format: 'text' });
+    expect(blocks.length).toBeLessThan(100);
+    expect(blocks.map((block) => block.text).join('\n\n')).toBe(content);
+  });
+
+  it('divide un único párrafo muy largo sin perder texto', () => {
+    const content = 'word '.repeat(50_000);
+    const blocks = scriptToBlocks({ content, format: 'text' });
+    expect(blocks.length).toBeGreaterThan(1);
+    expect(blocks.every((block) => block.text.length <= 4_096)).toBe(true);
+    expect(blocks.map((block) => block.text).join('')).toBe(content.trim());
+  });
 });

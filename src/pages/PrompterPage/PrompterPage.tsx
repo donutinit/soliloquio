@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from 'react';
-import type { PrompterSettings, Script } from '../../types';
-import { getScript, getSettings } from '../../services/database';
+import type { PrompterBlock, PrompterSettings, Script } from '../../types';
 import { applyKeepScreenAwake } from '../../services/keepAwake';
 import { getActiveGamepad } from '../../services/gamepads';
-import { scriptToBlocks } from '../../features/markdown/flatten';
 import { buildSections, currentSectionIndex, stepSection } from '../../features/sections/sections';
 import { ScrollEngine } from '../../features/prompter/scrollEngine';
 import { GamepadController, type GamepadAction } from '../../features/gamepad/controller';
@@ -27,6 +25,7 @@ import { AdjustmentFeedbackToast } from './AdjustmentFeedbackToast';
 import { usePrompterSettings } from './usePrompterSettings';
 import { usePlaybackControls } from './usePlaybackControls';
 import { usePrompterKeyboard } from './usePrompterKeyboard';
+import { useLoadedPrompterScript } from './useLoadedPrompterScript';
 import { formatDuration } from './prompterDisplay';
 import type { KeyboardCommand, Panel } from './usePrompterKeyboard';
 import { editorHash } from '../../app/router';
@@ -48,36 +47,9 @@ export function PrompterPage({
   navigate: (hash: string) => void;
   returnToScripts: (focusScriptId?: string) => void;
 }) {
-  const [script, setScript] = useState<Script | null>(null);
-  const [settings, setSettings] = useState<PrompterSettings | null>(null);
-  const [missing, setMissing] = useState(false);
-  const [loadError, setLoadError] = useState(false);
+  const loaded = useLoadedPrompterScript(scriptId);
 
-  useEffect(() => {
-    let cancelled = false;
-    setScript(null);
-    setSettings(null);
-    setMissing(false);
-    setLoadError(false);
-    void Promise.all([getScript(scriptId), getSettings()])
-      .then(([loadedScript, loadedSettings]) => {
-        if (cancelled) return;
-        if (!loadedScript) {
-          setMissing(true);
-          return;
-        }
-        setScript(loadedScript);
-        setSettings(loadedSettings);
-      })
-      .catch(() => {
-        if (!cancelled) setLoadError(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [scriptId]);
-
-  if (loadError) {
+  if (loaded.kind === 'error') {
     return (
       <div className={styles.missing} role="alert">
         <p>This script could not be opened. Check available device storage and try again.</p>
@@ -86,7 +58,7 @@ export function PrompterPage({
     );
   }
 
-  if (missing) {
+  if (loaded.kind === 'missing') {
     return (
       <div className={styles.missing}>
         <p>This script no longer exists.</p>
@@ -97,12 +69,13 @@ export function PrompterPage({
     );
   }
 
-  if (!script || !settings) return <div className={styles.missing} role="status">Opening script…</div>;
+  if (loaded.kind === 'loading') return <div className={styles.missing} role="status">Opening script…</div>;
 
   return (
     <Prompter
-      script={script}
-      initialSettings={settings}
+      script={loaded.script}
+      initialSettings={loaded.settings}
+      blocks={loaded.blocks}
       navigate={navigate}
       returnToScripts={returnToScripts}
     />
@@ -112,15 +85,16 @@ export function PrompterPage({
 function Prompter({
   script,
   initialSettings,
+  blocks,
   navigate,
   returnToScripts
 }: {
   script: Script;
   initialSettings: PrompterSettings;
+  blocks: PrompterBlock[];
   navigate: (hash: string) => void;
   returnToScripts: (focusScriptId?: string) => void;
 }) {
-  const blocks = useMemo(() => scriptToBlocks(script), [script]);
   const sections = useMemo(() => buildSections(blocks), [blocks]);
 
   const {

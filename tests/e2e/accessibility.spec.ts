@@ -21,7 +21,10 @@ test('library and App settings pass the automated accessibility scan', async ({ 
   await page.getByTestId('app-settings-button').click();
   await expect(page.getByTestId('app-settings-panel')).toBeVisible();
   await expect(page.getByTestId('countdown-setting')).toBeEnabled();
+  expect(await page.getByTestId('library-header').evaluate((element) => (element as HTMLElement).inert)).toBe(true);
   await expectNoAutomaticAccessibilityViolations(page);
+  await page.getByRole('button', { name: 'Done' }).click();
+  expect(await page.getByTestId('library-header').evaluate((element) => (element as HTMLElement).inert)).toBe(false);
 });
 
 test('the reading surface passes the automated accessibility scan', async ({ page }) => {

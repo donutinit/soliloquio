@@ -59,6 +59,14 @@
   overflow-wrap: break-word;
 }
 
+.content .text {
+  white-space: pre-line;
+}
+
+.content .text[data-continuation='true'] {
+  margin-top: -0.8em;
+}
+
 .content .heading {
   /* Deliberate section marker, not an editorial headline. Its compact reader-font
      treatment separates navigation landmarks from the large spoken copy. */

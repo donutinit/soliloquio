@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { useRoute } from './router';
 import { useGamepadNavigation } from './useGamepadNavigation';
 import { ErrorBoundary } from './ErrorBoundary';
 import { ScriptsPage } from '../pages/ScriptsPage/ScriptsPage';
-import { PrompterPage } from '../pages/PrompterPage/PrompterPage';
 import { getSettings, openDatabase } from '../services/database';
 import {
   applyPendingPWAUpdate,
@@ -12,6 +11,10 @@ import {
 } from '../services/pwa';
 import { applyKeepScreenAwake } from '../services/keepAwake';
 import styles from './App.module.css';
+
+const PrompterPage = lazy(() =>
+  import('../pages/PrompterPage/PrompterPage').then((module) => ({ default: module.PrompterPage }))
+);
 
 export function App() {
   const [route, navigate] = useRoute();
@@ -85,11 +88,13 @@ export function App() {
           initialGamepadFocusId={gamepadReturnFocusId}
         />
       ) : (
-        <PrompterPage
-          scriptId={route.scriptId}
-          navigate={navigate}
-          returnToScripts={returnToScripts}
-        />
+        <Suspense fallback={<div className={styles.loading} role="status">Opening reader…</div>}>
+          <PrompterPage
+            scriptId={route.scriptId}
+            navigate={navigate}
+            returnToScripts={returnToScripts}
+          />
+        </Suspense>
       )}
     </ErrorBoundary>
   );
