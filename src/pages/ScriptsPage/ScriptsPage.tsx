@@ -15,16 +15,12 @@ import {
   getSettings,
   listScripts,
   resetToFactoryDefaults,
-  restoreBackup,
   saveSettings,
   updateScript
 } from '../../services/database';
-import {
-  MAX_BACKUP_IMPORT_FILE_BYTES,
-  readImportedFiles
-} from '../../features/import/importFiles';
-import { makeBackup, parseBackup } from '../../features/export/backup';
+import { makeBackup } from '../../features/export/backup';
 import { exportBackupFile, exportScriptFile } from '../../services/exportFiles';
+import { importSelectedFiles } from '../../services/importScripts';
 import { prompterHash } from '../../app/router';
 import { checkForPWAUpdate } from '../../services/pwa';
 import { applyKeepScreenAwake } from '../../services/keepAwake';
@@ -184,90 +180,23 @@ export function ScriptsPage({
     setBusy(true);
     setOperationError(null);
     setNotice(null);
-    const errors: string[] = [];
-    let importedCount = 0;
-    let restoredBackup = false;
     try {
-      const files = Array.from(fileList);
-      const backupFiles = files.filter((file) => /\.json$/i.test(file.name));
-      const scriptFiles = files.filter((file) => !/\.json$/i.test(file.name));
-
-      for (const file of backupFiles) {
-        if (file.size > MAX_BACKUP_IMPORT_FILE_BYTES) {
-          errors.push(
-            `${file.name}: Backup files must be ${MAX_BACKUP_IMPORT_FILE_BYTES / (1024 * 1024)} MB or smaller.`
-          );
-          continue;
-        }
-
-        let raw: string;
-        try {
-          raw = await file.text();
-        } catch {
-          errors.push(`${file.name}: The backup file could not be read.`);
-          continue;
-        }
-
-        let backup: ReturnType<typeof parseBackup>;
-        try {
-          backup = parseBackup(raw);
-        } catch (error) {
-          errors.push(
-            `${file.name}: ${error instanceof Error ? error.message : 'Invalid backup file.'}`
-          );
-          continue;
-        }
-
-        try {
-          await restoreBackup(backup.scripts, backup.settings);
-          importedCount += backup.scripts.length;
-          restoredBackup = true;
-        } catch {
-          errors.push(
-            `${file.name}: The backup could not be restored. Check available device storage and try again.`
-          );
-        }
-      }
-      if (restoredBackup) {
-        try {
-          const restoredSettings = await getSettings();
-          appSettingsChangeVersionRef.current += 1;
-          appSettingsRef.current = restoredSettings;
-          persistedAppSettingsRef.current = restoredSettings;
-          setAppSettings(restoredSettings);
-          applyKeepScreenAwake(restoredSettings.keepScreenAwake);
-        } catch {
-          errors.push('The backup was restored, but its screen setting could not be applied.');
-        }
-      }
-
-      const outcomes = await readImportedFiles(scriptFiles);
-      for (const outcome of outcomes) {
-        if (outcome.ok) {
-          try {
-            await createScript({
-              title: outcome.title,
-              content: outcome.content,
-              format: outcome.format
-            });
-            importedCount += 1;
-          } catch {
-            errors.push(
-              `${outcome.fileName}: The imported script could not be saved. Check available device storage and try again.`
-            );
-          }
-        } else {
-          errors.push(`${outcome.fileName}: ${outcome.error}`);
-        }
+      const { importedCount, errors, restoredSettings } = await importSelectedFiles(Array.from(fileList));
+      if (restoredSettings) {
+        appSettingsChangeVersionRef.current += 1;
+        appSettingsRef.current = restoredSettings;
+        persistedAppSettingsRef.current = restoredSettings;
+        setAppSettings(restoredSettings);
+        applyKeepScreenAwake(restoredSettings.keepScreenAwake);
       }
       if (importedCount > 0) {
         setNotice(`${importedCount} ${importedCount === 1 ? 'script' : 'scripts'} imported.`);
       }
+      setImportErrors(errors);
     } catch {
       setOperationError('The selected files could not be imported.');
     } finally {
       await refresh();
-      setImportErrors(errors);
       setBusy(false);
     }
   };

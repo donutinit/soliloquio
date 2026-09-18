@@ -110,6 +110,18 @@ test('el .txt importado no interpreta Markdown', async ({ page }) => {
   ).toBeVisible();
 });
 
+test('a long text file remains readable with a bounded reading DOM', async ({ page }) => {
+  await page.getByTestId('import-input').setInputFiles({
+    name: 'long.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from('Line\n\n'.repeat(50_000))
+  });
+  await openScriptInPrompter(page, 'long');
+  const count = await page.locator('[data-block-type="text"]').count();
+  expect(count).toBeLessThan(100);
+  await expect(page.getByTestId('prompter-content')).toContainText('Line');
+});
+
 test('reports unsupported files chosen through the native picker', async ({ page }) => {
   await page.getByTestId('import-input').setInputFiles({
     name: 'image.png',
