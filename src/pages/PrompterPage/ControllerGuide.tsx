@@ -114,10 +114,10 @@ export function ControllerGuide({
             ) : (
               <div className={styles.stickGuide}>
                 <span>
-                  <strong>L</strong> Left stick · fast scroll
+                  <strong>L</strong> Left stick · scroll
                 </span>
                 <span>
-                  <strong>R</strong> Right stick · fine scroll
+                  <strong>R</strong> Right stick · ↑ brake, ↓ speed up
                 </span>
               </div>
             )}

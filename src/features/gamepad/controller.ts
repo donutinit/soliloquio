@@ -1,10 +1,10 @@
-import { HoldButton, type HoldButtonEvents } from './holdButton';
+import { HoldButton, LONG_HOLD_THRESHOLD_MS, type HoldButtonEvents } from './holdButton';
 import {
   DEFAULT_MANUAL_SCROLL_SPEED,
   LEFT_STICK_FACTOR,
-  RIGHT_STICK_FACTOR,
   STICK_DEADZONE,
   applyDeadzone,
+  rightStickSpeedMultiplier,
   triggerValue
 } from './gamepadInput';
 import {
@@ -32,23 +32,29 @@ export type GamepadFrame = {
   manualVelocity: number;
   /** Multiplicador momentáneo de la velocidad automática configurada. */
   temporarySpeedMultiplier: number;
+  /**
+   * Si el multiplicador también mueve el texto en pausa (perfil Micro). El
+   * stick derecho solo frena o acelera un autoscroll en marcha.
+   */
+  temporarySpeedWhilePaused: boolean;
   connected: boolean;
 };
 
-type ActionTrigger = 'short' | 'release' | 'step';
+type ActionTrigger = 'hold' | 'release' | 'step';
 
 /**
- * Semántica de disparo de cada acción, independiente del botón asignado:
- * - short: solo pulsación corta (el botón tiene además una acción mantenida).
+ * Semántica de disparo de cada acción, independiente del botón asignado. Cada
+ * botón tiene una sola función:
+ * - hold: solo al mantener LONG_HOLD_THRESHOLD_MS; un toque no hace nada.
  * - release: al soltar, también tras una pulsación larga.
  * - step: se repite mientras se mantiene (ajustes escalonados).
  */
 export const ACTION_TRIGGERS: Record<GamepadAction, ActionTrigger> = {
-  togglePlay: 'short',
-  resetToStart: 'short',
-  speedDown: 'short',
-  speedUp: 'short',
-  backToScripts: 'release',
+  togglePlay: 'release',
+  resetToStart: 'hold',
+  backToScripts: 'hold',
+  speedDown: 'step',
+  speedUp: 'step',
   toggleControls: 'release',
   prevSection: 'release',
   nextSection: 'release',
@@ -64,6 +70,12 @@ export const ACTION_TRIGGERS: Record<GamepadAction, ActionTrigger> = {
 type ButtonLike = { pressed: boolean; value: number };
 
 const RELEASED: ButtonLike = { pressed: false, value: 0 };
+
+function holdButtonFor(action: GamepadAction): HoldButton {
+  return ACTION_TRIGGERS[action] === 'hold'
+    ? new HoldButton(LONG_HOLD_THRESHOLD_MS)
+    : new HoldButton();
+}
 
 function isButtonPressed(button: ButtonLike): boolean {
   return button.pressed || triggerValue(button) > 0;
@@ -144,7 +156,7 @@ export class GamepadController {
   }
 
   private resetMachines(): void {
-    for (const action of GAMEPAD_ACTIONS) this.machines.set(action, new HoldButton());
+    for (const action of GAMEPAD_ACTIONS) this.machines.set(action, holdButtonFor(action));
   }
 
   update(pad: Gamepad | null | undefined, nowMs: number): GamepadFrame {
@@ -166,6 +178,7 @@ export class GamepadController {
         actions: [],
         manualVelocity: 0,
         temporarySpeedMultiplier: 1,
+        temporarySpeedWhilePaused: false,
         connected: false
       };
     }
@@ -220,6 +233,7 @@ export class GamepadController {
           actions: [],
           manualVelocity: 0,
           temporarySpeedMultiplier: 1,
+          temporarySpeedWhilePaused: false,
           connected: true
         };
       }
@@ -251,7 +265,7 @@ export class GamepadController {
       if (selectAction) {
         // La combinación consume Select: descarta una pulsación ya iniciada y
         // evita que su acción normal se dispare al soltar el modificador.
-        this.machines.set(selectAction, new HoldButton());
+        this.machines.set(selectAction, holdButtonFor(selectAction));
         this.suppressed.add(selectAction);
       }
     } else if (!microSelectPressed) {
@@ -265,7 +279,7 @@ export class GamepadController {
       );
       if (bAction && bAction !== 'toggleSections') {
         // Select + B reemplaza la acción normal de B durante esta pulsación.
-        this.machines.set(bAction, new HoldButton());
+        this.machines.set(bAction, holdButtonFor(bAction));
         this.suppressed.add(bAction);
       }
     } else if (!microBPressed) {
@@ -300,8 +314,8 @@ export class GamepadController {
       if (!e) continue;
       const trigger = ACTION_TRIGGERS[action];
       const fired =
-        trigger === 'short'
-          ? e.shortPress
+        trigger === 'hold'
+          ? e.holdStart
           : trigger === 'release'
             ? e.released
             : e.shortPress || e.holdStart || e.repeat;
@@ -323,22 +337,11 @@ export class GamepadController {
         }
       }
     } else {
-      if (events.togglePlay?.holdActive) velocity += DEFAULT_MANUAL_SCROLL_SPEED;
-      if (events.resetToStart?.holdActive) velocity -= DEFAULT_MANUAL_SCROLL_SPEED;
-      if (events.speedUp?.holdActive) {
-        velocity += triggerValue(button('speedUp')) * DEFAULT_MANUAL_SCROLL_SPEED;
-      }
-      if (events.speedDown?.holdActive) {
-        velocity -= triggerValue(button('speedDown')) * DEFAULT_MANUAL_SCROLL_SPEED;
-      }
       // Los índices de ejes solo tienen significado garantizado en el layout
       // estándar; en mandos no estándar se ignoran los sticks (los botones y
       // el remapeo siguen disponibles).
       if (pad.mapping === 'standard') {
-        velocity +=
-          applyDeadzone(pad.axes[3] ?? 0, STICK_DEADZONE) *
-          DEFAULT_MANUAL_SCROLL_SPEED *
-          RIGHT_STICK_FACTOR;
+        temporarySpeedMultiplier = rightStickSpeedMultiplier(pad.axes[3] ?? 0);
         velocity +=
           applyDeadzone(pad.axes[1] ?? 0, STICK_DEADZONE) *
           DEFAULT_MANUAL_SCROLL_SPEED *
@@ -350,6 +353,7 @@ export class GamepadController {
       actions,
       manualVelocity: velocity,
       temporarySpeedMultiplier,
+      temporarySpeedWhilePaused: micro,
       connected: true
     };
   }

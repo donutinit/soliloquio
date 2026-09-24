@@ -201,7 +201,7 @@ export function GamepadSettingsPanel({
             ? '8BitDo Micro profile: D-pad controls scrolling; hold Select with B for sections or with the D-pad for text and margins. Reserved controls are fixed.'
             : pro3
               ? '8BitDo Pro 3 profile: B confirms and A goes back. For independent extras in Safari, map L4/R4/PL/PR on the controller to Select+A / Select+B / Select+X / Select+Y, then assign them here.'
-            : 'Tap an action, then press the controller button you want for it. Assigning a busy button swaps the two actions. Sticks scroll on standard-mapped controllers.'}
+            : 'Tap an action, then press the controller button you want for it. Assigning a busy button swaps the two actions. On standard-mapped controllers, the left stick scrolls and the right stick brakes or speeds up playback.'}
       </p>
       {feedback && !error && (
         <p className={styles.gamepadFeedback} data-testid="gamepad-feedback" role="status">

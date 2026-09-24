@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { GamepadController } from './controller';
-import { HOLD_THRESHOLD_MS } from './holdButton';
-import { DEFAULT_MANUAL_SCROLL_SPEED } from './gamepadInput';
+import { HOLD_THRESHOLD_MS, LONG_HOLD_THRESHOLD_MS } from './holdButton';
+import {
+  DEFAULT_MANUAL_SCROLL_SPEED,
+  LEFT_STICK_FACTOR,
+  RIGHT_STICK_MAX_MULTIPLIER
+} from './gamepadInput';
 import { DEFAULT_GAMEPAD_BINDINGS, GAMEPAD_ACTIONS } from '../../types';
 
 const MICRO_ID = '8BitDo Micro gamepad Gamepad';
@@ -51,6 +55,20 @@ function primedController(bindings = { ...DEFAULT_GAMEPAD_BINDINGS }): GamepadCo
   return controller;
 }
 
+/** Mantiene un botón lo bastante para las acciones de solo-mantener y lo suelta. */
+function holdAndRelease(
+  controller: GamepadController,
+  pad: (buttons?: Record<number, { pressed: boolean; value: number }>) => Gamepad,
+  button: number,
+  start: number
+): string[] {
+  const pressed = pad({ [button]: { pressed: true, value: 1 } });
+  controller.update(pressed, start);
+  const held = controller.update(pressed, start + LONG_HOLD_THRESHOLD_MS + 10);
+  const released = controller.update(pad(), start + LONG_HOLD_THRESHOLD_MS + 50);
+  return [...held.actions, ...released.actions];
+}
+
 function microPad(buttons: Record<number, { pressed: boolean; value: number }> = {}): Gamepad {
   return fakePad({ id: MICRO_ID, buttons });
 }
@@ -82,10 +100,8 @@ describe('GamepadController', () => {
     for (const [index, testCase] of cases.entries()) {
       const controller = new GamepadController({ ...DEFAULT_GAMEPAD_BINDINGS });
       controller.update(pro3(), -100);
-      const start = index * 200;
-      controller.update(pro3({ [testCase.button]: { pressed: true, value: 1 } }), start);
-      const released = controller.update(pro3(), start + 100);
-      expect(released.actions).toContain(testCase.action);
+      const start = index * 1000;
+      expect(holdAndRelease(controller, pro3, testCase.button, start)).toContain(testCase.action);
     }
   });
 
@@ -126,15 +142,40 @@ describe('GamepadController', () => {
     expect(controller.update(other8BitDo(), 100).actions).not.toContain('toggleSections');
   });
 
-  it('mantener el botón de play no emite togglePlay y genera velocidad manual', () => {
+  it('mantener el botón de play no hace scroll y alterna al soltar', () => {
     const controller = primedController();
     const pressed = fakePad({ buttons: { 0: { pressed: true, value: 1 } } });
     controller.update(pressed, 0);
     const held = controller.update(pressed, HOLD_THRESHOLD_MS + 10);
-    expect(held.manualVelocity).toBe(DEFAULT_MANUAL_SCROLL_SPEED);
+    expect(held.manualVelocity).toBe(0);
+    expect(held.actions).toEqual([]);
     const released = controller.update(fakePad({}), HOLD_THRESHOLD_MS + 100);
-    expect(released.actions).not.toContain('togglePlay');
-    expect(released.manualVelocity).toBe(0);
+    expect(released.actions).toContain('togglePlay');
+  });
+
+  it('Triangle y Circle solo actúan al mantenerlos; un toque no hace nada', () => {
+    for (const [button, action] of [
+      [3, 'resetToStart'],
+      [1, 'backToScripts']
+    ] as const) {
+      const controller = primedController();
+      const pressed = fakePad({ buttons: { [button]: { pressed: true, value: 1 } } });
+      controller.update(pressed, 0);
+      const tapped = controller.update(fakePad({}), HOLD_THRESHOLD_MS + 100);
+      expect(tapped.actions).toEqual([]);
+      expect(tapped.manualVelocity).toBe(0);
+
+      controller.update(pressed, 1000);
+      const early = controller.update(pressed, 1000 + LONG_HOLD_THRESHOLD_MS - 1);
+      expect(early.actions).toEqual([]);
+      expect(early.manualVelocity).toBe(0);
+      const held = controller.update(pressed, 1000 + LONG_HOLD_THRESHOLD_MS);
+      expect(held.actions).toEqual([action]);
+      const stillHeld = controller.update(pressed, 1000 + LONG_HOLD_THRESHOLD_MS + 500);
+      expect(stillHeld.actions).toEqual([]);
+      const released = controller.update(fakePad({}), 1000 + LONG_HOLD_THRESHOLD_MS + 600);
+      expect(released.actions).toEqual([]);
+    }
   });
 
   it('a long press still triggers actions that have no hold behavior', () => {
@@ -156,12 +197,16 @@ describe('GamepadController', () => {
     expect(released.actions).not.toContain('toggleSections');
   });
 
-  it('un gatillo analógico mantenido escala la velocidad manual', () => {
+  it('un gatillo sube la velocidad al pulsarlo y repite al mantenerlo, sin scroll', () => {
     const controller = primedController();
     const half = fakePad({ buttons: { 7: { pressed: true, value: 0.56 } } });
     controller.update(half, 0);
-    const frame = controller.update(half, HOLD_THRESHOLD_MS + 10);
-    expect(frame.manualVelocity).toBeCloseTo(DEFAULT_MANUAL_SCROLL_SPEED * 0.5);
+    const held = controller.update(half, HOLD_THRESHOLD_MS);
+    expect(held.actions).toEqual(['speedUp']);
+    expect(held.manualVelocity).toBe(0);
+    const repeated = controller.update(half, HOLD_THRESHOLD_MS * 2 + 10);
+    expect(repeated.actions).toEqual(['speedUp']);
+    expect(repeated.manualVelocity).toBe(0);
   });
 
   it('respeta una acción reasignada a otro botón', () => {
@@ -179,13 +224,13 @@ describe('GamepadController', () => {
   it('la acción mantenida sigue a la acción reasignada, no al botón original', () => {
     const controller = primedController({
       ...DEFAULT_GAMEPAD_BINDINGS,
-      togglePlay: 5,
-      nextSection: 0
+      resetToStart: 5,
+      nextSection: 3
     });
-    const pressed = fakePad({ buttons: { 5: { pressed: true, value: 1 } } });
-    controller.update(pressed, 0);
-    const held = controller.update(pressed, HOLD_THRESHOLD_MS + 10);
-    expect(held.manualVelocity).toBe(DEFAULT_MANUAL_SCROLL_SPEED);
+    const pad = (buttons?: Record<number, { pressed: boolean; value: number }>) =>
+      fakePad({ buttons });
+    expect(holdAndRelease(controller, pad, 5, 0)).toEqual(['resetToStart']);
+    expect(holdAndRelease(controller, pad, 3, 1000)).toEqual(['nextSection']);
   });
 
   it('una pulsación sostenida al abrir el guion queda suprimida hasta soltarse', () => {
@@ -247,29 +292,38 @@ describe('GamepadController', () => {
     expect(after.actions).toContain('togglePlay');
   });
 
-  it('los sticks aportan scroll fino y rápido con zona muerta', () => {
+  it('el stick izquierdo hace scroll rápido en ambos sentidos con zona muerta', () => {
     const controller = primedController();
-    expect(controller.update(fakePad({ axes: [0, 0.1, 0, 0.1] }), 16).manualVelocity).toBe(0);
-    const fine = controller.update(fakePad({ axes: [0, 0, 0, 1] }), 32).manualVelocity;
-    const fast = controller.update(fakePad({ axes: [0, 1, 0, 0] }), 48).manualVelocity;
-    expect(fine).toBeGreaterThan(0);
-    expect(fast).toBeGreaterThan(fine);
+    expect(controller.update(fakePad({ axes: [0, 0.1, 0, 0] }), 16).manualVelocity).toBe(0);
+    expect(controller.update(fakePad({ axes: [0, 1, 0, 0] }), 32).manualVelocity).toBe(
+      DEFAULT_MANUAL_SCROLL_SPEED * LEFT_STICK_FACTOR
+    );
+    expect(controller.update(fakePad({ axes: [0, -1, 0, 0] }), 48).manualVelocity).toBe(
+      -DEFAULT_MANUAL_SCROLL_SPEED * LEFT_STICK_FACTOR
+    );
+  });
+
+  it('el stick derecho frena o acelera el autoscroll sin mover el texto', () => {
+    const controller = primedController();
+    const at = (axis: number, time: number) =>
+      controller.update(fakePad({ axes: [0, 0, 0, axis] }), time);
+    expect(at(0.1, 16).temporarySpeedMultiplier).toBe(1);
+    const brake = at(-1, 32);
+    expect(brake.temporarySpeedMultiplier).toBe(0);
+    expect(brake.manualVelocity).toBe(0);
+    expect(brake.temporarySpeedWhilePaused).toBe(false);
+    expect(at(-0.575, 48).temporarySpeedMultiplier).toBeCloseTo(0.5);
+    const boost = at(1, 64);
+    expect(boost.temporarySpeedMultiplier).toBe(RIGHT_STICK_MAX_MULTIPLIER);
+    expect(boost.manualVelocity).toBe(0);
+    expect(at(0, 80).temporarySpeedMultiplier).toBe(1);
   });
 
   it('ignora los sticks cuando el mando no declara mapeo estándar', () => {
     const controller = primedController();
     const frame = controller.update(fakePad({ axes: [0, 1, 0, 1], mapping: '' }), 16);
     expect(frame.manualVelocity).toBe(0);
-  });
-
-  it('speedUp y speedDown mantenidos a la vez cancelan sus velocidades', () => {
-    const controller = primedController();
-    const both = fakePad({
-      buttons: { 6: { pressed: true, value: 1 }, 7: { pressed: true, value: 1 } }
-    });
-    controller.update(both, 0);
-    const frame = controller.update(both, HOLD_THRESHOLD_MS + 10);
-    expect(frame.manualVelocity).toBe(0);
+    expect(frame.temporarySpeedMultiplier).toBe(1);
   });
 
   it('el Micro usa izquierda/derecha para scroll manual y prioriza horizontal', () => {
@@ -306,6 +360,7 @@ describe('GamepadController', () => {
     );
     expect(slow.manualVelocity).toBe(0);
     expect(slow.temporarySpeedMultiplier).toBe(0.2);
+    expect(slow.temporarySpeedWhilePaused).toBe(true);
 
     const fast = controller.update(
       microPad({ 13: { pressed: true, value: 1 } }),
@@ -325,13 +380,10 @@ describe('GamepadController', () => {
 
     for (const [index, testCase] of cases.entries()) {
       const controller = primedMicroController();
-      const start = index * 200;
-      controller.update(
-        microPad({ [testCase.button]: { pressed: true, value: 1 } }),
-        start
+      const start = index * 1000;
+      expect(holdAndRelease(controller, microPad, testCase.button, start)).toContain(
+        testCase.action
       );
-      const released = controller.update(microPad(), start + 100);
-      expect(released.actions).toContain(testCase.action);
     }
   });
 

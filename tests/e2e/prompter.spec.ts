@@ -177,7 +177,7 @@ test('landscape controls and controller guide stay inside the viewport', async (
     'playstation'
   );
   await expect(page.getByRole('img', { name: 'DualShock 4 button layout' })).toBeVisible();
-  await expect(page.getByTestId('controller-guide')).toContainText('Left stick · fast scroll');
+  await expect(page.getByTestId('controller-guide')).toContainText('Left stick · scroll');
 
   const diagram = await page.getByTestId('controller-diagram').boundingBox();
   const legend = await page

@@ -76,9 +76,14 @@ test('al detectar el mando enfoca el primer guion y permite navegarlo', async ({
   await expect(page.getByTestId('prompter-page')).toBeVisible();
   await expect(page.getByTestId('play-pause')).toHaveAttribute('data-playing', 'false');
 
-  // Círculo/B/Este sale del lector y devuelve el cursor al mismo guion, no al header.
+  // Un toque de Círculo/B/Este no sale del lector: hay que mantenerlo.
   await pressNav(page, EAST);
+  await expect(page.getByTestId('prompter-page')).toBeVisible();
+
+  // Mantenido, sale y devuelve el cursor al mismo guion, no al header.
+  await setButton(page, EAST, true);
   await expect(page.getByTestId('prompter-page')).toHaveCount(0);
+  await setButton(page, EAST, false);
   await expect(cardMain).toBeFocused();
   await expect(page.locator(':root')).toHaveAttribute('data-gamepad-nav', 'true');
 });

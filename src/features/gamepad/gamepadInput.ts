@@ -2,9 +2,10 @@ export const TRIGGER_DEADZONE = 0.12;
 export const STICK_DEADZONE = 0.15;
 export const DEFAULT_MANUAL_SCROLL_SPEED = 220;
 
-/** Factores de los sticks: derecho = ajuste fino, izquierdo = desplazamiento rápido. */
-export const RIGHT_STICK_FACTOR = 0.4;
-export const LEFT_STICK_FACTOR = 2.5;
+/** Stick izquierdo: desplazamiento rápido, en múltiplos de la velocidad manual. */
+export const LEFT_STICK_FACTOR = 5;
+/** Stick derecho a fondo hacia abajo: multiplicador máximo del autoscroll. */
+export const RIGHT_STICK_MAX_MULTIPLIER = 3;
 
 export type GamepadButtonState = { pressed: boolean; value: number };
 
@@ -26,4 +27,14 @@ export function triggerValue(button: GamepadButtonState): number {
   const analog = applyDeadzone(button.value, TRIGGER_DEADZONE);
   if (analog > 0) return analog;
   return button.pressed ? 1 : 0;
+}
+
+/**
+ * Stick derecho como freno/acelerador del autoscroll. Hacia arriba frena hasta
+ * detenerlo a fondo (nunca invierte el sentido); hacia abajo acelera hasta
+ * RIGHT_STICK_MAX_MULTIPLIER.
+ */
+export function rightStickSpeedMultiplier(axis: number): number {
+  const value = applyDeadzone(axis, STICK_DEADZONE);
+  return value < 0 ? 1 + value : 1 + value * (RIGHT_STICK_MAX_MULTIPLIER - 1);
 }

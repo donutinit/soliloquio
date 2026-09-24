@@ -1,4 +1,6 @@
 export const HOLD_THRESHOLD_MS = 350;
+/** Umbral de las acciones que solo existen mantenidas (volver al inicio, salir). */
+export const LONG_HOLD_THRESHOLD_MS = 600;
 export const REPEAT_DELAY_MS = 350;
 export const REPEAT_INTERVAL_MS = 80;
 
@@ -25,13 +27,15 @@ const IDLE: HoldButtonEvents = {
 
 /**
  * Distingue pulsación corta y mantenida: la acción corta solo se dispara si el
- * botón se suelta antes de HOLD_THRESHOLD_MS; pasado el umbral se activa la
- * acción mantenida y la corta ya no se dispara al soltar.
+ * botón se suelta antes del umbral (HOLD_THRESHOLD_MS por defecto); pasado el
+ * umbral se activa la acción mantenida y la corta ya no se dispara al soltar.
  */
 export class HoldButton {
   private pressedAtMs: number | null = null;
   private holdStartMs: number | null = null;
   private repeatCount = 0;
+
+  constructor(private readonly thresholdMs = HOLD_THRESHOLD_MS) {}
 
   update(pressed: boolean, nowMs: number): HoldButtonEvents {
     const events = { ...IDLE };
@@ -41,7 +45,7 @@ export class HoldButton {
         this.holdStartMs = null;
         this.repeatCount = 0;
       }
-      if (nowMs - this.pressedAtMs >= HOLD_THRESHOLD_MS) {
+      if (nowMs - this.pressedAtMs >= this.thresholdMs) {
         if (this.holdStartMs === null) {
           this.holdStartMs = nowMs;
           events.holdStart = true;

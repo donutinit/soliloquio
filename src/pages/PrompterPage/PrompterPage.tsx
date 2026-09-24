@@ -416,7 +416,10 @@ function Prompter({
       const temporarySpeedMultiplier = inputEnabled ? frame.temporarySpeedMultiplier : 1;
       engine.state.temporarySpeedMultiplier = temporarySpeedMultiplier;
       const multiplierVelocity =
-        inputEnabled && !engine.state.playing && temporarySpeedMultiplier !== 1
+        inputEnabled &&
+        frame.temporarySpeedWhilePaused &&
+        !engine.state.playing &&
+        temporarySpeedMultiplier !== 1
           ? engine.state.baseSpeed * temporarySpeedMultiplier
           : 0;
       const manualVelocity = inputEnabled ? frame.manualVelocity + multiplierVelocity : 0;
@@ -482,14 +485,15 @@ function Prompter({
         setSectionIdx(idx);
       }
       const elapsed = Math.floor(engine.state.elapsedSeconds);
-      const timeDisplay = `${Math.round(position)}:${Math.round(engine.maxPosition)}:${engine.state.baseSpeed}:${engine.state.temporarySpeedMultiplier}:${elapsed}`;
+      const timeDisplay = `${Math.round(position)}:${Math.round(engine.maxPosition)}:${engine.state.baseSpeed}:${elapsed}`;
       if (timeDisplay !== lastTimeDisplayRef.current) {
         lastTimeDisplayRef.current = timeDisplay;
         if (elapsedRef.current) elapsedRef.current.textContent = formatReadingTime(elapsed);
-        const effectiveSpeed = engine.state.baseSpeed * engine.state.temporarySpeedMultiplier;
+        // A momentary brake or boost is not the pace: estimate at the configured
+        // speed (a full brake would otherwise divide by zero).
         if (remainingRef.current) {
           remainingRef.current.textContent = `≈ ${formatReadingTime(
-            (engine.maxPosition - position) / effectiveSpeed
+            (engine.maxPosition - position) / engine.state.baseSpeed
           )} left`;
         }
       }

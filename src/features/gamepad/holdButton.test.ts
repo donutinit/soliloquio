@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   HOLD_THRESHOLD_MS,
+  LONG_HOLD_THRESHOLD_MS,
   REPEAT_DELAY_MS,
   REPEAT_INTERVAL_MS,
   HoldButton
@@ -13,6 +14,13 @@ describe('HoldButton', () => {
     const events = button.update(false, HOLD_THRESHOLD_MS - 1);
     expect(events.shortPress).toBe(true);
     expect(events.released).toBe(true);
+  });
+
+  it('admite un umbral propio para las acciones de solo-mantener', () => {
+    const button = new HoldButton(LONG_HOLD_THRESHOLD_MS);
+    button.update(true, 0);
+    expect(button.update(true, HOLD_THRESHOLD_MS).holdStart).toBe(false);
+    expect(button.update(true, LONG_HOLD_THRESHOLD_MS).holdStart).toBe(true);
   });
 
   it('pasado el umbral activa la acción mantenida', () => {

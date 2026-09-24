@@ -129,6 +129,15 @@ export async function setButton(page: Page, index: number, pressed: boolean): Pr
   );
 }
 
+export async function setAxis(page: Page, index: number, value: number): Promise<void> {
+  await page.evaluate(
+    ([i, v]) => {
+      (window as unknown as { __setAxis: (i: number, v: number) => void }).__setAxis(i, v);
+    },
+    [index, value] as const
+  );
+}
+
 /** Cambia varios botones dentro del mismo turno para simular un solo reporte HID. */
 export async function setButtons(
   page: Page,

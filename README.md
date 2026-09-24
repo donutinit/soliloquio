@@ -177,8 +177,10 @@ mounted next to the lens as the prompter, and a Bluetooth controller — in your
 or a compact 8BitDo Micro held out of frame — runs the whole take:
 
 - Start and pause from where you stand, without walking to the phone or breaking eyeline.
-- Hold a face button to scrub back for a retake and find your place; triggers scroll
-  proportionally to how far they are pressed.
+- Scrub back for a retake with the left stick, and ride the right stick like a brake and
+  accelerator to match the text to your delivery; it never runs the text backwards.
+- Every button does exactly one thing. Returning to the start and leaving the reader require a
+  deliberate hold, so a stray tap cannot lose your place mid-take.
 - Jump between sections mid-take, and nudge speed, text size, or margins without opening panels:
   adjustments appear as a centered HUD over the text and fade away on their own.
 - Operate the entire app the same way — the library, settings, and every panel answer to the
@@ -212,21 +214,25 @@ fixed. On iOS, opening the file import picker still requires a direct tap.
 Every reader action can be assigned to any controller button from **App Settings → Gamepad →
 Configure**: tap an action, then press the button you want for it. The default layout is:
 
-| Control | Short press | Hold |
-|---|---|---|
-| Cross | Play/pause | Scroll down |
-| Triangle | Return to start | Scroll up |
-| Circle | Return to Scripts | — |
-| Square | Show/hide controls | — |
-| L1 / R1 | Previous/next section | Same action on release |
-| L2 / R2 | Decrease/increase speed | Proportional scroll up/down |
-| D-pad up/down | Increase/decrease text size | Repeat |
-| D-pad left/right | Decrease/increase margins | Repeat |
-| Right stick Y | Fine scroll | — |
-| Left stick Y | Fast scroll | — |
-| Options / Menu / Plus / Start | Display settings | Same action on release |
-| Share / Create / View / Minus / Select | Controller guide | Same action on release |
-| R3 / RS | Section browser | Same action on release |
+| Control | Action |
+|---|---|
+| Cross | Play/pause |
+| Hold Triangle | Return to start (a tap does nothing) |
+| Hold Circle | Return to Scripts (a tap does nothing) |
+| Square | Show/hide controls |
+| L1 / R1 | Previous/next section |
+| L2 / R2 | Decrease/increase speed; hold to repeat |
+| D-pad up/down | Increase/decrease text size; hold to repeat |
+| D-pad left/right | Decrease/increase margins; hold to repeat |
+| Left stick Y | Scroll up/down, proportional to the tilt |
+| Right stick Y | Up brakes playback down to a full stop; down speeds it up to 3× |
+| Options / Menu / Plus / Start | Display settings |
+| Share / Create / View / Minus / Select | Controller guide |
+| R3 / RS | Section browser |
+
+The right stick only changes the pace of running playback: it never scrolls backwards and does
+nothing while paused. Releasing it returns to the configured speed. Hold actions fire after
+0.6 seconds.
 
 When the reported controller id identifies an **8BitDo Micro**, the app activates a fixed compact
 profile without changing other controllers:
@@ -244,12 +250,12 @@ profile without changing other controllers:
 Select and the D-pad are reserved while this profile is active. Releasing a temporary speed button
 restores normal playback speed, or stops again if the reader was paused. A Select combination
 consumes both controls, so releasing it does not also trigger the guide or the button's normal
-action. The face buttons retain the same positional behavior as a DualShock: B plays or pauses, A
-exits, Y shows or hides the controls, and X returns to the start. The Micro's raw A/B/X/Y button
+action. The face buttons retain the same positional behavior as a DualShock: B plays or pauses,
+holding A exits, Y shows or hides the controls, and holding X returns to the start. The Micro's raw A/B/X/Y button
 order is normalized only for this controller profile; Diagnostics continues to show the raw input.
 
-Hold behaviors (manual scrolling, step repeats) follow the action to its assigned button; stick
-axes scroll on controllers that report the standard mapping. Gamepad button ordering can vary by
+Hold behaviors (hold-only actions, step repeats) follow the action to its assigned button; stick
+axes work on controllers that report the standard mapping. Gamepad button ordering can vary by
 browser — the panel's **Diagnostics** view shows raw button and axis input while suspending
 controller navigation and actions. Assigning a button already in use swaps the two actions so
 active actions remain unique, and **Reset** restores the default layout.
