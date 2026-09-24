@@ -59,13 +59,21 @@ settings stay in that browser's local storage.
 - New installations include a **Read me first** script, pinned to the bottom of the library. It
   explains the intended workflow — import from Files and read, don't treat the app as permanent
   storage — and deleting it is respected until a factory reset.
-- Import `.md`, `.markdown`, `.txt`, or a Soliloquio `.json` backup.
+- Import documents or a Soliloquio `.json` backup. Supported documents: Markdown (`.md`,
+  `.markdown`), plain text (`.txt`, `.fountain`), Word (`.docx`), PDF, OpenDocument (`.odt`), RTF,
+  HTML, and subtitles (`.srt`, `.vtt`). Word, OpenDocument, and HTML keep headings (as sections)
+  and bold/italic emphasis; PDF, RTF, and subtitles import as plain text with rebuilt paragraphs.
+  Any other file imports as plain text when it contains valid UTF-8 text. Legacy `.doc`, Pages, and
+  presentations must be exported as `.docx` or PDF first; scanned PDFs without selectable text
+  and password-protected PDFs are reported per file. Conversion happens entirely on the device;
+  PDF.js loads only when a PDF is imported and is cached for offline use.
 - The import control is a directly tappable native file picker for reliable use in installed iOS
   web apps; file extensions are validated safely after selection.
 - Large scripts are parsed in a background worker when supported. Long plain-text scripts are
   grouped into reading blocks so they do not create one element per short paragraph.
-- A selection can contain up to 50 script files, with a 5 MB limit per script and a 20 MB
-  combined limit. Soliloquio JSON backups have a separate 25 MB limit.
+- A selection can contain up to 50 script files: 5 MB per text file, 25 MB per Word, PDF,
+  OpenDocument, or RTF document, 50 MB combined, and at most 5 MB of extracted text per file.
+  Soliloquio JSON backups have a separate 25 MB limit.
 - Markdown headings create navigable sections. Plain-text scripts can be converted to Markdown
   from their options menu.
 - Markdown formatting for delivery: a blockquote (`> Look at the lens`) is a small gold note that

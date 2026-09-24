@@ -514,7 +514,7 @@ export function ScriptsPage({
           {scripts.length === 0 ? (
             <>
               <p>No scripts yet.</p>
-              <p>Import Markdown, plain text, or a backup, or write a new script.</p>
+              <p>Import a document — Word, PDF, Markdown, plain text, and more — or write a new script.</p>
               <div className={styles.emptyActions}>
                 <label className={styles.emptyImport} aria-disabled={busy}>
                   <Icon name="upload" />

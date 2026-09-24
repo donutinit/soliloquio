@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { cardByTitle, createSampleScript, openScriptInPrompter } from './helpers';
+import { makeZip } from '../../src/features/import/documents/testing/makeZip';
 
 const fixture = (name: string) =>
   fileURLToPath(new URL(`../fixtures/${name}`, import.meta.url));
@@ -136,7 +137,91 @@ test('reports unsupported files chosen through the native picker', async ({ page
     buffer: Buffer.from('not really an image')
   });
   await expect(page.getByRole('alert')).toContainText(
-    'Choose a Markdown (.md, .markdown) or plain-text (.txt) file'
+    'image.png: This file type cannot be imported. Supported: Word (.docx), PDF'
+  );
+});
+
+/** A minimal single-page PDF with real text operators and a valid xref table. */
+function makePdf(lines: string[]): Buffer {
+  const stream = [
+    'BT /F1 18 Tf 72 720 Td 24 TL',
+    ...lines.map((line) => `(${line.replace(/[()\\]/g, '\\$&')}) '`),
+    'ET'
+  ].join('\n');
+  const objects = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+    `<< /Length ${Buffer.byteLength(stream)} >>\nstream\n${stream}\nendstream`
+  ];
+  let pdf = '%PDF-1.4\n';
+  const offsets: number[] = [];
+  objects.forEach((object, index) => {
+    offsets.push(Buffer.byteLength(pdf));
+    pdf += `${index + 1} 0 obj\n${object}\nendobj\n`;
+  });
+  const xref = Buffer.byteLength(pdf);
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  pdf += offsets.map((offset) => `${String(offset).padStart(10, '0')} 00000 n \n`).join('');
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+  return Buffer.from(pdf, 'latin1');
+}
+
+test('imports Word, PDF, and RTF documents as readable scripts', async ({ page }) => {
+  const docx = await makeZip([
+    {
+      name: 'word/document.xml',
+      text:
+        '<w:document><w:body>' +
+        '<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w:t>Apertura</w:t></w:r></w:p>' +
+        '<w:p><w:r><w:t xml:space="preserve">Hola </w:t></w:r><w:r><w:rPr><w:b/></w:rPr><w:t>a todos</w:t></w:r></w:p>' +
+        '</w:body></w:document>',
+      deflate: true
+    },
+    {
+      name: 'word/styles.xml',
+      text: '<w:styles><w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/></w:style></w:styles>'
+    }
+  ]);
+  await page.getByTestId('import-input').setInputFiles([
+    { name: 'Guion Word.docx', mimeType: 'application/octet-stream', buffer: Buffer.from(docx) },
+    {
+      name: 'Guion PDF.pdf',
+      mimeType: 'application/pdf',
+      buffer: makePdf(['Buenas tardes desde un PDF.', 'Segunda linea del mismo parrafo.'])
+    },
+    {
+      name: 'Guion RTF.rtf',
+      mimeType: 'application/rtf',
+      buffer: Buffer.from("{\\rtf1\\ansi Texto en RTF con \\'e1rbol.\\par}", 'latin1')
+    }
+  ]);
+  await expect(page.getByRole('status').filter({ hasText: '3 scripts imported.' })).toBeVisible();
+
+  await openScriptInPrompter(page, 'Guion Word');
+  await expect(page.locator('[data-block-type="heading"]', { hasText: 'Apertura' })).toBeVisible();
+  await expect(page.locator('[data-block-type="text"] strong')).toHaveText('a todos');
+  await page.getByTestId('back-to-scripts').click();
+
+  await openScriptInPrompter(page, 'Guion PDF');
+  await expect(page.locator('[data-block-type="text"]')).toHaveText(
+    'Buenas tardes desde un PDF. Segunda linea del mismo parrafo.'
+  );
+  await page.getByTestId('back-to-scripts').click();
+
+  await openScriptInPrompter(page, 'Guion RTF');
+  await expect(page.locator('[data-block-type="text"]')).toHaveText('Texto en RTF con árbol.');
+});
+
+test('explains formats that must be exported before importing', async ({ page }) => {
+  await page.getByTestId('import-input').setInputFiles({
+    name: 'Borrador.pages',
+    mimeType: 'application/octet-stream',
+    buffer: Buffer.from('PK')
+  });
+  await expect(page.getByRole('alert')).toContainText(
+    'Borrador.pages: Export this Pages document as Word (.docx) or PDF, then import it'
   );
 });
 

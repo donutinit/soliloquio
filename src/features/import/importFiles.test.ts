@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  decodeTextBytes,
+  documentKind,
   formatFromFileName,
+  MAX_DOCUMENT_IMPORT_FILE_BYTES,
   isSupportedScriptFile,
   MAX_SCRIPT_IMPORT_FILES,
   MAX_SCRIPT_IMPORT_FILE_BYTES,
@@ -9,6 +12,7 @@ import {
   stripFrontmatter,
   titleFromFileName
 } from './importFiles';
+import { makeZip } from './documents/testing/makeZip';
 
 describe('titleFromFileName', () => {
   it('elimina las extensiones conocidas', () => {
@@ -21,8 +25,10 @@ describe('titleFromFileName', () => {
     expect(titleFromFileName('acto.1.escena.2.md')).toBe('acto.1.escena.2');
   });
 
-  it('no toca extensiones desconocidas y nunca deja el título vacío', () => {
-    expect(titleFromFileName('datos.csv')).toBe('datos.csv');
+  it('elimina cualquier extensión y nunca deja el título vacío', () => {
+    expect(titleFromFileName('datos.csv')).toBe('datos');
+    expect(titleFromFileName('Guion final.docx')).toBe('Guion final');
+    expect(titleFromFileName('sin extension')).toBe('sin extension');
     expect(titleFromFileName('.md')).toBe('Untitled');
   });
 });
@@ -33,6 +39,17 @@ describe('formatFromFileName', () => {
     expect(formatFromFileName('a.markdown')).toBe('markdown');
     expect(formatFromFileName('a.txt')).toBe('text');
     expect(formatFromFileName('a')).toBe('text');
+    expect(formatFromFileName('a.docx')).toBe('markdown');
+    expect(formatFromFileName('a.pdf')).toBe('text');
+  });
+
+  it('classifies document kinds by extension', () => {
+    expect(documentKind('a.DOCX')).toBe('docx');
+    expect(documentKind('a.odt')).toBe('odt');
+    expect(documentKind('a.htm')).toBe('html');
+    expect(documentKind('a.srt')).toBe('subtitles');
+    expect(documentKind('a.fountain')).toBe('text');
+    expect(documentKind('a.csv')).toBe('unknown');
   });
 });
 
@@ -42,6 +59,19 @@ describe('isSupportedScriptFile', () => {
     expect(isSupportedScriptFile('SCRIPT.MARKDOWN')).toBe(true);
     expect(isSupportedScriptFile('notes.txt')).toBe(true);
     expect(isSupportedScriptFile('photo.png')).toBe(false);
+    expect(isSupportedScriptFile('guion.docx')).toBe(true);
+    expect(isSupportedScriptFile('guion.pdf')).toBe(true);
+    expect(isSupportedScriptFile('notes.csv')).toBe(true);
+    expect(isSupportedScriptFile('legacy.doc')).toBe(false);
+    expect(isSupportedScriptFile('draft.pages')).toBe(false);
+  });
+});
+
+describe('decodeTextBytes', () => {
+  it('accepts UTF-8 text and rejects binary data', () => {
+    expect(decodeTextBytes(new TextEncoder().encode('Hola ñ\n'))).toBe('Hola ñ\n');
+    expect(decodeTextBytes(new Uint8Array([72, 0, 105]))).toBeNull();
+    expect(decodeTextBytes(new Uint8Array([0xff, 0xfe, 0x41]))).toBeNull();
   });
 });
 
@@ -210,7 +240,79 @@ describe('readImportedFiles', () => {
       ok: false,
       fileName: 'photo.png',
       code: 'unsupported-type',
-      error: 'Choose a Markdown (.md, .markdown) or plain-text (.txt) file'
+      error:
+        'This file type cannot be imported. Supported: Word (.docx), PDF, OpenDocument (.odt), RTF, HTML, Markdown, plain text, and subtitles'
+    });
+  });
+
+  it('explains how to import formats that must be exported first', async () => {
+    const [outcome] = await readImportedFiles([new File(['x'], 'old.doc')]);
+    expect(outcome).toMatchObject({
+      ok: false,
+      code: 'unsupported-type',
+      error: 'Save this Word document as .docx or PDF, then import it'
+    });
+  });
+
+  it('converts Word documents to Markdown', async () => {
+    const zip = await makeZip([
+      {
+        name: 'word/document.xml',
+        text: '<w:body><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>Hola</w:t></w:r></w:p></w:body>',
+        deflate: true
+      }
+    ]);
+    const [outcome] = await readImportedFiles([new File([zip], 'Guion.docx')]);
+    expect(outcome).toEqual({
+      ok: true,
+      fileName: 'Guion.docx',
+      title: 'Guion',
+      content: '**Hola**',
+      format: 'markdown'
+    });
+  });
+
+  it('reads PDFs through the supplied reader and reports scans without text', async () => {
+    const readPdf = async (buffer: ArrayBuffer) =>
+      new TextDecoder().decode(buffer) === 'scan' ? '' : 'Texto del PDF';
+    const outcomes = await readImportedFiles(
+      [new File(['pdf'], 'uno.pdf'), new File(['scan'], 'escaneo.pdf')],
+      readPdf
+    );
+    expect(outcomes[0]).toMatchObject({ ok: true, content: 'Texto del PDF', format: 'text' });
+    expect(outcomes[1]).toMatchObject({
+      ok: false,
+      code: 'no-text',
+      error: 'This PDF has no selectable text; it may be a scanned image'
+    });
+  });
+
+  it('reports unreadable documents per file', async () => {
+    const outcomes = await readImportedFiles(
+      [new File(['not a zip'], 'roto.docx'), new File(['pdf'], 'clave.pdf')],
+      () => Promise.reject(new Error('Password-protected PDFs cannot be imported'))
+    );
+    expect(outcomes[0]).toMatchObject({ ok: false, error: 'This Word document could not be read' });
+    expect(outcomes[1]).toMatchObject({ ok: false, error: 'Password-protected PDFs cannot be imported' });
+  });
+
+  it('imports unknown extensions only when they contain text', async () => {
+    const outcomes = await readImportedFiles([
+      new File(['Escena uno\n\nEscena dos'], 'notas.csv'),
+      new File([new Uint8Array([1, 0, 2, 3])], 'datos.bin')
+    ]);
+    expect(outcomes[0]).toMatchObject({ ok: true, title: 'notas', format: 'text' });
+    expect(outcomes[1]).toMatchObject({ ok: false, code: 'unsupported-type' });
+  });
+
+  it('gives binary documents a larger size limit than text files', async () => {
+    const document = new File(['x'], 'grande.docx');
+    Object.defineProperty(document, 'size', { value: MAX_DOCUMENT_IMPORT_FILE_BYTES + 1 });
+    const [outcome] = await readImportedFiles([document]);
+    expect(outcome).toMatchObject({
+      ok: false,
+      code: 'file-too-large',
+      error: 'Documents must be 25 MB or smaller'
     });
   });
 });

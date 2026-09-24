@@ -17,7 +17,7 @@ Scripts live only in this browser's local storage. If iOS ever clears website da
 
 That is fine — storing scripts is not what this app is for:
 
-1. Keep your scripts as .md or .txt files in Files, or wherever you already back things up.
+1. Keep your scripts as documents in Files — Word, PDF, Markdown, plain text, and more — or wherever you already back things up.
 2. Import them right before recording.
 3. Press START and speak to camera.
 4. Leave whenever you are done. Nothing needs closing.
@@ -40,7 +40,7 @@ There you will find the optional 0–10 second start countdown, the screen-awake
 
 ## Housekeeping
 
-Import takes up to 50 .md, .markdown, or .txt files at a time — 5 MB each, 20 MB per batch — plus Soliloquio .json backups up to 25 MB. If you do keep work here, export a backup regularly and store it somewhere safe. Updates install themselves; use Update app in settings if anything ever looks stale. Factory reset erases everything and restores this script.
+Import takes up to 50 documents at a time: Word (.docx), PDF, OpenDocument, RTF, HTML, Markdown, plain text, and subtitles — 5 MB per text file, 25 MB per document, 50 MB per batch — plus Soliloquio .json backups up to 25 MB. If you do keep work here, export a backup regularly and store it somewhere safe. Updates install themselves; use Update app in settings if anything ever looks stale. Factory reset erases everything and restores this script.
 `;
 
 export function makeFactoryScript(now: number): Script {
