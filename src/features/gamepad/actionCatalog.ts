@@ -19,7 +19,7 @@ export const ACTION_GROUPS: ActionGroup[] = [
     title: 'Playback',
     actions: [
       { action: 'togglePlay', label: 'Play / Pause' },
-      { action: 'resetToStart', label: 'Back to start', hint: 'Hold' },
+      { action: 'resetToStart', label: 'Back to start', hint: 'Hold or double tap' },
       { action: 'speedUp', label: 'Faster', hint: 'Hold to repeat' },
       { action: 'speedDown', label: 'Slower', hint: 'Hold to repeat' }
     ]
@@ -50,7 +50,7 @@ export const ACTION_GROUPS: ActionGroup[] = [
       { action: 'toggleControls', label: 'Show / hide controls' },
       { action: 'toggleSettings', label: 'Display settings' },
       { action: 'toggleControllerGuide', label: 'Controller guide' },
-      { action: 'backToScripts', label: 'Exit to scripts', hint: 'Hold' }
+      { action: 'backToScripts', label: 'Exit to scripts', hint: 'Hold or double tap' }
     ]
   }
 ];

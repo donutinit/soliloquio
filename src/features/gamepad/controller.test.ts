@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { GamepadController } from './controller';
-import { HOLD_THRESHOLD_MS, LONG_HOLD_THRESHOLD_MS } from './holdButton';
+import {
+  DOUBLE_TAP_WINDOW_MS,
+  HOLD_THRESHOLD_MS,
+  LONG_HOLD_THRESHOLD_MS
+} from './holdButton';
 import {
   DEFAULT_MANUAL_SCROLL_SPEED,
   LEFT_STICK_FACTOR,
@@ -195,6 +199,37 @@ describe('GamepadController', () => {
     const released = controller.update(fakePad({}), HOLD_THRESHOLD_MS + 100);
     expect(released.actions).toContain('toggleControllerGuide');
     expect(released.actions).not.toContain('toggleSections');
+  });
+
+  it('Triangle y Circle también actúan con doble toque dentro de la ventana', () => {
+    for (const [button, action] of [
+      [3, 'resetToStart'],
+      [1, 'backToScripts']
+    ] as const) {
+      const controller = primedController();
+      const pressed = fakePad({ buttons: { [button]: { pressed: true, value: 1 } } });
+      const idle = fakePad({});
+      const tap = (at: number) => {
+        controller.update(pressed, at);
+        return controller.update(idle, at + 80).actions;
+      };
+      expect(tap(0)).toEqual([]);
+      expect(tap(200)).toEqual([action]);
+      // Un tercer toque empieza un doble toque nuevo en vez de repetir.
+      expect(tap(400)).toEqual([]);
+      // Dos toques demasiado separados no cuentan.
+      expect(tap(2000)).toEqual([]);
+      expect(tap(2000 + DOUBLE_TAP_WINDOW_MS + 100)).toEqual([]);
+    }
+  });
+
+  it('el doble toque no aplica a acciones de un solo toque', () => {
+    const controller = primedController();
+    const pressed = fakePad({ buttons: { 0: { pressed: true, value: 1 } } });
+    controller.update(pressed, 0);
+    expect(controller.update(fakePad({}), 80).actions).toEqual(['togglePlay']);
+    controller.update(pressed, 200);
+    expect(controller.update(fakePad({}), 280).actions).toEqual(['togglePlay']);
   });
 
   it('un gatillo sube la velocidad al pulsarlo y repite al mantenerlo, sin scroll', () => {

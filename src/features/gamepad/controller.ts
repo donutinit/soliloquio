@@ -1,4 +1,9 @@
-import { HoldButton, LONG_HOLD_THRESHOLD_MS, type HoldButtonEvents } from './holdButton';
+import {
+  DOUBLE_TAP_WINDOW_MS,
+  HoldButton,
+  LONG_HOLD_THRESHOLD_MS,
+  type HoldButtonEvents
+} from './holdButton';
 import {
   DEFAULT_MANUAL_SCROLL_SPEED,
   LEFT_STICK_FACTOR,
@@ -45,7 +50,8 @@ type ActionTrigger = 'hold' | 'release' | 'step';
 /**
  * Semántica de disparo de cada acción, independiente del botón asignado. Cada
  * botón tiene una sola función:
- * - hold: solo al mantener LONG_HOLD_THRESHOLD_MS; un toque no hace nada.
+ * - hold: al mantener LONG_HOLD_THRESHOLD_MS o con doble toque; un toque
+ *   suelto no hace nada.
  * - release: al soltar, también tras una pulsación larga.
  * - step: se repite mientras se mantiene (ajustes escalonados).
  */
@@ -109,6 +115,8 @@ function microComboAction({
  */
 export class GamepadController {
   private machines = new Map<GamepadAction, HoldButton>();
+  /** Momento del primer toque pendiente de un posible doble toque. */
+  private lastTapMs = new Map<GamepadAction, number>();
   private suppressed = new Set<GamepadAction>();
   private suppressedMicroButtons = new Set<number>();
   private suppressedPro3Buttons = new Set<number>();
@@ -157,6 +165,23 @@ export class GamepadController {
 
   private resetMachines(): void {
     for (const action of GAMEPAD_ACTIONS) this.machines.set(action, holdButtonFor(action));
+    this.lastTapMs.clear();
+  }
+
+  private resetMachine(action: GamepadAction): void {
+    this.machines.set(action, holdButtonFor(action));
+    this.lastTapMs.delete(action);
+  }
+
+  /** Un toque corto completa un doble toque si llega dentro de la ventana. */
+  private isDoubleTap(action: GamepadAction, nowMs: number): boolean {
+    const previous = this.lastTapMs.get(action);
+    if (previous !== undefined && nowMs - previous <= DOUBLE_TAP_WINDOW_MS) {
+      this.lastTapMs.delete(action);
+      return true;
+    }
+    this.lastTapMs.set(action, nowMs);
+    return false;
   }
 
   update(pad: Gamepad | null | undefined, nowMs: number): GamepadFrame {
@@ -265,7 +290,7 @@ export class GamepadController {
       if (selectAction) {
         // La combinación consume Select: descarta una pulsación ya iniciada y
         // evita que su acción normal se dispare al soltar el modificador.
-        this.machines.set(selectAction, holdButtonFor(selectAction));
+        this.resetMachine(selectAction);
         this.suppressed.add(selectAction);
       }
     } else if (!microSelectPressed) {
@@ -279,7 +304,7 @@ export class GamepadController {
       );
       if (bAction && bAction !== 'toggleSections') {
         // Select + B reemplaza la acción normal de B durante esta pulsación.
-        this.machines.set(bAction, holdButtonFor(bAction));
+        this.resetMachine(bAction);
         this.suppressed.add(bAction);
       }
     } else if (!microBPressed) {
@@ -315,7 +340,7 @@ export class GamepadController {
       const trigger = ACTION_TRIGGERS[action];
       const fired =
         trigger === 'hold'
-          ? e.holdStart
+          ? e.holdStart || (e.shortPress && this.isDoubleTap(action, nowMs))
           : trigger === 'release'
             ? e.released
             : e.shortPress || e.holdStart || e.repeat;

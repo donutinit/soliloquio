@@ -180,7 +180,7 @@ or a compact 8BitDo Micro held out of frame — runs the whole take:
 - Scrub back for a retake with the left stick, and ride the right stick like a brake and
   accelerator to match the text to your delivery; it never runs the text backwards.
 - Every button does exactly one thing. Returning to the start and leaving the reader require a
-  deliberate hold, so a stray tap cannot lose your place mid-take.
+  deliberate hold or double tap, so a stray tap cannot lose your place mid-take.
 - Jump between sections mid-take, and nudge speed, text size, or margins without opening panels:
   adjustments appear as a centered HUD over the text and fade away on their own.
 - Operate the entire app the same way — the library, settings, and every panel answer to the
@@ -217,8 +217,8 @@ Configure**: tap an action, then press the button you want for it. The default l
 | Control | Action |
 |---|---|
 | Cross | Play/pause |
-| Hold Triangle | Return to start (a tap does nothing) |
-| Hold Circle | Return to Scripts (a tap does nothing) |
+| Hold or double-tap Triangle | Return to start (a single tap does nothing) |
+| Hold or double-tap Circle | Return to Scripts (a single tap does nothing) |
 | Square | Show/hide controls |
 | L1 / R1 | Previous/next section |
 | L2 / R2 | Decrease/increase speed; hold to repeat |
@@ -232,7 +232,7 @@ Configure**: tap an action, then press the button you want for it. The default l
 
 The right stick only changes the pace of running playback: it never scrolls backwards and does
 nothing while paused. Releasing it returns to the configured speed. Hold actions fire after
-0.6 seconds.
+0.6 seconds, or on a second tap within 0.4 seconds.
 
 When the reported controller id identifies an **8BitDo Micro**, the app activates a fixed compact
 profile without changing other controllers:
@@ -251,7 +251,8 @@ Select and the D-pad are reserved while this profile is active. Releasing a temp
 restores normal playback speed, or stops again if the reader was paused. A Select combination
 consumes both controls, so releasing it does not also trigger the guide or the button's normal
 action. The face buttons retain the same positional behavior as a DualShock: B plays or pauses,
-holding A exits, Y shows or hides the controls, and holding X returns to the start. The Micro's raw A/B/X/Y button
+holding or double-tapping A exits, Y shows or hides the controls, and holding or double-tapping X
+returns to the start. The Micro's raw A/B/X/Y button
 order is normalized only for this controller profile; Diagnostics continues to show the raw input.
 
 Hold behaviors (hold-only actions, step repeats) follow the action to its assigned button; stick

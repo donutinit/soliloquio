@@ -1,6 +1,8 @@
 export const HOLD_THRESHOLD_MS = 350;
 /** Umbral de las acciones que solo existen mantenidas (volver al inicio, salir). */
 export const LONG_HOLD_THRESHOLD_MS = 600;
+/** Tiempo máximo entre el primer y el segundo toque de un doble toque. */
+export const DOUBLE_TAP_WINDOW_MS = 400;
 export const REPEAT_DELAY_MS = 350;
 export const REPEAT_INTERVAL_MS = 80;
 

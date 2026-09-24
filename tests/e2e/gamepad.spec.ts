@@ -101,7 +101,7 @@ test('mantener Cross no hace scroll y alterna play/pausa al soltar', async ({ pa
   await expect(playButton).toHaveAttribute('data-playing', 'true');
 });
 
-test('Triangle vuelve al inicio solo al mantenerlo', async ({ page }) => {
+test('Triangle vuelve al inicio al mantenerlo o con doble toque', async ({ page }) => {
   await setGamepadConnected(page, true);
   await expect(page.getByTestId('gamepad-status')).toHaveAttribute('data-connected', 'true');
 
@@ -122,6 +122,20 @@ test('Triangle vuelve al inicio solo al mantenerlo', async ({ page }) => {
   await setButton(page, TRIANGLE, true);
   await expect.poll(() => prompterOffset(page)).toBe(0);
   await setButton(page, TRIANGLE, false);
+
+  // Un doble toque también vuelve al inicio.
+  await setAxis(page, LEFT_STICK_Y, 1);
+  await page.waitForTimeout(400);
+  await setAxis(page, LEFT_STICK_Y, 0);
+  await expect.poll(() => prompterOffset(page)).toBeGreaterThan(100);
+  await page.waitForTimeout(500);
+  for (let tap = 0; tap < 2; tap += 1) {
+    await setButton(page, TRIANGLE, true);
+    await page.waitForTimeout(80);
+    await setButton(page, TRIANGLE, false);
+    await page.waitForTimeout(80);
+  }
+  await expect.poll(() => prompterOffset(page)).toBe(0);
 });
 
 test('el stick derecho frena hasta detener el scroll sin retroceder', async ({ page }) => {

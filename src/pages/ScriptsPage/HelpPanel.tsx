@@ -44,7 +44,7 @@ export function HelpPanel({ onClose }: { onClose: () => void }) {
           <p>Connect it over Bluetooth, then press any button.</p>
           <ul>
             <li>The south face button starts or pauses.</li>
-            <li>Hold the north face button to return to the start, or the east one to exit.</li>
+            <li>Hold or double-tap the north face button to return to the start, or the east one to exit.</li>
             <li>The left stick scrolls; the right stick brakes (up) or speeds up (down) playback.</li>
             <li>Controller play/pause does not reveal hidden controls; use Show / hide controls.</li>
             <li>L1/LB and R1/RB change sections.</li>
