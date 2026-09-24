@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { PrompterBlock, PrompterSettings, Script } from '../../types';
 import { getScript, getSettings } from '../../services/database';
 
@@ -15,8 +15,13 @@ type LoadState =
     };
 
 /** Loads local data and parses large scripts away from the UI thread when possible. */
-export function useLoadedPrompterScript(scriptId: string): LoadState {
+export function useLoadedPrompterScript(scriptId: string): {
+  state: LoadState;
+  retry: () => void;
+} {
   const [state, setState] = useState<LoadState>({ kind: 'loading', scriptId });
+  const [attempt, setAttempt] = useState(0);
+  const retry = useCallback(() => setAttempt((value) => value + 1), []);
 
   useEffect(() => {
     let cancelled = false;
@@ -69,7 +74,10 @@ export function useLoadedPrompterScript(scriptId: string): LoadState {
       cancelled = true;
       parserWorker?.terminate();
     };
-  }, [scriptId]);
+  }, [scriptId, attempt]);
 
-  return state.scriptId === scriptId ? state : { kind: 'loading', scriptId };
+  return {
+    state: state.scriptId === scriptId ? state : { kind: 'loading', scriptId },
+    retry
+  };
 }

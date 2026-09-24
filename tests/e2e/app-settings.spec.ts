@@ -160,3 +160,27 @@ test('factory reset requires confirmation and restores the complete first-run st
   await expect(page.getByTestId('keep-awake-setting')).toBeChecked();
   await expect(page.getByTestId('single-column-setting')).toBeChecked();
 });
+
+test('mirrors the reader for teleprompter glass', async ({ page }) => {
+  await page.getByTestId('app-settings-button').click();
+  const mirror = page.getByTestId('mirror-text-setting');
+  await expect(mirror).not.toBeChecked();
+  await mirror.check({ force: true });
+  await expect(mirror).toBeChecked();
+  await page.getByRole('button', { name: 'Done' }).click();
+
+  await openScriptInPrompter(page, 'Welcome to Soliloquio');
+  const viewport = page.getByTestId('prompter-viewport');
+  await expect(viewport).toHaveAttribute('data-mirrored', 'true');
+  await expect(viewport).toHaveCSS('transform', 'matrix(-1, 0, 0, 1, 0, 0)');
+});
+
+test('opens the quick guide from app settings and returns to them', async ({ page }) => {
+  await page.getByTestId('app-settings-button').click();
+  await page.getByTestId('open-help').click();
+  const guide = page.getByRole('dialog', { name: 'Quick guide' });
+  await expect(guide).toBeVisible();
+  await expect(page.getByTestId('app-settings-panel')).toHaveCount(0);
+  await guide.getByRole('button', { name: 'Done' }).click();
+  await expect(page.getByTestId('app-settings-panel')).toBeVisible();
+});

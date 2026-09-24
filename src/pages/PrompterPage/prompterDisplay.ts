@@ -20,7 +20,7 @@ export const ADJUSTMENT_DISPLAY: Record<
 > = {
   speed: {
     label: 'Speed',
-    unit: '',
+    unit: ' wpm',
     min: SPEED_LIMITS.min,
     max: SPEED_LIMITS.max
   },
@@ -41,15 +41,4 @@ export const ADJUSTMENT_DISPLAY: Record<
 export function adjustmentProgress(key: AdjustableSetting, value: number): number {
   const display = ADJUSTMENT_DISPLAY[key];
   return ((value - display.min) / (display.max - display.min)) * 100;
-}
-
-export function formatDuration(seconds: number): string {
-  if (!Number.isFinite(seconds) || seconds < 0) return '--:--';
-  const rounded = Math.round(seconds);
-  const hours = Math.floor(rounded / 3600);
-  const minutes = Math.floor((rounded % 3600) / 60);
-  const remainingSeconds = rounded % 60;
-  return hours > 0
-    ? `${hours}:${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`
-    : `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
 }

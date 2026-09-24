@@ -11,13 +11,25 @@ import {
 
 export type Limit = { min: number; max: number; step: number; default: number };
 
-export const SPEED_LIMITS: Limit = { min: 10, max: 300, step: 5, default: 55 };
+/** Reading speed in words per minute. */
+export const SPEED_LIMITS: Limit = { min: 40, max: 300, step: 5, default: 130 };
 export const FONT_LIMITS: Limit = { min: 20, max: 120, step: 2, default: 60 };
 export const MARGIN_LIMITS: Limit = { min: 0, max: 25, step: 1, default: 4 };
 export const SCRIPT_CARD_TITLE_LIMITS: Limit = { min: 18, max: 48, step: 1, default: 25 };
 export const COUNTDOWN_LIMITS: Limit = { min: 0, max: 10, step: 1, default: 0 };
 
-export const SETTINGS_SCHEMA_VERSION = 4;
+export const SETTINGS_SCHEMA_VERSION = 5;
+
+/**
+ * Settings before schema 5 stored speed in pixels per second. This is the
+ * approximate distance one word used at the default 60 px text on a 390 px
+ * phone, so a migrated value keeps roughly the pace its owner calibrated.
+ */
+export const LEGACY_PIXELS_PER_WORD = 38;
+
+export function legacySpeedToWordsPerMinute(pixelsPerSecond: number): number {
+  return (pixelsPerSecond * 60) / LEGACY_PIXELS_PER_WORD;
+}
 
 /** Máximo índice de botón aceptado; cubre mandos no estándar con botones extra. */
 export const MAX_BUTTON_INDEX = 31;
@@ -36,12 +48,14 @@ export function clampToLimit(value: number, limit: Limit): number {
 export function defaultSettings(): PrompterSettings {
   return {
     speed: SPEED_LIMITS.default,
+    speedUnit: 'wordsPerMinute',
     fontSize: FONT_LIMITS.default,
     horizontalMargin: MARGIN_LIMITS.default,
     scriptCardTitleSize: SCRIPT_CARD_TITLE_LIMITS.default,
     singleColumnLibrary: true,
     countdownSeconds: COUNTDOWN_LIMITS.default,
     keepScreenAwake: true,
+    mirrorText: false,
     controllerBindings: { ...DEFAULT_GAMEPAD_BINDINGS }
   };
 }
@@ -146,8 +160,15 @@ export function normalizeSettings(raw: unknown): PrompterSettings {
   const partial = (raw && typeof raw === 'object' ? raw : {}) as Partial<PrompterSettings> & {
     controllerMapping?: unknown;
   };
+  const storedSpeed = toFiniteNumber(partial.speed);
   return {
-    speed: clampToLimit(toFiniteNumber(partial.speed), SPEED_LIMITS),
+    speed: clampToLimit(
+      partial.speedUnit === 'wordsPerMinute'
+        ? storedSpeed
+        : legacySpeedToWordsPerMinute(storedSpeed),
+      SPEED_LIMITS
+    ),
+    speedUnit: 'wordsPerMinute',
     fontSize: clampToLimit(toFiniteNumber(partial.fontSize), FONT_LIMITS),
     horizontalMargin: clampToLimit(toFiniteNumber(partial.horizontalMargin), MARGIN_LIMITS),
     scriptCardTitleSize: clampToLimit(
@@ -161,6 +182,7 @@ export function normalizeSettings(raw: unknown): PrompterSettings {
     ),
     // Solo un false explícito lo desactiva: datos antiguos sin el campo quedan activados.
     keepScreenAwake: partial.keepScreenAwake !== false,
+    mirrorText: partial.mirrorText === true,
     controllerBindings: normalizeBindings(partial.controllerBindings, partial.controllerMapping)
   };
 }

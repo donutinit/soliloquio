@@ -68,10 +68,20 @@ settings stay in that browser's local storage.
   combined limit. Soliloquio JSON backups have a separate 25 MB limit.
 - Markdown headings create navigable sections. Plain-text scripts can be converted to Markdown
   from their options menu.
+- Markdown formatting for delivery: a blockquote (`> Look at the lens`) is a small gold note that
+  is not counted as spoken text, a separator (`---` on its own line) pauses automatic scrolling
+  when it reaches the reading area, and `**bold**` / `*italic*` stay visible as emphasis. Plain-text
+  scripts show their content literally.
 - Script cards are ordered by title with natural number handling, so `VID2` appears before
   `VID10`.
 - Script cards omit timestamps and use 25 px titles by default; their title size is adjustable in
-  App Settings for easier reading at a distance.
+  App Settings for easier reading at a distance. Each card shows its spoken word count and the
+  estimated reading time at the current speed.
+- When the library is empty it offers **Import** and **New script** directly.
+- The editor shows the word count and estimated reading time. An empty script offers **Paste from
+  clipboard**, which also names a still-untitled script after the first pasted line.
+- Options-menu actions (export, duplicate, delete, Markdown conversion) keep the menu open until
+  the write finishes and then confirm the result.
 - The **One card per row** toggle in App Settings (on by default) shows the library as a single
   column of wide cards in both portrait and landscape; turn it off to restore the multi-column
   grid on wider screens.
@@ -79,7 +89,8 @@ settings stay in that browser's local storage.
   button in the library header.
 - Restoring a backup merges its scripts into the current library and restores its preferences.
 
-Everything remains in IndexedDB on the current device. Clearing site data removes the library,
+Everything remains in IndexedDB on the current device. The app asks the browser for persistent
+storage after the first script is created or imported; browsers may decline. Clearing site data removes the library,
 so keep regular backups. iOS may purge Safari site data after prolonged inactivity; an installed
 home-screen PWA is generally more resilient.
 The editor saves after a short pause and when the app is hidden. If a write is still pending when
@@ -102,12 +113,19 @@ you close a browser tab, browsers that support it warn before leaving; use **Scr
   Home/End jump to the start or end, Left/Right change sections, and +/− adjust speed. Tab
   reveals hidden controls and focuses playback. Shortcuts leave text fields and sliders to their
   normal keyboard behavior.
-- Use Settings in the prompter to change speed, text size, or margins. New installs default to
-  speed 55 and 60 px text. Adjustments made with a controller appear in a centered range HUD;
+- Use Settings in the prompter to change speed, text size, or margins. Speed is measured in words
+  per minute (40–300, default 130) and converted through the measured layout, so changing text
+  size or margins keeps the same pace. Settings saved by older versions in pixels per second are
+  migrated to an equivalent pace. New installs default to 60 px text. The playback bar adjusts
+  speed with − and + buttons. Adjustments made with a controller appear in a centered range HUD;
   touch, mouse, and keyboard changes in the interface remain unobtrusive.
-- The two compact time values estimate elapsed and remaining reading time at the current speed.
+- The compact time value estimates the remaining reading time at the current speed.
+- Scripts without headings hide the section indicator and section buttons.
 - The script title is the first line of the prompter. It and all Markdown headings use an
   underlined Atkinson Hyperlegible Next treatment at one-half of the reading text size.
+- The **Mirror text** toggle in App Settings flips the reader horizontally for beam-splitter
+  teleprompter glass.
+- App Settings opens the **Quick guide**.
 - The **Keep screen awake** toggle in App Settings (on by default) holds a screen wake lock
   anywhere in the app and reacquires it after returning from the background when the browser
   allows it.

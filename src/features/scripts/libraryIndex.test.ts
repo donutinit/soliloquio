@@ -28,6 +28,8 @@ describe('script library index', () => {
     expect(index[0]?.excerpt).toBe('Welcome Thank everyone for joining.');
     expect(index[0]?.searchText).toContain('opening remarks');
     expect(index[1]?.excerpt).toBe('Empty');
+    expect(index[0]?.words).toBe(4);
+    expect(index[1]?.words).toBe(0);
   });
 
   it('filters the cached index by title or body without rebuilding it', () => {

@@ -28,11 +28,15 @@ Fast and simple, with nothing to take care of.
 
 Controls hide after one second so the camera sees only text. Tap the script or press a key to bring them back; Space starts or pauses. Drag the text, use a mouse wheel or trackpad, or press Up/Down to scrub.
 
-Markdown headings create sections; jump between them with the arrows or the section list. Speed, text size, and margins are global — one setting for every script.
+Markdown headings create sections; jump between them with the arrows or the section list. Speed is in words per minute, so text size and margins never change your pace. Speed, text size, and margins are global — one setting for every script.
+
+> A line that starts with > becomes a note like this one: a cue for you, not spoken text.
+
+A line with only three dashes pauses scrolling when it reaches you; press START to continue. **Bold** and *italic* stay visible as emphasis.
 
 ## App settings
 
-There you will find the optional 0–10 second start countdown, the screen-awake toggle, the card title size, and the gamepad configuration. A Bluetooth controller can drive the whole app; Share opens the controller guide.
+There you will find the optional 0–10 second start countdown, the screen-awake toggle, mirrored text for teleprompter glass, the card title size, the quick guide, and the gamepad configuration. A Bluetooth controller can drive the whole app; Share opens the controller guide.
 
 ## Housekeeping
 

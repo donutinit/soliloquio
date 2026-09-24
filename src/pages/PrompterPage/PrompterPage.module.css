@@ -27,6 +27,19 @@
   font-weight: 700;
 }
 
+.missingActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+.missing .secondaryAction {
+  border: 1px solid var(--border-strong);
+  background: none;
+  color: var(--text);
+}
+
 .viewport {
   position: absolute;
   inset: 0;
@@ -37,6 +50,11 @@
 
 .viewport:active {
   cursor: grabbing;
+}
+
+/* Beam-splitter glass reflects the screen; flipping restores readable text. */
+.mirrored {
+  transform: scaleX(-1);
 }
 
 .content {
@@ -65,6 +83,52 @@
 
 .content .text[data-continuation='true'] {
   margin-top: -0.8em;
+}
+
+.content .text strong {
+  font-weight: 800;
+}
+
+/* The reader font ships without a true italic; colour carries the emphasis
+   instead of a synthesized slant that blurs at distance. */
+.content .text em {
+  color: var(--accent);
+  font-style: normal;
+}
+
+/* Blockquote notes are cues for the speaker, not spoken copy: half size, gold,
+   and set apart from the text around them. */
+.content .note {
+  margin: 0 0 1.6em;
+  padding-left: 0.8em;
+  border-left: 0.12em solid var(--gold-shade);
+  color: var(--accent);
+  font-family: var(--font-reader);
+  font-size: calc(var(--prompter-font-size, 60px) / 2);
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: break-word;
+}
+
+.content .pauseMarker {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  margin: 0 0 1.6em;
+  color: var(--accent);
+  font-family: var(--font-display);
+  font-size: calc(var(--prompter-font-size, 60px) / 3);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.content .pauseMarker::before,
+.content .pauseMarker::after {
+  content: '';
+  height: 0.12em;
+  flex: 1;
+  background: var(--gold-shade);
 }
 
 .content .heading {
@@ -349,17 +413,6 @@
   white-space: nowrap;
 }
 
-.elapsedTime {
-  color: var(--text);
-}
-
-.remainingTime {
-  color: var(--text-dim);
-}
-
-.timeSeparator {
-  color: var(--text-muted);
-}
 
 .speedRow {
   grid-area: speed;
@@ -374,18 +427,33 @@
   font-size: 12px;
 }
 
-.speedRow input[type='range'] {
-  min-width: 0;
+.speedStep {
+  min-width: 44px;
   min-height: 44px;
-  flex: 1;
+  padding: 0;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.speedStep:active {
+  background: var(--surface);
 }
 
 .speedValue {
-  min-width: 3ch;
+  min-width: 8ch;
+  flex: 1;
   color: var(--text);
-  font-size: 13px;
+  font-size: 15px;
   font-variant-numeric: tabular-nums;
-  text-align: right;
+  text-align: center;
+}
+
+.speedUnit {
+  color: var(--text-dim);
+  font-size: 12px;
 }
 
 .buttonRow {
@@ -571,13 +639,6 @@
   min-width: 2ch;
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
-}
-
-.panelNote {
-  margin: 2px 0 0;
-  color: var(--text-dim);
-  font-size: 13px;
-  line-height: 1.4;
 }
 
 .visuallyHidden {
@@ -1045,12 +1106,28 @@
 
 @media (orientation: landscape) and (max-height: 500px) and (min-width: 440px) and (max-width: 700px) {
   .bottomBar {
-    grid-template-columns: minmax(284px, 1fr) minmax(100px, 0.55fr);
+    grid-template-columns: minmax(284px, 1fr) auto;
     grid-template-areas: 'buttons speed';
     gap: 8px;
   }
 
   .controlMetaRow {
+    display: none;
+  }
+}
+
+/* Scripts without headings drop the three section controls. */
+.buttonRow.buttonRowCompact {
+  grid-template-columns: 44px minmax(84px, 1fr) 44px;
+}
+
+@media (max-width: 359px) {
+  .buttonRow.buttonRowCompact {
+    grid-template-columns: repeat(3, 44px);
+    justify-content: space-between;
+  }
+
+  .speedLabel {
     display: none;
   }
 }

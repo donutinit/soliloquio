@@ -26,6 +26,8 @@ export function AppSettingsPanel({
   onScriptCardTitleSizeChange,
   onSingleColumnLibraryChange,
   onKeepAwakeChange,
+  onMirrorTextChange,
+  onOpenHelp,
   onOpenGamepad,
   onCheckForUpdate,
   onFactoryReset,
@@ -40,6 +42,8 @@ export function AppSettingsPanel({
   onScriptCardTitleSizeChange: (size: number) => void;
   onSingleColumnLibraryChange: (enabled: boolean) => void;
   onKeepAwakeChange: (enabled: boolean) => void;
+  onMirrorTextChange: (enabled: boolean) => void;
+  onOpenHelp: () => void;
   onOpenGamepad: () => void;
   onCheckForUpdate: () => void;
   onFactoryReset: () => void;
@@ -145,7 +149,40 @@ export function AppSettingsPanel({
               <span aria-hidden="true" />
             </span>
           </div>
+          <div className={styles.appSettingRow}>
+            <label htmlFor="mirror-text">
+              <strong>Mirror text</strong>
+              <span>Flips the reader horizontally for teleprompter glass.</span>
+            </label>
+            <span className={styles.switchControl}>
+              <input
+                id="mirror-text"
+                type="checkbox"
+                data-testid="mirror-text-setting"
+                checked={settings.mirrorText}
+                disabled={busy}
+                onChange={(event) => onMirrorTextChange(event.target.checked)}
+              />
+              <span aria-hidden="true" />
+            </span>
+          </div>
           {error && <p className={styles.settingsError} role="alert">{error}</p>}
+        </section>
+
+        <section className={styles.updateSection}>
+          <div>
+            <h3>Quick guide</h3>
+            <p>Reading controls, script formatting, keyboard, and controller basics.</p>
+          </div>
+          <button
+            type="button"
+            className={styles.updateButton}
+            data-testid="open-help"
+            disabled={busy}
+            onClick={onOpenHelp}
+          >
+            Open guide
+          </button>
         </section>
 
         <section className={styles.updateSection}>

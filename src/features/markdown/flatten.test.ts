@@ -12,10 +12,35 @@ describe('markdownToBlocks', () => {
     ]);
   });
 
-  it('aplana negrita, cursiva, tachado y código inline a texto', () => {
+  it('conserva negrita y cursiva como tramos y aplana tachado y código', () => {
     const blocks = markdownToBlocks('Esto es **negrita**, *cursiva*, ~~tachado~~ y `código`.');
     expect(blocks).toEqual([
-      { type: 'text', text: 'Esto es negrita, cursiva, tachado y código.' }
+      {
+        type: 'text',
+        text: 'Esto es negrita, cursiva, tachado y código.',
+        runs: [
+          { text: 'Esto es ' },
+          { text: 'negrita', strong: true },
+          { text: ', ' },
+          { text: 'cursiva', emphasis: true },
+          { text: ', tachado y código.' }
+        ]
+      }
+    ]);
+  });
+
+  it('combina marcas anidadas y colapsa espacios entre tramos', () => {
+    const blocks = markdownToBlocks('  Muy ***importante***   ahora  ');
+    expect(blocks).toEqual([
+      {
+        type: 'text',
+        text: 'Muy importante ahora',
+        runs: [
+          { text: 'Muy ' },
+          { text: 'importante', emphasis: true, strong: true },
+          { text: ' ahora' }
+        ]
+      }
     ]);
   });
 
@@ -29,9 +54,17 @@ describe('markdownToBlocks', () => {
     expect(blocks).toEqual([{ type: 'text', text: 'Un gato y fin.' }]);
   });
 
-  it('aplana blockquotes a texto normal', () => {
-    const blocks = markdownToBlocks('> Cita famosa\n> segunda línea');
-    expect(blocks).toEqual([{ type: 'text', text: 'Cita famosa segunda línea' }]);
+  it('convierte blockquotes en notas que no se leen', () => {
+    const blocks = markdownToBlocks('> Mira a cámara\n> y **sonríe**\n\nHola');
+    expect(blocks).toEqual([
+      { type: 'note', text: 'Mira a cámara y sonríe' },
+      { type: 'text', text: 'Hola' }
+    ]);
+  });
+
+  it('las notas no abren secciones aunque contengan headings', () => {
+    const blocks = markdownToBlocks('> # Recordatorio');
+    expect(blocks).toEqual([{ type: 'note', text: 'Recordatorio' }]);
   });
 
   it('aplana listas anidadas a bloques de texto', () => {
@@ -66,10 +99,20 @@ describe('markdownToBlocks', () => {
     expect(blocks).toEqual([{ type: 'text', text: 'const x = 1;' }]);
   });
 
-  it('ignora separadores horizontales', () => {
+  it('convierte separadores horizontales en pausas', () => {
     const blocks = markdownToBlocks('uno\n\n---\n\ndos');
     expect(blocks).toEqual([
       { type: 'text', text: 'uno' },
+      { type: 'pause' },
+      { type: 'text', text: 'dos' }
+    ]);
+  });
+
+  it('descarta pausas iniciales, finales y repetidas', () => {
+    const blocks = markdownToBlocks('---\n\nuno\n\n---\n\n***\n\ndos\n\n---');
+    expect(blocks).toEqual([
+      { type: 'text', text: 'uno' },
+      { type: 'pause' },
       { type: 'text', text: 'dos' }
     ]);
   });
@@ -104,14 +147,14 @@ describe('textToBlocks', () => {
     const content = 'Line\n\n'.repeat(50_000).trim();
     const blocks = scriptToBlocks({ content, format: 'text' });
     expect(blocks.length).toBeLessThan(100);
-    expect(blocks.map((block) => block.text).join('\n\n')).toBe(content);
+    expect(blocks.map((block) => ('text' in block ? block.text : '')).join('\n\n')).toBe(content);
   });
 
   it('divide un único párrafo muy largo sin perder texto', () => {
     const content = 'word '.repeat(50_000);
     const blocks = scriptToBlocks({ content, format: 'text' });
     expect(blocks.length).toBeGreaterThan(1);
-    expect(blocks.every((block) => block.text.length <= 4_096)).toBe(true);
-    expect(blocks.map((block) => block.text).join('')).toBe(content.trim());
+    expect(blocks.every((block) => ('text' in block ? block.text : '').length <= 4_096)).toBe(true);
+    expect(blocks.map((block) => ('text' in block ? block.text : '')).join('')).toBe(content.trim());
   });
 });

@@ -104,7 +104,7 @@ export function SettingsPanel({
           testId="speed"
           value={settings.speed}
           limit={SPEED_LIMITS}
-          unit=""
+          unit=" wpm"
           onChange={(value, showFeedback) => onChange('speed', value, showFeedback)}
         />
         <SettingRow
@@ -125,9 +125,6 @@ export function SettingsPanel({
             onChange('horizontalMargin', value, showFeedback)
           }
         />
-        <p className={styles.panelNote}>
-          Gamepad buttons are configured in App settings on the scripts screen.
-        </p>
         <div className={styles.panelActions}>
           <button type="button" data-testid="settings-close" onClick={onClose}>
             Done

@@ -22,10 +22,16 @@ export function HelpPanel({ onClose }: { onClose: () => void }) {
         <section>
           <h3>2. Read</h3>
           <p>Press START for automatic scrolling. Controls hide after one second; tap the script or press a key to bring them back. Drag or use the mouse wheel to move manually.</p>
+          <p>Speed is in words per minute, so changing text size or margins keeps your pace. Script cards and the editor show the estimated reading time.</p>
         </section>
         <section>
-          <h3>3. Navigate</h3>
-          <p>Markdown headings create sections. Use the section buttons or the list to jump between them.</p>
+          <h3>3. Format</h3>
+          <ul>
+            <li><code># Heading</code> starts a section; jump with the section buttons or the list.</li>
+            <li><code>&gt; Note</code> shows a small gold cue that is not counted as spoken text.</li>
+            <li><code>---</code> on its own line pauses scrolling when it reaches the reading area. Press START to continue.</li>
+            <li><code>**bold**</code> and <code>*italic*</code> stay visible as emphasis.</li>
+          </ul>
         </section>
         <section>
           <h3>Keyboard</h3>

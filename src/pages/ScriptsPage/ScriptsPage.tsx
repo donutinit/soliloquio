@@ -5,6 +5,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type ChangeEvent,
   type ReactNode
 } from 'react';
 import type { PrompterSettings, Script } from '../../types';
@@ -30,7 +31,13 @@ import {
   buildScriptLibraryIndex,
   filterScriptLibraryIndex
 } from '../../features/scripts/libraryIndex';
-import { SCRIPT_CARD_TITLE_LIMITS } from '../../features/settings/settings';
+import { SCRIPT_CARD_TITLE_LIMITS, SPEED_LIMITS } from '../../features/settings/settings';
+import {
+  formatReadingTime,
+  formatWordCount,
+  readingSeconds
+} from '../../features/prompter/pace';
+import { requestPersistentStorage } from '../../services/persistentStorage';
 import { cssVars } from '../../styles/cssVars';
 import { registerPendingSaveFlush } from '../../services/pendingSaves';
 import {
@@ -166,6 +173,7 @@ export function ScriptsPage({
     setOperationError(null);
     try {
       const script = await createScript({ title: 'New script', content: '', format: 'markdown' });
+      void requestPersistentStorage();
       await refresh();
       setEditingId(script.id);
     } catch {
@@ -190,6 +198,7 @@ export function ScriptsPage({
         applyKeepScreenAwake(restoredSettings.keepScreenAwake);
       }
       if (importedCount > 0) {
+        void requestPersistentStorage();
         setNotice(`${importedCount} ${importedCount === 1 ? 'script' : 'scripts'} imported.`);
       }
       setImportErrors(errors);
@@ -290,6 +299,9 @@ export function ScriptsPage({
   const updateKeepAwake = (enabled: boolean) =>
     updateAppSettings({ keepScreenAwake: enabled }, 'The screen setting could not be saved.');
 
+  const updateMirrorText = (enabled: boolean) =>
+    updateAppSettings({ mirrorText: enabled }, 'The mirror setting could not be saved.');
+
   const updateBindings = (bindings: PrompterSettings['controllerBindings']) =>
     updateAppSettings({ controllerBindings: bindings }, 'The gamepad settings could not be saved.');
 
@@ -343,6 +355,35 @@ export function ScriptsPage({
     );
   };
 
+  /** Keeps the options sheet open until the write finishes, then confirms it. */
+  const runMenuAction = async (operation: () => Promise<string | null>, failure: string) => {
+    setBusy(true);
+    setOperationError(null);
+    setNotice(null);
+    try {
+      const success = await operation();
+      setMenuId(null);
+      if (success) setNotice(success);
+    } catch {
+      setMenuId(null);
+      setOperationError(failure);
+    } finally {
+      await refresh();
+      setBusy(false);
+    }
+  };
+
+  const importInputProps = {
+    type: 'file' as const,
+    multiple: true,
+    disabled: busy,
+    'aria-label': 'Import scripts or backup',
+    onChange: (event: ChangeEvent<HTMLInputElement>) => {
+      void handleImport(event.target.files);
+      event.target.value = '';
+    }
+  };
+
   const openMenu = (id: string) => {
     setMenuId(id);
     setConfirmingDelete(false);
@@ -352,6 +393,7 @@ export function ScriptsPage({
   const editingScript = editingId ? scripts.find((script) => script.id === editingId) : undefined;
   // Mientras cargan los ajustes se usa el valor por defecto (una columna) para evitar un salto.
   const singleColumnLibrary = appSettings?.singleColumnLibrary ?? true;
+  const wordsPerMinute = appSettings?.speed ?? SPEED_LIMITS.default;
   const pageStyle = cssVars({
     '--script-card-title-size': `${
       appSettings?.scriptCardTitleSize ?? SCRIPT_CARD_TITLE_LIMITS.default
@@ -363,16 +405,6 @@ export function ScriptsPage({
       <header className={styles.header} data-testid="library-header">
         <h1>Scripts</h1>
         <div className={styles.headerActions} data-testid="library-header-actions">
-          <button
-            type="button"
-            className={styles.headerIconButton}
-            aria-label="Help"
-            title="Help"
-            onClick={() => setHelpOpen(true)}
-          >
-            <Icon name="help" />
-            <span className={styles.desktopActionLabel}>Help</span>
-          </button>
           <button
             type="button"
             data-testid="app-settings-button"
@@ -393,18 +425,7 @@ export function ScriptsPage({
           >
             <Icon name="upload" />
             <span className={styles.desktopActionLabel}>Import</span>
-            <input
-              data-testid="import-input"
-              data-gamepad-nav-exclude
-              type="file"
-              multiple
-              disabled={busy}
-              aria-label="Import scripts or backup"
-              onChange={(event) => {
-                void handleImport(event.target.files);
-                event.target.value = '';
-              }}
-            />
+            <input data-testid="import-input" data-gamepad-nav-exclude {...importInputProps} />
           </label>
           <button
             type="button"
@@ -493,7 +514,23 @@ export function ScriptsPage({
           {scripts.length === 0 ? (
             <>
               <p>No scripts yet.</p>
-              <p>Create one or import Markdown, plain text, or a backup.</p>
+              <p>Import Markdown, plain text, or a backup, or write a new script.</p>
+              <div className={styles.emptyActions}>
+                <label className={styles.emptyImport} aria-disabled={busy}>
+                  <Icon name="upload" />
+                  Import
+                  <input data-testid="empty-import-input" {...importInputProps} />
+                </label>
+                <button
+                  type="button"
+                  data-testid="empty-new-script"
+                  disabled={busy}
+                  onClick={() => void handleNew()}
+                >
+                  <Icon name="plus" />
+                  New script
+                </button>
+              </div>
             </>
           ) : (
             <p>No results for “{query}”.</p>
@@ -507,7 +544,7 @@ export function ScriptsPage({
           data-testid="script-grid"
           data-layout={singleColumnLibrary ? 'single-column' : 'grid'}
         >
-          {filtered.map(({ script, excerpt }) => (
+          {filtered.map(({ script, excerpt, words }) => (
             <li key={script.id} className={styles.card} data-testid="script-card">
               <button
                 ref={(element) => {
@@ -523,6 +560,9 @@ export function ScriptsPage({
               >
                 <span className={styles.cardTitle} data-testid="card-title">{script.title}</span>
                 <span className={styles.cardExcerpt}>{excerpt}</span>
+                <span className={styles.cardMeta} data-testid="card-meta">
+                  {formatWordCount(words)} · ≈ {formatReadingTime(readingSeconds(words, wordsPerMinute))}
+                </span>
               </button>
               <button
                 type="button"
@@ -553,24 +593,30 @@ export function ScriptsPage({
           </button>
           <button
             type="button"
-            onClick={() => {
-              void exportScriptFile(menuScript).catch(() =>
-                setOperationError('The script could not be exported.')
-              );
-              setMenuId(null);
-            }}
+            disabled={busy}
+            onClick={() =>
+              void runMenuAction(
+                async () =>
+                  (await exportScriptFile(menuScript)) === 'cancelled' ? null : 'Script exported.',
+                'The script could not be exported.'
+              )
+            }
           >
             Export
           </button>
           {menuScript.format === 'text' && (
             <button
               type="button"
-              onClick={() => {
-                void updateScript(menuScript.id, { format: 'markdown' })
-                  .then(refresh)
-                  .catch(() => setOperationError('The script format could not be changed.'));
-                setMenuId(null);
-              }}
+              disabled={busy}
+              onClick={() =>
+                void runMenuAction(
+                  async () => {
+                    await updateScript(menuScript.id, { format: 'markdown' });
+                    return 'Markdown sections enabled.';
+                  },
+                  'The script format could not be changed.'
+                )
+              }
             >
               Enable Markdown sections
             </button>
@@ -578,12 +624,16 @@ export function ScriptsPage({
           <button
             type="button"
             data-testid="menu-duplicate"
-            onClick={() => {
-              void duplicateScript(menuScript.id)
-                .then(refresh)
-                .catch(() => setOperationError('The script could not be duplicated.'));
-              setMenuId(null);
-            }}
+            disabled={busy}
+            onClick={() =>
+              void runMenuAction(
+                async () => {
+                  await duplicateScript(menuScript.id);
+                  return 'Script duplicated.';
+                },
+                'The script could not be duplicated.'
+              )
+            }
           >
             Duplicate
           </button>
@@ -591,15 +641,19 @@ export function ScriptsPage({
             type="button"
             data-testid="menu-delete"
             className={styles.danger}
+            disabled={busy}
             onClick={() => {
               if (!confirmingDelete) {
                 setConfirmingDelete(true);
                 return;
               }
-              void deleteScript(menuScript.id)
-                .then(refresh)
-                .catch(() => setOperationError('The script could not be deleted.'));
-              setMenuId(null);
+              void runMenuAction(
+                async () => {
+                  await deleteScript(menuScript.id);
+                  return 'Script deleted.';
+                },
+                'The script could not be deleted.'
+              );
             }}
           >
             {confirmingDelete ? 'Delete permanently?' : 'Delete'}
@@ -612,6 +666,7 @@ export function ScriptsPage({
         <ScriptEditor
           key={editingScript.id}
           script={editingScript}
+          wordsPerMinute={wordsPerMinute}
           onSaved={refresh}
           onClose={() => {
             setEditingId(null);
@@ -621,7 +676,7 @@ export function ScriptsPage({
         />
       )}
       {helpOpen && <HelpPanel onClose={() => setHelpOpen(false)} />}
-      {settingsOpen && !gamepadOpen && appSettings && (
+      {settingsOpen && !gamepadOpen && !helpOpen && appSettings && (
         <AppSettingsPanel
           settings={appSettings}
           error={settingsError}
@@ -632,6 +687,8 @@ export function ScriptsPage({
           onScriptCardTitleSizeChange={(size) => void updateScriptCardTitleSize(size)}
           onSingleColumnLibraryChange={(enabled) => void updateSingleColumnLibrary(enabled)}
           onKeepAwakeChange={(enabled) => void updateKeepAwake(enabled)}
+          onMirrorTextChange={(enabled) => void updateMirrorText(enabled)}
+          onOpenHelp={() => setHelpOpen(true)}
           onOpenGamepad={() => setGamepadOpen(true)}
           onCheckForUpdate={() => void handleCheckForUpdate()}
           onFactoryReset={() => void handleFactoryReset()}
