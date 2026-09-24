@@ -119,12 +119,22 @@ export function usePrompterSettings(initialSettings: PrompterSettings) {
     [showAdjustmentFeedback]
   );
 
+  const setMirrorText = useCallback((mirrorText: boolean) => {
+    const current = settingsRef.current;
+    if (current.mirrorText === mirrorText) return;
+    const next = { ...current, mirrorText };
+    settingsRef.current = next;
+    settingsDirtyRef.current = true;
+    setSettingsState(next);
+  }, []);
+
   const dismissStorageError = useCallback(() => setStorageError(null), []);
 
   return {
     settings,
     settingsRef,
     updateSetting,
+    setMirrorText,
     persistSettings,
     storageError,
     dismissStorageError,

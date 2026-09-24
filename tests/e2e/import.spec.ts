@@ -237,8 +237,11 @@ test('exports and restores a complete JSON backup', async ({ page }) => {
   await createSampleScript(page, 'Quick notes');
 
   const downloadPromise = page.waitForEvent('download', { timeout: 5_000 });
+  await page.getByTestId('app-settings-button').click();
   await page.getByTestId('backup-button').click();
   const download = await downloadPromise;
+  await expect(page.getByTestId('library-status')).toHaveText('Backup exported. Keep it somewhere safe.');
+  await page.getByRole('button', { name: 'Done' }).click();
   expect(download.suggestedFilename()).toMatch(/^soliloquio-backup-.*\.json$/);
   const downloadPath = await download.path();
   expect(downloadPath).not.toBeNull();

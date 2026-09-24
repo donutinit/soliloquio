@@ -7,8 +7,11 @@ import {
   pixelsPerSecond,
   pixelsPerWord,
   readingSeconds,
-  spokenWordCount
+  speedForDuration,
+  spokenWordCount,
+  timedPauseTotal
 } from './pace';
+import { SPEED_LIMITS } from '../settings/settings';
 
 describe('countWords', () => {
   it('counts words with letters or numbers and ignores punctuation', () => {
@@ -68,5 +71,35 @@ describe('formatting', () => {
   it('pluralizes word counts', () => {
     expect(formatWordCount(1)).toBe('1 word');
     expect(formatWordCount(1200)).toBe('1,200 words');
+  });
+});
+
+describe('timed pauses and fitting a duration', () => {
+  it('does not count a timed separator as spoken words', () => {
+    expect(estimateSpokenWords('one two\n\n--- 5s\n\nthree', 'markdown')).toBe(3);
+  });
+
+  it('adds up the seconds of timed pauses only', () => {
+    expect(
+      timedPauseTotal([
+        { type: 'text', text: 'a' },
+        { type: 'pause', seconds: 3 },
+        { type: 'pause' },
+        { type: 'pause', seconds: 2 }
+      ])
+    ).toBe(5);
+  });
+
+  it('finds the pace that fills the target time, snapped to the speed step', () => {
+    // 130 words in 60 seconds.
+    expect(speedForDuration(130, 60, 0, SPEED_LIMITS)).toBe(130);
+    // 5 seconds of timed pauses leave 55 seconds to speak 121 words (132 wpm → 130).
+    expect(speedForDuration(121, 60, 5, SPEED_LIMITS)).toBe(130);
+  });
+
+  it('clamps unreachable targets to the speed limits', () => {
+    expect(speedForDuration(1000, 30, 0, SPEED_LIMITS)).toBe(SPEED_LIMITS.max);
+    expect(speedForDuration(10, 180, 0, SPEED_LIMITS)).toBe(SPEED_LIMITS.min);
+    expect(speedForDuration(100, 30, 40, SPEED_LIMITS)).toBe(SPEED_LIMITS.max);
   });
 });

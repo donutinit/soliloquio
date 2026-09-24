@@ -78,7 +78,9 @@ settings stay in that browser's local storage.
   and comments. For a script you will record, prefer `.md` or `.txt`, or check the imported text
   in the editor before reading.
 - The import control is a directly tappable native file picker for reliable use in installed iOS
-  web apps; file extensions are validated safely after selection.
+  web apps; file extensions are validated safely after selection. On a computer, documents can
+  also be dropped anywhere on the library. While files are converted, the library shows which file
+  of the selection is being imported.
 - Large scripts are parsed in a background worker when supported. Long plain-text scripts are
   grouped into reading blocks so they do not create one element per short paragraph.
 - A selection can contain up to 50 script files: 5 MB per text file, 25 MB per Word, PDF,
@@ -88,23 +90,31 @@ settings stay in that browser's local storage.
   from their options menu.
 - Markdown formatting for delivery: a blockquote (`> Look at the lens`) is a small gold note that
   is not counted as spoken text, a separator (`---` on its own line) pauses automatic scrolling
-  when it reaches the reading area, and `**bold**` / `*italic*` stay visible as emphasis. Plain-text
-  scripts show their content literally.
+  when it reaches the reading area, a timed separator (`--- 5s`, up to 60 seconds) holds the text
+  in place for that long and then continues by itself, and `**bold**` / `*italic*` stay visible as
+  emphasis. Plain-text scripts show their content literally.
 - Script cards are ordered by title with natural number handling, so `VID2` appears before
   `VID10`.
 - Script cards omit timestamps and use 25 px titles by default; their title size is adjustable in
   App Settings for easier reading at a distance. Each card shows its spoken word count and the
   estimated reading time at the current speed.
-- When the library is empty it offers **Import** and **New script** directly.
-- The editor shows the word count and estimated reading time. An empty script offers **Paste from
-  clipboard**, which also names a still-untitled script after the first pasted line.
+- When the library is empty it offers **Import** and **New script** directly. The search field
+  appears once the library holds six or more scripts.
+- The editor shows the word count, the estimated reading time, and a one-line reminder of the
+  delivery syntax. An empty script offers **Paste from clipboard**, which also names a
+  still-untitled script after the first pasted line. Only a new script focuses the title on open,
+  so editing an existing one does not raise the on-screen keyboard. Leaving a new script without
+  typing anything discards it instead of adding an empty card.
+- Success messages in the library disappear after a few seconds; errors stay until dismissed.
 - Options-menu actions (export, duplicate, delete, Markdown conversion) keep the menu open until
   the write finishes and then confirm the result.
 - The **One card per row** toggle in App Settings (on by default) shows the library as a single
   column of wide cards in both portrait and landscape; turn it off to restore the multi-column
   grid on wider screens.
-- Export one script from its options menu or create a complete JSON backup from the download
-  button in the library header.
+- Export one script from its options menu or create a complete JSON backup from **App Settings →
+  Library → Export backup**.
+- **Remove all scripts** in the same section empties the library after a recording session while
+  keeping every setting. Like deleting a single script, it asks for a second tap.
 - Restoring a backup merges its scripts into the current library and restores its preferences.
 
 Everything remains in IndexedDB on the current device. The app asks the browser for persistent
@@ -117,7 +127,10 @@ you close a browser tab, browsers that support it warn before leaving; use **Scr
 
 ### Reading controls
 
-- Press **START** to begin automatic scrolling and **PAUSE** to stop.
+- Press **START** to begin automatic scrolling and **PAUSE** to stop. Scrolling eases up to speed
+  over half a second instead of jumping, after a start, a resume, or a timed pause.
+- The playback bar shows the time elapsed while reading (timed pauses included) and the estimated
+  time left. Elapsed time restarts when the reader returns to the start.
 - Automatic scrolling hides the script header and softly fades the playback bar after one second.
   Tap the reading surface to fade the bar back in. Controller play/pause preserves the current
   control visibility; use the assigned show/hide action to reveal it explicitly. The bar returns
@@ -131,7 +144,7 @@ you close a browser tab, browsers that support it warn before leaving; use **Scr
   Home/End jump to the start or end, Left/Right change sections, and +/− adjust speed. Tab
   reveals hidden controls and focuses playback. Shortcuts leave text fields and sliders to their
   normal keyboard behavior.
-- Use Settings in the prompter to change speed, text size, or margins. Speed is measured in words
+- Use **Display** in the prompter to change speed, text size, margins, or mirroring. Speed is measured in words
   per minute (40–300, default 130) and converted through the measured layout, so changing text
   size or margins keeps the same pace. Settings saved by older versions in pixels per second are
   migrated to an equivalent pace. New installs default to 60 px text. The playback bar adjusts
@@ -141,8 +154,11 @@ you close a browser tab, browsers that support it warn before leaving; use **Scr
 - Scripts without headings hide the section indicator and section buttons.
 - The script title is the first line of the prompter. It and all Markdown headings use an
   underlined Atkinson Hyperlegible Next treatment at one-half of the reading text size.
-- The **Mirror text** toggle in App Settings flips the reader horizontally for beam-splitter
-  teleprompter glass.
+- The **Mirror text** toggle, in App Settings and in the reader's Display panel, flips the reader
+  horizontally for beam-splitter teleprompter glass.
+- **Fit to time** in the Display panel sets the global speed so the current script lasts 0:30,
+  1:00, 1:30, 2:00, or 3:00, counting timed pauses. When the target is out of the 40–300 wpm range,
+  it uses the nearest pace and reports the resulting length.
 - App Settings opens the **Quick guide**.
 - The **Keep screen awake** toggle in App Settings (on by default) holds a screen wake lock
   anywhere in the app and reacquires it after returning from the background when the browser
@@ -208,7 +224,7 @@ Configure**: tap an action, then press the button you want for it. The default l
 | D-pad left/right | Decrease/increase margins | Repeat |
 | Right stick Y | Fine scroll | — |
 | Left stick Y | Fast scroll | — |
-| Options / Menu / Plus / Start | Settings | Same action on release |
+| Options / Menu / Plus / Start | Display settings | Same action on release |
 | Share / Create / View / Minus / Select | Controller guide | Same action on release |
 | R3 / RS | Section browser | Same action on release |
 
@@ -223,7 +239,7 @@ profile without changing other controllers:
 | Hold Select + D-pad left / right | Decrease / increase margins; hold to repeat |
 | Select + B | Open / close the section list |
 | Select tap | Controller guide |
-| Start | Reader settings |
+| Start | Display settings |
 
 Select and the D-pad are reserved while this profile is active. Releasing a temporary speed button
 restores normal playback speed, or stops again if the reader was paused. A Select combination

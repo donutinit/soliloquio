@@ -6,11 +6,13 @@ import {
   useRef,
   useState,
   type ChangeEvent,
+  type DragEvent,
   type ReactNode
 } from 'react';
 import type { PrompterSettings, Script } from '../../types';
 import {
   createScript,
+  deleteAllScripts,
   deleteScript,
   duplicateScript,
   getSettings,
@@ -49,6 +51,15 @@ import { AppSettingsPanel, type AppUpdateState } from './AppSettingsPanel';
 import { GamepadSettingsPanel } from './GamepadSettingsPanel';
 import { HelpPanel } from './HelpPanel';
 import styles from './ScriptsPage.module.css';
+
+/** Search appears once the library is long enough to need it. */
+const SEARCH_MIN_SCRIPTS = 6;
+/** Success notices step aside on their own; errors wait for Dismiss. */
+const NOTICE_TIMEOUT_MS = 4000;
+
+function hasDraggedFiles(event: DragEvent): boolean {
+  return Array.from(event.dataTransfer.types).includes('Files');
+}
 
 function OptionsSheet({
   title,
@@ -103,6 +114,10 @@ export function ScriptsPage({
   const [updateState, setUpdateState] = useState<AppUpdateState>('idle');
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [importProgress, setImportProgress] = useState<string | null>(null);
+  const [libraryMessage, setLibraryMessage] = useState<string | null>(null);
+  const [newScriptId, setNewScriptId] = useState<string | null>(null);
+  const [dragDepth, setDragDepth] = useState(0);
   const appSettingsSaveRef = useRef<Promise<void>>(Promise.resolve());
   const appSettingsChangeVersionRef = useRef(0);
   const appSettingsRef = useRef(appSettings);
@@ -147,6 +162,12 @@ export function ScriptsPage({
   }, [initialEditingId]);
 
   useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(null), NOTICE_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [notice]);
+
+  useEffect(() => {
     restoredGamepadFocusRef.current = false;
   }, [initialGamepadFocusId]);
 
@@ -167,6 +188,7 @@ export function ScriptsPage({
     [deferredQuery, libraryEntries]
   );
   const legacyOrigin = isLegacyAppOrigin(window.location.hostname);
+  const showSearch = scripts.length >= SEARCH_MIN_SCRIPTS || query !== '';
 
   const handleNew = async () => {
     setBusy(true);
@@ -175,6 +197,7 @@ export function ScriptsPage({
       const script = await createScript({ title: 'New script', content: '', format: 'markdown' });
       void requestPersistentStorage();
       await refresh();
+      setNewScriptId(script.id);
       setEditingId(script.id);
     } catch {
       setOperationError('The new script could not be created. Check available device storage.');
@@ -188,8 +211,13 @@ export function ScriptsPage({
     setBusy(true);
     setOperationError(null);
     setNotice(null);
+    setImportProgress('Importing…');
     try {
-      const { importedCount, errors, restoredSettings } = await importSelectedFiles(Array.from(fileList));
+      const { importedCount, errors, restoredSettings } = await importSelectedFiles(
+        Array.from(fileList),
+        (current, total) =>
+          setImportProgress(total > 1 ? `Importing ${current} of ${total}…` : 'Importing…')
+      );
       if (restoredSettings) {
         appSettingsChangeVersionRef.current += 1;
         appSettingsRef.current = restoredSettings;
@@ -206,25 +234,64 @@ export function ScriptsPage({
       setOperationError('The selected files could not be imported.');
     } finally {
       await refresh();
+      setImportProgress(null);
       setBusy(false);
     }
   };
 
-  const handleBackup = async () => {
+  /** Reports in App settings when exported from there, otherwise on the page. */
+  const handleBackup = async (fromSettings: boolean) => {
     setBusy(true);
     setOperationError(null);
+    setLibraryMessage(null);
+    const report = fromSettings ? setLibraryMessage : setNotice;
     try {
       const delivery = await exportBackupFile(
         makeBackup(await listScripts(), await getSettings(), new Date().toISOString())
       );
       if (delivery !== 'cancelled') {
-        setNotice('Backup exported. Keep it somewhere safe.');
+        report('Backup exported. Keep it somewhere safe.');
       }
     } catch {
-      setOperationError('The backup could not be exported.');
+      (fromSettings ? setLibraryMessage : setOperationError)('The backup could not be exported.');
     } finally {
       setBusy(false);
     }
+  };
+
+  const handleRemoveAllScripts = async () => {
+    setBusy(true);
+    setLibraryMessage(null);
+    try {
+      await deleteAllScripts();
+      setQuery('');
+      setLibraryMessage('All scripts removed. Settings were kept.');
+    } catch {
+      setLibraryMessage('The scripts could not be removed. Try again.');
+    } finally {
+      await refresh();
+      setBusy(false);
+    }
+  };
+
+  const onDragEnter = (event: DragEvent<HTMLElement>) => {
+    if (!hasDraggedFiles(event)) return;
+    event.preventDefault();
+    setDragDepth((depth) => depth + 1);
+  };
+  const onDragOver = (event: DragEvent<HTMLElement>) => {
+    // Without this the browser opens a dropped file and leaves the app.
+    if (hasDraggedFiles(event)) event.preventDefault();
+  };
+  const onDragLeave = (event: DragEvent<HTMLElement>) => {
+    if (hasDraggedFiles(event)) setDragDepth((depth) => Math.max(0, depth - 1));
+  };
+  const onDrop = (event: DragEvent<HTMLElement>) => {
+    if (!hasDraggedFiles(event)) return;
+    event.preventDefault();
+    setDragDepth(0);
+    if (!canDropImport) return;
+    void handleImport(event.dataTransfer.files);
   };
 
   const openAppSettings = async () => {
@@ -233,6 +300,7 @@ export function ScriptsPage({
     setSettingsError(null);
     setUpdateState('idle');
     setUpdateError(null);
+    setLibraryMessage(null);
     try {
       const loadedSettings = await getSettings();
       appSettingsChangeVersionRef.current += 1;
@@ -391,6 +459,9 @@ export function ScriptsPage({
 
   const menuScript = menuId ? scripts.find((script) => script.id === menuId) : undefined;
   const editingScript = editingId ? scripts.find((script) => script.id === editingId) : undefined;
+  // Files dropped on an open panel or editor are ignored rather than imported behind it.
+  const canDropImport =
+    !busy && !editingScript && !menuScript && !settingsOpen && !gamepadOpen && !helpOpen;
   // Mientras cargan los ajustes se usa el valor por defecto (una columna) para evitar un salto.
   const singleColumnLibrary = appSettings?.singleColumnLibrary ?? true;
   const wordsPerMinute = appSettings?.speed ?? SPEED_LIMITS.default;
@@ -401,7 +472,21 @@ export function ScriptsPage({
   });
 
   return (
-    <main className={styles.page} style={pageStyle} aria-busy={busy}>
+    <main
+      className={styles.page}
+      style={pageStyle}
+      aria-busy={busy}
+      onDragEnter={onDragEnter}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+    >
+      {dragDepth > 0 && canDropImport && (
+        <div className={styles.dropOverlay} data-testid="drop-overlay" aria-hidden="true">
+          <Icon name="upload" />
+          <span>Drop documents to import</span>
+        </div>
+      )}
       <header className={styles.header} data-testid="library-header">
         <h1>Scripts</h1>
         <div className={styles.headerActions} data-testid="library-header-actions">
@@ -429,18 +514,6 @@ export function ScriptsPage({
           </label>
           <button
             type="button"
-            data-testid="backup-button"
-            className={styles.headerIconButton}
-            aria-label="Export full backup"
-            title="Export backup"
-            disabled={busy}
-            onClick={() => void handleBackup()}
-          >
-            <Icon name="download" />
-            <span className={styles.desktopActionLabel}>Backup</span>
-          </button>
-          <button
-            type="button"
             data-testid="new-script"
             className={styles.primaryIconButton}
             aria-label="New script"
@@ -464,7 +537,7 @@ export function ScriptsPage({
             </span>
           </div>
           <div className={styles.originNoticeActions}>
-            <button type="button" disabled={busy} onClick={() => void handleBackup()}>
+            <button type="button" disabled={busy} onClick={() => void handleBackup(false)}>
               Export backup
             </button>
             <a href={CANONICAL_APP_ORIGIN} target="_blank" rel="noreferrer">
@@ -478,6 +551,11 @@ export function ScriptsPage({
         <div className={styles.operationMessage} role="alert">
           <span>{operationError}</span>
           <button type="button" onClick={() => setOperationError(null)}>Dismiss</button>
+        </div>
+      )}
+      {importProgress && (
+        <div className={styles.progress} data-testid="import-progress" role="status">
+          <span>{importProgress}</span>
         </div>
       )}
       {notice && (
@@ -495,19 +573,21 @@ export function ScriptsPage({
         </div>
       )}
 
-      <div className={styles.searchRow}>
-        <Icon name="search" />
-        <label className={styles.visuallyHidden} htmlFor="script-search">Search scripts</label>
-        <input
-          id="script-search"
-          data-testid="search-input"
-          type="search"
-          placeholder="Search scripts…"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          className={styles.search}
-        />
-      </div>
+      {showSearch && (
+        <div className={styles.searchRow}>
+          <Icon name="search" />
+          <label className={styles.visuallyHidden} htmlFor="script-search">Search scripts</label>
+          <input
+            id="script-search"
+            data-testid="search-input"
+            type="search"
+            placeholder="Search scripts…"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            className={styles.search}
+          />
+        </div>
+      )}
 
       {filtered.length === 0 ? (
         <div className={styles.empty} data-testid="empty-state">
@@ -640,7 +720,7 @@ export function ScriptsPage({
           <button
             type="button"
             data-testid="menu-delete"
-            className={styles.danger}
+            className={confirmingDelete ? `${styles.danger} ${styles.confirmingButton}` : styles.danger}
             disabled={busy}
             onClick={() => {
               if (!confirmingDelete) {
@@ -658,6 +738,9 @@ export function ScriptsPage({
           >
             {confirmingDelete ? 'Delete permanently?' : 'Delete'}
           </button>
+          <p className={styles.visuallyHidden} role="status">
+            {confirmingDelete ? 'Tap Delete again to confirm.' : ''}
+          </p>
           <button type="button" onClick={() => setMenuId(null)}>Cancel</button>
         </OptionsSheet>
       )}
@@ -666,10 +749,13 @@ export function ScriptsPage({
         <ScriptEditor
           key={editingScript.id}
           script={editingScript}
+          isNew={editingScript.id === newScriptId}
           wordsPerMinute={wordsPerMinute}
           onSaved={refresh}
           onClose={() => {
             setEditingId(null);
+            setNewScriptId(null);
+            void refresh();
             if (initialEditingId) navigate('#/');
           }}
           onOpenPrompter={() => navigate(prompterHash(editingScript.id))}
@@ -688,6 +774,10 @@ export function ScriptsPage({
           onSingleColumnLibraryChange={(enabled) => void updateSingleColumnLibrary(enabled)}
           onKeepAwakeChange={(enabled) => void updateKeepAwake(enabled)}
           onMirrorTextChange={(enabled) => void updateMirrorText(enabled)}
+          scriptCount={scripts.length}
+          libraryMessage={libraryMessage}
+          onBackup={() => void handleBackup(true)}
+          onRemoveAllScripts={handleRemoveAllScripts}
           onOpenHelp={() => setHelpOpen(true)}
           onOpenGamepad={() => setGamepadOpen(true)}
           onCheckForUpdate={() => void handleCheckForUpdate()}

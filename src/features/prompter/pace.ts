@@ -1,4 +1,6 @@
 import type { PrompterBlock, ScriptFormat } from '../../types';
+import { timedPauseSeconds } from '../markdown/timedPause';
+import { clampToLimit, type Limit } from '../settings/settings';
 
 const WORD_PATTERN = /[\p{L}\p{N}]/u;
 const THEMATIC_BREAK = /^ {0,3}([-*_])(?:[ \t]*\1){2,}[ \t]*$/;
@@ -30,10 +32,42 @@ export function estimateSpokenWords(content: string, format: ScriptFormat): numb
   if (format === 'text') return countWords(content);
   let count = 0;
   for (const line of content.split('\n')) {
-    if (NOTE_OR_HEADING.test(line) || THEMATIC_BREAK.test(line)) continue;
+    if (
+      NOTE_OR_HEADING.test(line) ||
+      THEMATIC_BREAK.test(line) ||
+      timedPauseSeconds(line) !== undefined
+    ) {
+      continue;
+    }
     count += countWords(line);
   }
   return count;
+}
+
+/** Seconds that timed separators (`--- 5s`) hold the reader in total. */
+export function timedPauseTotal(blocks: readonly PrompterBlock[]): number {
+  let seconds = 0;
+  for (const block of blocks) {
+    if (block.type === 'pause' && block.seconds) seconds += block.seconds;
+  }
+  return seconds;
+}
+
+/**
+ * Words-per-minute pace that makes a script last `targetSeconds`, counting
+ * timed pauses as fixed time. The result is clamped to the speed limits, so
+ * a target that is too short or too long returns the nearest possible pace.
+ */
+export function speedForDuration(
+  words: number,
+  targetSeconds: number,
+  fixedSeconds: number,
+  limit: Limit
+): number {
+  const speakingSeconds = targetSeconds - fixedSeconds;
+  if (words <= 0 || !(targetSeconds > 0)) return clampToLimit(limit.default, limit);
+  if (speakingSeconds <= 0) return limit.max;
+  return clampToLimit((words / speakingSeconds) * 60, limit);
 }
 
 export function readingSeconds(words: number, wordsPerMinute: number): number {

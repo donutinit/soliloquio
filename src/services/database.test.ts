@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   SoliloquioDB,
   createScript,
+  deleteAllScripts,
   deleteScript,
   duplicateScript,
   getScript,
@@ -267,6 +268,24 @@ describe('factory reset', () => {
       title: FACTORY_SCRIPT_TITLE
     });
     expect(await getSettings(database)).toEqual(defaultSettings());
+  });
+});
+
+describe('remove all scripts', () => {
+  it('empties the library, keeps settings, and does not reseed the factory script', async () => {
+    const database = freshDb();
+    await openDatabase(database);
+    await createScript({ title: 'Take one', content: 'hello', format: 'text' }, database);
+    const settings = { ...defaultSettings(), speed: 150 };
+    await saveSettings(settings, database);
+
+    await deleteAllScripts(database);
+
+    expect(await listScripts(database)).toHaveLength(0);
+    expect(await getSettings(database)).toEqual(settings);
+    database.close();
+    await openDatabase(database);
+    expect(await listScripts(database)).toHaveLength(0);
   });
 });
 

@@ -56,7 +56,7 @@ export function ReadingSurface({
           case 'pause':
             return (
               <div key={index} ref={ref} className={styles.pauseMarker} data-block-type="pause">
-                <span>Pause</span>
+                <span>{block.seconds ? `Pause · ${block.seconds}s` : 'Pause'}</span>
               </div>
             );
           case 'text':

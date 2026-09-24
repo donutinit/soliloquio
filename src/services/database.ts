@@ -130,6 +130,14 @@ export async function deleteScript(id: string, database: SoliloquioDB = db): Pro
   await database.scripts.delete(id);
 }
 
+/**
+ * Empties the library but keeps settings. The factory script counts as a
+ * script: like deleting it by hand, only a factory reset brings it back.
+ */
+export async function deleteAllScripts(database: SoliloquioDB = db): Promise<void> {
+  await database.scripts.clear();
+}
+
 export async function duplicateScript(
   id: string,
   database: SoliloquioDB = db

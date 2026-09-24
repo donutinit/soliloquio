@@ -3,6 +3,7 @@ import remarkParse from 'remark-parse';
 import remarkGfm from 'remark-gfm';
 import type { Parent, PhrasingContent, Root, RootContent } from 'mdast';
 import type { HeadingLevel, InlineRun, PrompterBlock, Script } from '../../types';
+import { isolateTimedPauses, timedPauseSeconds } from './timedPause';
 
 const parser = unified().use(remarkParse).use(remarkGfm);
 const LARGE_SCRIPT_CHARS = 200_000;
@@ -114,15 +115,22 @@ export function normalizeRuns(runs: InlineRun[]): InlineRun[] {
  * Aplana Markdown a bloques de lectura: los headings conservan semántica
  * (nivel + id de sección), los blockquotes se vuelven notas que no se leen en
  * voz alta, los separadores (`---`) se vuelven pausas y la negrita/cursiva se
- * conserva como tramos. Todo lo demás se convierte en texto plano. El HTML
+ * conserva como tramos. Una línea `--- 5s` es una pausa que solo retiene el
+ * scroll esos segundos. Todo lo demás se convierte en texto plano. El HTML
  * embebido se descarta por completo y nunca se ejecuta.
  */
 export function markdownToBlocks(content: string): PrompterBlock[] {
-  const tree = parser.parse(content) as Root;
+  const tree = parser.parse(isolateTimedPauses(content)) as Root;
   const blocks: PrompterBlock[] = [];
   let headingCount = 0;
 
   let noteDepth = 0;
+
+  // Consecutive separators or one at the very start never stop twice in a row.
+  const pushPause = (seconds?: number) => {
+    if (blocks.length === 0 || blocks[blocks.length - 1].type === 'pause') return;
+    blocks.push(seconds ? { type: 'pause', seconds } : { type: 'pause' });
+  };
 
   const pushText = (text: string) => {
     const clean = collapseWhitespace(text);
@@ -138,6 +146,11 @@ export function markdownToBlocks(content: string): PrompterBlock[] {
     const runs = normalizeRuns(inlineRuns(children));
     const text = runs.map((run) => run.text).join('');
     if (!text) return;
+    const pauseSeconds = timedPauseSeconds(text);
+    if (pauseSeconds !== undefined) {
+      pushPause(pauseSeconds);
+      return;
+    }
     const emphasized = runs.some((run) => run.strong || run.emphasis);
     blocks.push(emphasized ? { type: 'text', text, runs } : { type: 'text', text });
   };
@@ -181,10 +194,7 @@ export function markdownToBlocks(content: string): PrompterBlock[] {
           noteDepth -= 1;
           break;
         case 'thematicBreak':
-          // Consecutive separators or one at the very start never stop twice in a row.
-          if (blocks.length > 0 && blocks[blocks.length - 1].type !== 'pause') {
-            blocks.push({ type: 'pause' });
-          }
+          pushPause();
           break;
         case 'list':
         case 'listItem':

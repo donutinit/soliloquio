@@ -28,19 +28,19 @@ Fast and simple, with nothing to take care of.
 
 Controls hide after one second so the camera sees only text. Tap the script or press a key to bring them back; Space starts or pauses. Drag the text, use a mouse wheel or trackpad, or press Up/Down to scrub.
 
-Markdown headings create sections; jump between them with the arrows or the section list. Speed is in words per minute, so text size and margins never change your pace. Speed, text size, and margins are global — one setting for every script.
+Markdown headings create sections; jump between them with the arrows or the section list. Speed is in words per minute, so text size and margins never change your pace. Display, in the reader, sets speed, text size, margins, and mirroring, and Fit to time picks the speed that makes the script last 0:30 to 3:00. These settings are global — one setting for every script.
 
 > A line that starts with > becomes a note like this one: a cue for you, not spoken text.
 
-A line with only three dashes pauses scrolling when it reaches you; press START to continue. **Bold** and *italic* stay visible as emphasis.
+A line with only three dashes pauses scrolling when it reaches you; press START to continue. Add seconds, like \`--- 5s\`, and it holds that long before continuing by itself. **Bold** and *italic* stay visible as emphasis.
 
 ## App settings
 
-There you will find the optional 0–10 second start countdown, the screen-awake toggle, mirrored text for teleprompter glass, the card title size, the quick guide, and the gamepad configuration. A Bluetooth controller can drive the whole app; Share opens the controller guide.
+There you will find the optional 0–10 second start countdown, the screen-awake toggle, mirrored text for teleprompter glass, the card title size, backups and Remove all scripts, the quick guide, and the gamepad configuration. A Bluetooth controller can drive the whole app; Share opens the controller guide.
 
 ## Housekeeping
 
-Import takes up to 50 documents at a time: Word (.docx), PDF, OpenDocument, RTF, HTML, Markdown, plain text, and subtitles — 5 MB per text file, 25 MB per document, 50 MB per batch — plus Soliloquio .json backups up to 25 MB. If you do keep work here, export a backup regularly and store it somewhere safe. Updates install themselves; use Update app in settings if anything ever looks stale. Factory reset erases everything and restores this script.
+Import takes up to 50 documents at a time: Word (.docx), PDF, OpenDocument, RTF, HTML, Markdown, plain text, and subtitles — 5 MB per text file, 25 MB per document, 50 MB per batch — plus Soliloquio .json backups up to 25 MB. Done recording? Remove all scripts in App settings clears the library and keeps your settings. If you do keep work here, export a backup from App settings and store it somewhere safe. Updates install themselves; use Update app in settings if anything ever looks stale. Factory reset erases everything and restores this script.
 `;
 
 export function makeFactoryScript(now: number): Script {

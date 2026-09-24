@@ -413,6 +413,16 @@
   white-space: nowrap;
 }
 
+/* Elapsed and remaining stay together at the end of the row. */
+.controlMetaRow .timeEstimate + .timeEstimate {
+  margin-left: -3px;
+}
+
+/* Elapsed and remaining share one compact line: "1:05 · ≈ 0:37 left". */
+.elapsedTime::after {
+  content: '·';
+}
+
 
 .speedRow {
   grid-area: speed;
@@ -583,6 +593,103 @@
   font-size: 13px;
   font-variant-numeric: tabular-nums;
   text-align: right;
+}
+
+.toggleRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.toggleRow label {
+  display: grid;
+  gap: 2px;
+}
+
+.toggleHint {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.switchControl {
+  position: relative;
+  width: 52px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+}
+
+.switchControl input {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.switchControl > span {
+  position: relative;
+  width: 46px;
+  height: 28px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+.switchControl > span::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  background: var(--text-dim);
+  transition: transform 140ms ease, background 140ms ease;
+}
+
+.switchControl input:checked + span {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.switchControl input:checked + span::after {
+  transform: translateX(18px);
+  background: var(--accent-ink);
+}
+
+.switchControl:focus-within {
+  outline: 3px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.fitRow {
+  display: grid;
+  gap: 6px;
+}
+
+.fitTargets {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.fitButton {
+  min-height: 44px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.fitResult {
+  min-height: 18px;
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 13px;
 }
 
 .panelActions {

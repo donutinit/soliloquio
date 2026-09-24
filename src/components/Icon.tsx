@@ -16,6 +16,7 @@ export type IconName =
   | 'reset'
   | 'search'
   | 'settings'
+  | 'textSize'
   | 'upload';
 
 /**
@@ -83,6 +84,7 @@ const paths: Record<IconName, ReactNode> = {
       <Block x={19} y={10} width={3} height={4} />
     </>
   ),
+  textSize: <path d="M3 5H13M8 5V19M14 11H21M17 11V19" />,
   upload: <path d="M4 3H20M12 8V21M7 13L12 8L17 13" />
 };
 

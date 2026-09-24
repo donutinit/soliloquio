@@ -27,6 +27,10 @@ export function AppSettingsPanel({
   onSingleColumnLibraryChange,
   onKeepAwakeChange,
   onMirrorTextChange,
+  scriptCount,
+  libraryMessage,
+  onBackup,
+  onRemoveAllScripts,
   onOpenHelp,
   onOpenGamepad,
   onCheckForUpdate,
@@ -43,6 +47,10 @@ export function AppSettingsPanel({
   onSingleColumnLibraryChange: (enabled: boolean) => void;
   onKeepAwakeChange: (enabled: boolean) => void;
   onMirrorTextChange: (enabled: boolean) => void;
+  scriptCount: number;
+  libraryMessage: string | null;
+  onBackup: () => void;
+  onRemoveAllScripts: () => Promise<void>;
   onOpenHelp: () => void;
   onOpenGamepad: () => void;
   onCheckForUpdate: () => void;
@@ -50,6 +58,7 @@ export function AppSettingsPanel({
   onClose: () => void;
 }) {
   const [confirmingReset, setConfirmingReset] = useState(false);
+  const [confirmingRemoveAll, setConfirmingRemoveAll] = useState(false);
   const requestClose = () => {
     if (!busy) onClose();
   };
@@ -167,6 +176,53 @@ export function AppSettingsPanel({
             </span>
           </div>
           {error && <p className={styles.settingsError} role="alert">{error}</p>}
+        </section>
+
+        <section className={styles.updateSection} data-testid="library-settings">
+          <div>
+            <h3>Library</h3>
+            <p>Back up every script and setting to a file, or clear the library after recording. Settings stay.</p>
+          </div>
+          <div className={styles.libraryActions}>
+            <button
+              type="button"
+              className={styles.updateButton}
+              data-testid="backup-button"
+              disabled={busy}
+              onClick={onBackup}
+            >
+              Export backup
+            </button>
+            <button
+              type="button"
+              className={
+                confirmingRemoveAll
+                  ? `${styles.updateButton} ${styles.confirmingButton}`
+                  : `${styles.updateButton} ${styles.removeAllButton}`
+              }
+              data-testid="remove-all-scripts"
+              disabled={busy || scriptCount === 0}
+              onClick={() => {
+                if (!confirmingRemoveAll) {
+                  setConfirmingRemoveAll(true);
+                  return;
+                }
+                void onRemoveAllScripts().finally(() => setConfirmingRemoveAll(false));
+              }}
+            >
+              {confirmingRemoveAll
+                ? `Remove ${scriptCount === 1 ? 'the script' : `all ${scriptCount}`}?`
+                : 'Remove all scripts'}
+            </button>
+          </div>
+          <p className={styles.visuallyHidden} role="status">
+            {confirmingRemoveAll ? 'Tap again to remove every script.' : ''}
+          </p>
+          {libraryMessage && (
+            <p className={styles.updateStatus} data-testid="library-status" role="status">
+              {libraryMessage}
+            </p>
+          )}
         </section>
 
         <section className={styles.updateSection}>

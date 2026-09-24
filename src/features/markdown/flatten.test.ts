@@ -117,6 +117,33 @@ describe('markdownToBlocks', () => {
     ]);
   });
 
+  it('turns a separator with seconds into a timed pause, even without blank lines', () => {
+    expect(markdownToBlocks('uno\n--- 5s\ndos\n\n---3S\n\ntres')).toEqual([
+      { type: 'text', text: 'uno' },
+      { type: 'pause', seconds: 5 },
+      { type: 'text', text: 'dos' },
+      { type: 'pause', seconds: 3 },
+      { type: 'text', text: 'tres' }
+    ]);
+  });
+
+  it('caps timed pauses and treats zero seconds as a regular pause', () => {
+    expect(markdownToBlocks('uno\n\n--- 600s\n\ndos\n\n--- 0s\n\ntres')).toEqual([
+      { type: 'text', text: 'uno' },
+      { type: 'pause', seconds: 60 },
+      { type: 'text', text: 'dos' },
+      { type: 'pause' },
+      { type: 'text', text: 'tres' }
+    ]);
+  });
+
+  it('keeps a timed separator inside a note as note text', () => {
+    expect(markdownToBlocks('uno\n\n> --- 5s')).toEqual([
+      { type: 'text', text: 'uno' },
+      { type: 'note', text: '--- 5s' }
+    ]);
+  });
+
   it('separa el texto alrededor de HTML inline en vez de pegar palabras', () => {
     const blocks = markdownToBlocks('línea uno<br>línea dos');
     expect(blocks).toEqual([{ type: 'text', text: 'línea uno línea dos' }]);

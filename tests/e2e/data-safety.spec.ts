@@ -33,6 +33,7 @@ test('does not claim a backup exists when sharing is cancelled', async ({ page }
     });
   });
   await page.goto('/');
+  await page.getByTestId('app-settings-button').click();
   await page.getByTestId('backup-button').click();
 
   await expect(page.getByText('Backup exported. Keep it somewhere safe.')).toHaveCount(0);
