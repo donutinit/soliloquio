@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { cardByTitle, createSampleScript, createSampleScripts } from './helpers';
+import { cardByTitle, createSampleScript, createSampleScripts, createScriptFixture } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -80,6 +80,11 @@ test('dialogs trap focus and close with Escape', async ({ page }) => {
 test('busca guiones por título y contenido', async ({ page }) => {
   await createSampleScripts(page);
   await expect(cardByTitle(page, 'Welcome to Soliloquio')).toBeVisible();
+  // A short library has nothing to search through.
+  await expect(page.getByTestId('search-input')).toHaveCount(0);
+  for (const title of ['Alpha', 'Beta', 'Gamma']) {
+    await createScriptFixture(page, title, `${title} take.`);
+  }
 
   await page.getByTestId('search-input').fill('zzz-sin-resultados');
   await expect(page.getByTestId('empty-state')).toBeVisible();
@@ -131,8 +136,68 @@ test('elimina un guion con confirmación en dos pasos', async ({ page }) => {
   await cardByTitle(page, 'Quick notes').getByTestId('card-menu').click();
   await page.getByTestId('menu-delete').click();
   await expect(page.getByTestId('menu-delete')).toHaveText('Delete permanently?');
+  await expect(page.getByRole('dialog').getByRole('status')).toHaveText(
+    'Tap Delete again to confirm.'
+  );
   await page.getByTestId('menu-delete').click();
   await expect(cardByTitle(page, 'Quick notes')).toHaveCount(0);
+  // Success notices clear themselves.
+  await expect(page.getByText('Script deleted.')).toHaveCount(0, { timeout: 8_000 });
+});
+
+test('discards a new script left empty and keeps the keyboard down for existing ones', async ({
+  page
+}) => {
+  await page.getByTestId('new-script').click();
+  await expect(page.getByTestId('editor-title')).toBeFocused();
+  await page.getByTestId('editor-close').click();
+  await expect(page.getByTestId('script-card')).toHaveCount(1);
+  await expect(cardByTitle(page, 'New script')).toHaveCount(0);
+
+  await createSampleScript(page, 'Quick notes');
+  await cardByTitle(page, 'Quick notes').getByTestId('card-menu').click();
+  await page.getByTestId('menu-edit').click();
+  await expect(page.getByTestId('editor-content')).toHaveValue(/plain-text script/);
+  await expect(page.getByTestId('editor-title')).not.toBeFocused();
+  await expect(page.getByTestId('editor-content')).not.toBeFocused();
+  await expect(page.getByTestId('editor-syntax')).toContainText('--- 5s');
+  await page.getByTestId('editor-close').click();
+  await expect(cardByTitle(page, 'Quick notes')).toBeVisible();
+});
+
+test('removes all scripts from App settings and keeps the settings', async ({ page }) => {
+  await createSampleScripts(page);
+  await page.getByTestId('app-settings-button').click();
+  await page.getByTestId('countdown-setting').selectOption('3');
+  const removeAll = page.getByTestId('remove-all-scripts');
+  await removeAll.click();
+  await expect(removeAll).toHaveText('Remove all 3?');
+  await removeAll.click();
+  await expect(page.getByTestId('library-status')).toHaveText(
+    'All scripts removed. Settings were kept.'
+  );
+  await expect(removeAll).toBeDisabled();
+  await page.getByRole('button', { name: 'Done' }).click();
+  await expect(page.getByTestId('empty-state')).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByTestId('empty-state')).toBeVisible();
+  await page.getByTestId('app-settings-button').click();
+  await expect(page.getByTestId('countdown-setting')).toHaveValue('3');
+});
+
+test('imports documents dropped on the library', async ({ page }) => {
+  await expect(page.getByTestId('library-header')).toBeVisible();
+  await page.evaluate(() => {
+    const transfer = new DataTransfer();
+    transfer.items.add(new File(['Dropped words to read.'], 'dropped.txt', { type: 'text/plain' }));
+    const target = document.querySelector('main');
+    if (!target) throw new Error('Library is not rendered');
+    target.dispatchEvent(new DragEvent('dragenter', { bubbles: true, dataTransfer: transfer }));
+    target.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: transfer }));
+  });
+  await expect(cardByTitle(page, 'dropped')).toBeVisible();
+  await expect(page.getByTestId('drop-overlay')).toHaveCount(0);
 });
 
 test('confirms menu actions and offers import and new script when the library is empty', async ({

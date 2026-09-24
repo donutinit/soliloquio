@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Script } from '../../types';
-import { updateScript } from '../../services/database';
+import { deleteScript, updateScript } from '../../services/database';
 import { DraftSaveQueue, type EditableScript } from '../../features/scripts/draftSaveQueue';
 import { registerPendingSaveFlush } from '../../services/pendingSaves';
 import { useModalFocus } from '../../app/useModalFocus';
@@ -23,14 +23,22 @@ function canReadClipboard(): boolean {
 
 type SaveState = 'saved' | 'pending' | 'saving' | 'error';
 
+/** A new script left untouched is not worth keeping in the library. */
+function isUntouchedDraft({ title, content }: EditableScript): boolean {
+  return content.trim() === '' && (title.trim() === '' || title === DEFAULT_TITLE);
+}
+
 export function ScriptEditor({
   script,
+  isNew,
   wordsPerMinute,
   onSaved,
   onClose,
   onOpenPrompter
 }: {
   script: Script;
+  /** Created from the New script action in this visit; focus and discard follow it. */
+  isNew: boolean;
   wordsPerMinute: number;
   onSaved: () => Promise<void> | void;
   onClose: () => void;
@@ -118,6 +126,10 @@ export function ScriptEditor({
   const close = async () => {
     try {
       await persistLatest();
+      if (isNew && isUntouchedDraft(latestRef.current)) {
+        // Best effort: an empty card left behind is harmless if this fails.
+        await deleteScript(script.id).catch(() => undefined);
+      }
       onClose();
     } catch {
       // The visible retry state keeps the editor open with its in-memory draft.
@@ -210,7 +222,9 @@ export function ScriptEditor({
       </label>
       <input
         id="editor-title"
-        data-modal-autofocus
+        // Only a new script starts typing; editing an existing one must not
+        // raise the iPhone keyboard over the text.
+        data-modal-autofocus={isNew ? true : undefined}
         data-testid="editor-title"
         className={styles.editorTitle}
         value={title}
@@ -241,6 +255,12 @@ export function ScriptEditor({
         {pasteError && (
           <span className={styles.editorPasteError} role="status">
             Clipboard unavailable. Long-press the text area to paste.
+          </span>
+        )}
+        {script.format === 'markdown' && (
+          <span className={styles.editorSyntax} data-testid="editor-syntax">
+            <code>#</code> section · <code>&gt;</code> note · <code>---</code> pause ·{' '}
+            <code>--- 5s</code> timed pause
           </span>
         )}
         <span className={styles.editorMeta} data-testid="editor-meta">

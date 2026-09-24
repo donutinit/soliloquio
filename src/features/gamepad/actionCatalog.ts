@@ -48,7 +48,7 @@ export const ACTION_GROUPS: ActionGroup[] = [
     title: 'Interface',
     actions: [
       { action: 'toggleControls', label: 'Show / hide controls' },
-      { action: 'toggleSettings', label: 'Reader settings' },
+      { action: 'toggleSettings', label: 'Display settings' },
       { action: 'toggleControllerGuide', label: 'Controller guide' },
       { action: 'backToScripts', label: 'Exit to scripts' }
     ]

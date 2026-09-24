@@ -225,7 +225,8 @@ export type ImportOutcome =
  */
 export async function readImportedFiles(
   files: File[],
-  readPdf?: PdfTextReader
+  readPdf?: PdfTextReader,
+  onFileStart?: (index: number) => void
 ): Promise<ImportOutcome[]> {
   const outcomes: ImportOutcome[] = [];
   let selectedBytes = 0;
@@ -233,7 +234,8 @@ export async function readImportedFiles(
 
   // La lectura deliberadamente secuencial mantiene acotado el pico de memoria
   // en móviles; cada archivo conserva su propio resultado y no tumba el lote.
-  for (const file of files) {
+  for (const [index, file] of files.entries()) {
+    onFileStart?.(index);
     const extension = extensionOf(file.name);
     if (!isSupportedScriptFile(file.name)) {
       outcomes.push({

@@ -10,15 +10,22 @@ export type ImportSummary = {
   restoredSettings: PrompterSettings | null;
 };
 
+/** 1-based position of the file being read, out of all selected files. */
+export type ImportProgress = (current: number, total: number) => void;
+
 /** Reads each selected file independently, keeping backup writes atomic. */
-export async function importSelectedFiles(files: File[]): Promise<ImportSummary> {
+export async function importSelectedFiles(
+  files: File[],
+  onProgress?: ImportProgress
+): Promise<ImportSummary> {
   const errors: string[] = [];
   let importedCount = 0;
   let restoredBackup = false;
   const backupFiles = files.filter((file) => /\.json$/i.test(file.name));
   const scriptFiles = files.filter((file) => !/\.json$/i.test(file.name));
 
-  for (const file of backupFiles) {
+  for (const [index, file] of backupFiles.entries()) {
+    onProgress?.(index + 1, files.length);
     if (file.size > MAX_BACKUP_IMPORT_FILE_BYTES) {
       errors.push(
         `${file.name}: Backup files must be ${MAX_BACKUP_IMPORT_FILE_BYTES / (1024 * 1024)} MB or smaller.`
@@ -62,7 +69,10 @@ export async function importSelectedFiles(files: File[]): Promise<ImportSummary>
     }
   }
 
-  for (const outcome of await readImportedFiles(scriptFiles, readPdfText)) {
+  const readOutcomes = await readImportedFiles(scriptFiles, readPdfText, (index) =>
+    onProgress?.(backupFiles.length + index + 1, files.length)
+  );
+  for (const outcome of readOutcomes) {
     if (!outcome.ok) {
       errors.push(`${outcome.fileName}: ${outcome.error}`);
       continue;

@@ -17,12 +17,13 @@ export function HelpPanel({ onClose }: { onClose: () => void }) {
         <h2 id="help-title">Quick guide</h2>
         <section>
           <h3>1. Prepare</h3>
-          <p>Create a script or import documents: Word (.docx), PDF, OpenDocument (.odt), RTF, HTML, Markdown, plain text, subtitles (.srt, .vtt), or a Soliloquio backup. Word, OpenDocument, and HTML keep their headings and emphasis.</p>
+          <p>Create a script, import documents, or drop them on the library on a computer: Word (.docx), PDF, OpenDocument (.odt), RTF, HTML, Markdown, plain text, subtitles (.srt, .vtt), or a Soliloquio backup. Word, OpenDocument, and HTML keep their headings and emphasis.</p>
         </section>
         <section>
           <h3>2. Read</h3>
           <p>Press START for automatic scrolling. Controls hide after one second; tap the script or press a key to bring them back. Drag or use the mouse wheel to move manually.</p>
-          <p>Speed is in words per minute, so changing text size or margins keeps your pace. Script cards and the editor show the estimated reading time.</p>
+          <p>Speed is in words per minute, so changing text size or margins keeps your pace. Script cards and the editor show the estimated reading time; while reading, the playback bar shows the time elapsed and the time left.</p>
+          <p>Display, in the reader, adjusts speed, text size, margins, and mirroring, and Fit to time sets the speed so the script lasts 0:30 to 3:00.</p>
         </section>
         <section>
           <h3>3. Format</h3>
@@ -30,6 +31,7 @@ export function HelpPanel({ onClose }: { onClose: () => void }) {
             <li><code># Heading</code> starts a section; jump with the section buttons or the list.</li>
             <li><code>&gt; Note</code> shows a small gold cue that is not counted as spoken text.</li>
             <li><code>---</code> on its own line pauses scrolling when it reaches the reading area. Press START to continue.</li>
+            <li><code>--- 5s</code> holds for that many seconds (up to 60), then continues by itself.</li>
             <li><code>**bold**</code> and <code>*italic*</code> stay visible as emphasis.</li>
           </ul>
         </section>
@@ -60,7 +62,7 @@ export function HelpPanel({ onClose }: { onClose: () => void }) {
         </section>
         <section>
           <h3>Your data</h3>
-          <p>Everything stays on this device. Export individual scripts or create a full JSON backup regularly.</p>
+          <p>Everything stays on this device. Export individual scripts from their options, or a full JSON backup from App settings → Library, where you can also remove every script after recording.</p>
         </section>
         <button type="button" className={styles.helpDone} onClick={onClose}>
           Done

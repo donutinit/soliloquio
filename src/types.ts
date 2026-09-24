@@ -19,8 +19,11 @@ export type PrompterBlock =
   | { type: 'text'; text: string; continuation?: true; runs?: InlineRun[] }
   /** Blockquote Markdown: indicación para quien lee, no se pronuncia. */
   | { type: 'note'; text: string }
-  /** Separador Markdown (`---`): detiene el scroll automático al llegar a él. */
-  | { type: 'pause' };
+  /**
+   * Separador Markdown (`---`): detiene el scroll automático al llegar a él.
+   * Con `seconds` (`--- 5s`) solo lo retiene ese tiempo y continúa solo.
+   */
+  | { type: 'pause'; seconds?: number };
 
 export const DEFAULT_DUALSHOCK_MAPPING = {
   cross: 0,

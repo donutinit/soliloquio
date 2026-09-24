@@ -41,6 +41,7 @@ export function usePlaybackControls({
     const engine = requireEngine();
     engine.state.playing = false;
     engine.seek(0);
+    engine.resetElapsed();
     setPlaying(false);
     revealControls();
     wakeLoopRef.current();
@@ -61,6 +62,8 @@ export function usePlaybackControls({
       const engine = requireEngine();
       if (engine.state.playing) {
         engine.state.playing = false;
+        // Pausing during a timed hold ends it: START then continues at once.
+        engine.state.holdSeconds = 0;
         setPlaying(false);
         if (revealControlsOnStop) revealControls();
         wakeLoopRef.current();
@@ -76,6 +79,7 @@ export function usePlaybackControls({
 
       if (engine.state.position >= engine.maxPosition - 1) {
         engine.seek(0);
+        engine.resetElapsed();
       }
 
       const seconds = settingsRef.current.countdownSeconds;

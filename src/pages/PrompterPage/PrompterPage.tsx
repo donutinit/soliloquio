@@ -9,7 +9,8 @@ import {
   formatReadingTime,
   pixelsPerSecond,
   pixelsPerWord,
-  spokenWordCount
+  spokenWordCount,
+  timedPauseTotal
 } from '../../features/prompter/pace';
 import { GamepadController, type GamepadAction } from '../../features/gamepad/controller';
 import {
@@ -107,16 +108,29 @@ function Prompter({
 }) {
   const sections = useMemo(() => buildSections(blocks), [blocks]);
   const spokenWords = useMemo(() => spokenWordCount(blocks), [blocks]);
+  const timedPauseSeconds = useMemo(() => timedPauseTotal(blocks), [blocks]);
   const pauseBlockIndexes = useMemo(
     () => blocks.flatMap((block, index) => (block.type === 'pause' ? [index] : [])),
     [blocks]
   );
+  // Seconds each separator holds the reader; undefined waits for START.
+  const pauseHolds = useMemo(
+    () =>
+      pauseBlockIndexes.map((index) => {
+        const block = blocks[index];
+        return block.type === 'pause' ? block.seconds : undefined;
+      }),
+    [blocks, pauseBlockIndexes]
+  );
+  const pauseHoldsRef = useRef(pauseHolds);
+  pauseHoldsRef.current = pauseHolds;
   const hasSections = sections.length > 1;
 
   const {
     settings,
     settingsRef,
     updateSetting,
+    setMirrorText,
     persistSettings,
     storageError,
     dismissStorageError,
@@ -149,6 +163,7 @@ function Prompter({
   const dragRef = useRef<{ y: number; moved: boolean; startedAt: number } | null>(null);
   const wakeLoopRef = useRef<() => void>(() => undefined);
   const remainingRef = useRef<HTMLSpanElement>(null);
+  const elapsedRef = useRef<HTMLSpanElement>(null);
   const lastTimeDisplayRef = useRef('');
   const renderedPositionRef = useRef(Number.NaN);
   const exitingRef = useRef(false);
@@ -433,16 +448,23 @@ function Prompter({
       const readingLine = (viewportRef.current?.clientHeight ?? 0) * READING_LINE_FRACTION;
       // A Markdown separator holds automatic scrolling once it reaches the
       // reading line. Resuming starts exactly on it, so it never stops twice.
+      // A timed separator (`--- 5s`) keeps playing and only holds in place.
       if (engine.state.playing) {
-        const pauseAt = pauseOffsetsRef.current
-          .map((offset) => offset - readingLine)
-          .find((target) => previousPosition < target && position >= target);
-        if (pauseAt !== undefined) {
-          engine.seek(pauseAt);
+        const pauseIndex = pauseOffsetsRef.current.findIndex((offset) => {
+          const target = offset - readingLine;
+          return previousPosition < target && position >= target;
+        });
+        if (pauseIndex !== -1) {
+          engine.seek(pauseOffsetsRef.current[pauseIndex] - readingLine);
           position = engine.state.position;
-          engine.state.playing = false;
-          setPlaying(false);
-          if (!gamepadConnectedRef.current) setControlsVisible(true);
+          const holdSeconds = pauseHoldsRef.current[pauseIndex];
+          if (holdSeconds) {
+            engine.hold(holdSeconds);
+          } else {
+            engine.state.playing = false;
+            setPlaying(false);
+            if (!gamepadConnectedRef.current) setControlsVisible(true);
+          }
         }
       }
       if (contentRef.current && position !== renderedPositionRef.current) {
@@ -459,9 +481,11 @@ function Prompter({
         sectionIdxRef.current = idx;
         setSectionIdx(idx);
       }
-      const timeDisplay = `${Math.round(position)}:${Math.round(engine.maxPosition)}:${engine.state.baseSpeed}:${engine.state.temporarySpeedMultiplier}`;
+      const elapsed = Math.floor(engine.state.elapsedSeconds);
+      const timeDisplay = `${Math.round(position)}:${Math.round(engine.maxPosition)}:${engine.state.baseSpeed}:${engine.state.temporarySpeedMultiplier}:${elapsed}`;
       if (timeDisplay !== lastTimeDisplayRef.current) {
         lastTimeDisplayRef.current = timeDisplay;
+        if (elapsedRef.current) elapsedRef.current.textContent = formatReadingTime(elapsed);
         const effectiveSpeed = engine.state.baseSpeed * engine.state.temporarySpeedMultiplier;
         if (remainingRef.current) {
           remainingRef.current.textContent = `≈ ${formatReadingTime(
@@ -684,6 +708,10 @@ function Prompter({
         onFocus={() => setControlsActivity((activity) => activity + 1)}
       >
             <div className={styles.controlMetaRow}>
+              <p className={`${styles.timeEstimate} ${styles.elapsedTime}`} data-testid="elapsed-time">
+                <span className={styles.visuallyHidden}>Reading time elapsed: </span>
+                <span ref={elapsedRef}>0:00</span>
+              </p>
               <p className={styles.timeEstimate} data-testid="time-remaining">
                 <span className={styles.visuallyHidden}>Estimated reading time remaining: </span>
                 <span ref={remainingRef}>≈ – left</span>
@@ -780,10 +808,10 @@ function Prompter({
                 type="button"
                 className={styles.iconButton}
                 data-testid="settings-toggle"
-                aria-label="Settings"
+                aria-label="Display settings"
                 onClick={() => setPanel((p) => (p === 'settings' ? 'none' : 'settings'))}
               >
-                <Icon name="settings" />
+                <Icon name="textSize" />
               </button>
             </div>
       </footer>
@@ -791,7 +819,10 @@ function Prompter({
       {panel === 'settings' && (
         <SettingsPanel
           settings={settings}
+          spokenWords={spokenWords}
+          timedPauseSeconds={timedPauseSeconds}
           onChange={updateSetting}
+          onMirrorChange={setMirrorText}
           onClose={() => setPanel('none')}
         />
       )}

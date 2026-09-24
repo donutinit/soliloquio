@@ -237,3 +237,57 @@ test('la velocidad en palabras por minuto no cambia el tiempo restante al agrand
   await expect(page.getByTestId('font-value')).toHaveCount(0);
   await expect.poll(() => remaining.textContent()).toBe(before);
 });
+
+test('holds on a timed pause, keeps playing, and counts elapsed time', async ({ page }) => {
+  await page.getByTestId('back-to-scripts').click();
+  const filler = Array.from({ length: 40 }, (_, i) => `Line ${i} keeps the script long enough.`).join(
+    '\n\n'
+  );
+  await createScriptFixture(page, 'Timed', `Opening words to read.\n--- 2s\n${filler}`);
+  await cardByTitle(page, 'Timed').getByTestId('open-prompter').click();
+
+  await expect(page.locator('[data-block-type="pause"]')).toHaveText('Pause · 2s');
+  await expect(page.getByTestId('elapsed-time')).toContainText('0:00');
+  const playButton = page.getByTestId('play-pause');
+  await playButton.click();
+  // The hold keeps playback on and the text still, then scrolling resumes by itself.
+  await expect
+    .poll(async () => {
+      const before = await prompterOffset(page);
+      await page.waitForTimeout(300);
+      return Math.abs((await prompterOffset(page)) - before) < 1 && before > 0;
+    }, { timeout: 15_000 })
+    .toBe(true);
+  await expect(playButton).toHaveAttribute('data-playing', 'true');
+  const heldAt = await prompterOffset(page);
+  await expect.poll(() => prompterOffset(page), { timeout: 5_000 }).toBeGreaterThan(heldAt + 5);
+
+  await page.keyboard.press('Space');
+  await expect(playButton).toHaveAttribute('data-playing', 'false');
+  await expect(page.getByTestId('bottom-controls')).toHaveAttribute('data-visible', 'true');
+  await expect(page.getByTestId('elapsed-time')).not.toContainText('0:00');
+  await page.getByTestId('reset-position').click();
+  await expect(page.getByTestId('elapsed-time')).toContainText('0:00');
+});
+
+test('the Display panel mirrors the text and fits the script to a length', async ({ page }) => {
+  await page.getByTestId('settings-toggle').click();
+  await expect(page.getByRole('heading', { name: 'Display' })).toBeVisible();
+
+  await page.getByTestId('reader-mirror-setting').check({ force: true });
+  await expect(page.getByTestId('prompter-viewport')).toHaveAttribute('data-mirrored', 'true');
+
+  await page.getByTestId('fit-30').click();
+  await expect(page.getByTestId('fit-result')).toHaveText(/^\d+ wpm: about 0:[23]\d\.$/);
+  const fitted = await page.getByTestId('speed-value').textContent();
+  await page.getByTestId('fit-180').click();
+  await expect(page.getByTestId('fit-result')).toHaveText(/^Slowest pace is 40 wpm: about \d:\d{2}\.$/);
+  await expect(page.getByTestId('speed-value')).toHaveText('40 wpm');
+  expect(fitted).not.toBe('40 wpm');
+  await page.getByTestId('settings-close').click();
+
+  // Both settings are global and persist.
+  await page.getByTestId('back-to-scripts').click();
+  await page.getByTestId('app-settings-button').click();
+  await expect(page.getByTestId('mirror-text-setting')).toBeChecked();
+});
