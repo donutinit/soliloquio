@@ -59,16 +59,11 @@ test('al detectar el mando enfoca el primer guion y permite navegarlo', async ({
   await pressNav(page, DPAD_DOWN);
   await expect(page.getByTestId('open-prompter').nth(1)).toBeFocused();
 
-  // The d-pad can reach the overflow menu, so controller-only operation also
-  // covers editing, exporting, duplicating, and deleting scripts.
+  // The controller never reaches a script's options menu, so it cannot
+  // delete, duplicate, or edit scripts from the library by accident.
   await cardMain.focus();
   await pressNav(page, DPAD_RIGHT);
-  await expect(card.getByTestId('card-menu')).toBeFocused();
-  await pressNav(page, SOUTH);
-  await expect(page.getByRole('dialog')).toBeVisible();
-  await expect(page.getByTestId('menu-edit')).toBeFocused();
-  await pressNav(page, EAST);
-  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(card.getByTestId('card-menu')).not.toBeFocused();
 
   // Sur activa el elemento enfocado: con una tarjeta enfocada, abre el prompter.
   await cardMain.focus();

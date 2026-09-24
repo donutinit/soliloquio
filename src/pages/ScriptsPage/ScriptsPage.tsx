@@ -648,6 +648,7 @@ export function ScriptsPage({
                 type="button"
                 className={styles.cardMenuButton}
                 data-testid="card-menu"
+                data-gamepad-nav-exclude
                 aria-label={`Options for ${script.title}`}
                 disabled={busy}
                 onClick={() => openMenu(script.id)}
