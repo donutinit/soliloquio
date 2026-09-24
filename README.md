@@ -67,6 +67,16 @@ settings stay in that browser's local storage.
   presentations must be exported as `.docx` or PDF first; scanned PDFs without selectable text
   and password-protected PDFs are reported per file. Conversion happens entirely on the device;
   PDF.js loads only when a PDF is imported and is cached for offline use.
+- **Only Markdown and plain text are guaranteed to import exactly and reproducibly.** Their text
+  is stored as written (Markdown only loses a leading YAML frontmatter block), so the reader shows
+  precisely what the file contains. Every other format is a best-effort extra: the conversion is
+  deterministic for a given file, but these formats describe page layout rather than a reading
+  order, so a faithful result cannot be guaranteed. PDF is the weakest case: it stores positioned
+  glyphs with no paragraphs, so columns, headers, footnotes, tables, and hyphenation are rebuilt
+  by heuristics and can come out merged or out of order. Word, OpenDocument, and HTML are reliable
+  for simple, linear documents but drop or flatten tables, text boxes, footnotes, list numbering,
+  and comments. For a script you will record, prefer `.md` or `.txt`, or check the imported text
+  in the editor before reading.
 - The import control is a directly tappable native file picker for reliable use in installed iOS
   web apps; file extensions are validated safely after selection.
 - Large scripts are parsed in a background worker when supported. Long plain-text scripts are
