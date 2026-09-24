@@ -2,6 +2,7 @@ import type { PrompterSettings } from '../types';
 import { createScript, getSettings, restoreBackup } from './database';
 import { MAX_BACKUP_IMPORT_FILE_BYTES, readImportedFiles } from '../features/import/importFiles';
 import { parseBackup } from '../features/export/backup';
+import { readPdfText } from './pdfDocuments';
 
 export type ImportSummary = {
   importedCount: number;
@@ -61,7 +62,7 @@ export async function importSelectedFiles(files: File[]): Promise<ImportSummary>
     }
   }
 
-  for (const outcome of await readImportedFiles(scriptFiles)) {
+  for (const outcome of await readImportedFiles(scriptFiles, readPdfText)) {
     if (!outcome.ok) {
       errors.push(`${outcome.fileName}: ${outcome.error}`);
       continue;

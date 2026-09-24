@@ -75,8 +75,12 @@ The stack is React 18, strict TypeScript, Vite, Dexie, Vitest, Playwright, and
 - Preserve atomic backup restore and factory reset transactions.
 - Do not persist per-script reading positions. Every script opens at the start.
 - Backup format changes must remain backwards compatible or include explicit versioned migration.
-- Import accepts `.md`, `.markdown`, `.txt`, and Soliloquio `.json` backups. Limit a selection
-  to 50 script files, 5 MB each and 20 MB combined; limit each backup to 25 MB. Validate both the
+- Import accepts documents: Markdown, plain text, Word (`.docx`), PDF, OpenDocument (`.odt`),
+  RTF, HTML, and subtitles (`.srt`, `.vtt`), plus Soliloquio `.json` backups. Unknown extensions
+  import only when their bytes are strict UTF-8 text; media, archives, and formats that need
+  exporting first (`.doc`, `.pages`, presentations) are rejected with guidance. Convert entirely
+  on-device. Limit a selection to 50 script files, 5 MB per text file, 25 MB per binary document,
+  50 MB combined, and 5 MB of extracted text; limit each backup to 25 MB. Validate both the
   extension and parsed content, and give file-specific errors.
 - Keep the PWA usable offline. Do not make startup, editing, or playback depend on a network call.
 - Service-worker checks must bypass stale HTTP caches. Check on startup/registration, foreground
