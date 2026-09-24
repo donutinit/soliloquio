@@ -2,7 +2,7 @@ import { unified } from 'unified';
 import remarkParse from 'remark-parse';
 import remarkGfm from 'remark-gfm';
 import type { Parent, PhrasingContent, Root, RootContent } from 'mdast';
-import type { HeadingLevel, PrompterBlock, Script } from '../../types';
+import type { HeadingLevel, InlineRun, PrompterBlock, Script } from '../../types';
 
 const parser = unified().use(remarkParse).use(remarkGfm);
 const LARGE_SCRIPT_CHARS = 200_000;
@@ -61,9 +61,60 @@ function inlineText(nodes: PhrasingContent[]): string {
   return out;
 }
 
+type RunMarks = { strong?: true; emphasis?: true };
+
 /**
- * Aplana Markdown a bloques de lectura: solo los headings conservan semántica
- * (nivel + id de sección); todo lo demás se convierte en texto plano. El HTML
+ * Como `inlineText`, pero conserva negrita y cursiva como tramos: sirven de
+ * guía de entonación al leer. Tachado, código y enlaces quedan como texto.
+ */
+function inlineRuns(nodes: PhrasingContent[], marks: RunMarks = {}): InlineRun[] {
+  const runs: InlineRun[] = [];
+  for (const node of nodes) {
+    if (node.type === 'strong' || node.type === 'emphasis') {
+      const nested: RunMarks =
+        node.type === 'strong' ? { ...marks, strong: true } : { ...marks, emphasis: true };
+      runs.push(...inlineRuns(node.children, nested));
+    } else {
+      const text = inlineText([node]);
+      if (text) runs.push({ text, ...marks });
+    }
+  }
+  return runs;
+}
+
+function sameMarks(a: InlineRun, b: InlineRun): boolean {
+  return a.strong === b.strong && a.emphasis === b.emphasis;
+}
+
+/**
+ * Colapsa espacios a través de los tramos exactamente como `collapseWhitespace`
+ * sobre el texto unido, y fusiona tramos contiguos con las mismas marcas.
+ */
+export function normalizeRuns(runs: InlineRun[]): InlineRun[] {
+  const out: InlineRun[] = [];
+  let endsWithSpace = true;
+  for (const run of runs) {
+    let text = run.text.replace(/\s+/g, ' ');
+    if (endsWithSpace) text = text.replace(/^ /, '');
+    if (!text) continue;
+    endsWithSpace = text.endsWith(' ');
+    const previous = out[out.length - 1];
+    if (previous && sameMarks(previous, run)) previous.text += text;
+    else out.push({ ...run, text });
+  }
+  const last = out[out.length - 1];
+  if (last) {
+    last.text = last.text.replace(/ $/, '');
+    if (!last.text) out.pop();
+  }
+  return out;
+}
+
+/**
+ * Aplana Markdown a bloques de lectura: los headings conservan semántica
+ * (nivel + id de sección), los blockquotes se vuelven notas que no se leen en
+ * voz alta, los separadores (`---`) se vuelven pausas y la negrita/cursiva se
+ * conserva como tramos. Todo lo demás se convierte en texto plano. El HTML
  * embebido se descarta por completo y nunca se ejecuta.
  */
 export function markdownToBlocks(content: string): PrompterBlock[] {
@@ -71,15 +122,34 @@ export function markdownToBlocks(content: string): PrompterBlock[] {
   const blocks: PrompterBlock[] = [];
   let headingCount = 0;
 
+  let noteDepth = 0;
+
   const pushText = (text: string) => {
     const clean = collapseWhitespace(text);
-    if (clean) blocks.push({ type: 'text', text: clean });
+    if (!clean) return;
+    blocks.push(noteDepth > 0 ? { type: 'note', text: clean } : { type: 'text', text: clean });
+  };
+
+  const pushParagraph = (children: PhrasingContent[]) => {
+    if (noteDepth > 0) {
+      pushText(inlineText(children));
+      return;
+    }
+    const runs = normalizeRuns(inlineRuns(children));
+    const text = runs.map((run) => run.text).join('');
+    if (!text) return;
+    const emphasized = runs.some((run) => run.strong || run.emphasis);
+    blocks.push(emphasized ? { type: 'text', text, runs } : { type: 'text', text });
   };
 
   const visit = (nodes: RootContent[]) => {
     for (const node of nodes) {
       switch (node.type) {
         case 'heading': {
+          if (noteDepth > 0) {
+            pushText(inlineText(node.children));
+            break;
+          }
           const text = collapseWhitespace(inlineText(node.children));
           if (text) {
             blocks.push({
@@ -92,7 +162,7 @@ export function markdownToBlocks(content: string): PrompterBlock[] {
           break;
         }
         case 'paragraph':
-          pushText(inlineText(node.children));
+          pushParagraph(node.children);
           break;
         case 'code':
           pushText(node.value);
@@ -106,13 +176,22 @@ export function markdownToBlocks(content: string): PrompterBlock[] {
           }
           break;
         case 'blockquote':
+          noteDepth += 1;
+          visit(node.children as RootContent[]);
+          noteDepth -= 1;
+          break;
+        case 'thematicBreak':
+          // Consecutive separators or one at the very start never stop twice in a row.
+          if (blocks.length > 0 && blocks[blocks.length - 1].type !== 'pause') {
+            blocks.push({ type: 'pause' });
+          }
+          break;
         case 'list':
         case 'listItem':
         case 'footnoteDefinition':
           visit(node.children as RootContent[]);
           break;
         case 'html':
-        case 'thematicBreak':
         case 'definition':
           break;
         default:
@@ -127,6 +206,8 @@ export function markdownToBlocks(content: string): PrompterBlock[] {
   };
 
   visit(tree.children);
+  // A pause after the last spoken line has nothing left to hold.
+  while (blocks.length > 0 && blocks[blocks.length - 1].type === 'pause') blocks.pop();
   return blocks;
 }
 
@@ -139,7 +220,10 @@ export function textToBlocks(content: string): PrompterBlock[] {
     .map((text) => ({ type: 'text' as const, text }));
 }
 
-/** Keep large scripts readable without creating one DOM element per short paragraph. */
+/**
+ * Keep large scripts readable without creating one DOM element per short
+ * paragraph. Merged text drops its emphasis runs; notes and pauses stay apart.
+ */
 export function compactTextBlocks(blocks: PrompterBlock[]): PrompterBlock[] {
   const compacted: PrompterBlock[] = [];
   let text = '';
@@ -148,7 +232,7 @@ export function compactTextBlocks(blocks: PrompterBlock[]): PrompterBlock[] {
     text = '';
   };
   for (const block of blocks) {
-    if (block.type === 'heading') {
+    if (block.type !== 'text') {
       flush();
       compacted.push(block);
       continue;

@@ -11,9 +11,16 @@ export type Script = {
 
 export type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6;
 
+/** Tramo de texto con énfasis Markdown conservado para la lectura. */
+export type InlineRun = { text: string; strong?: true; emphasis?: true };
+
 export type PrompterBlock =
   | { type: 'heading'; level: HeadingLevel; text: string; sectionId: string }
-  | { type: 'text'; text: string; continuation?: true };
+  | { type: 'text'; text: string; continuation?: true; runs?: InlineRun[] }
+  /** Blockquote Markdown: indicación para quien lee, no se pronuncia. */
+  | { type: 'note'; text: string }
+  /** Separador Markdown (`---`): detiene el scroll automático al llegar a él. */
+  | { type: 'pause' };
 
 export const DEFAULT_DUALSHOCK_MAPPING = {
   cross: 0,
@@ -99,12 +106,17 @@ export const DEFAULT_GAMEPAD_BINDINGS: GamepadBindings = {
 };
 
 export type PrompterSettings = {
+  /** Words per minute; the reader converts it to pixels from the measured layout. */
   speed: number;
+  /** Marks `speed` as words per minute; older values were pixels per second. */
+  speedUnit: 'wordsPerMinute';
   fontSize: number;
   horizontalMargin: number;
   scriptCardTitleSize: number;
   singleColumnLibrary: boolean;
   countdownSeconds: number;
   keepScreenAwake: boolean;
+  /** Flips the reading surface horizontally for beam-splitter teleprompter glass. */
+  mirrorText: boolean;
   controllerBindings: GamepadBindings;
 };

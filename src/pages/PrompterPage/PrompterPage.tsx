@@ -5,6 +5,12 @@ import { applyKeepScreenAwake } from '../../services/keepAwake';
 import { getActiveGamepad } from '../../services/gamepads';
 import { buildSections, currentSectionIndex, stepSection } from '../../features/sections/sections';
 import { ScrollEngine } from '../../features/prompter/scrollEngine';
+import {
+  formatReadingTime,
+  pixelsPerSecond,
+  pixelsPerWord,
+  spokenWordCount
+} from '../../features/prompter/pace';
 import { GamepadController, type GamepadAction } from '../../features/gamepad/controller';
 import {
   identifyController,
@@ -26,7 +32,6 @@ import { usePrompterSettings } from './usePrompterSettings';
 import { usePlaybackControls } from './usePlaybackControls';
 import { usePrompterKeyboard } from './usePrompterKeyboard';
 import { useLoadedPrompterScript } from './useLoadedPrompterScript';
-import { formatDuration } from './prompterDisplay';
 import type { KeyboardCommand, Panel } from './usePrompterKeyboard';
 import { editorHash } from '../../app/router';
 import { Icon } from '../../components/Icon';
@@ -47,13 +52,18 @@ export function PrompterPage({
   navigate: (hash: string) => void;
   returnToScripts: (focusScriptId?: string) => void;
 }) {
-  const loaded = useLoadedPrompterScript(scriptId);
+  const { state: loaded, retry } = useLoadedPrompterScript(scriptId);
 
   if (loaded.kind === 'error') {
     return (
       <div className={styles.missing} role="alert">
         <p>This script could not be opened. Check available device storage and try again.</p>
-        <button type="button" onClick={() => navigate('#/')}>Back to scripts</button>
+        <div className={styles.missingActions}>
+          <button type="button" onClick={retry}>Try again</button>
+          <button type="button" className={styles.secondaryAction} onClick={() => navigate('#/')}>
+            Back to scripts
+          </button>
+        </div>
       </div>
     );
   }
@@ -96,6 +106,12 @@ function Prompter({
   returnToScripts: (focusScriptId?: string) => void;
 }) {
   const sections = useMemo(() => buildSections(blocks), [blocks]);
+  const spokenWords = useMemo(() => spokenWordCount(blocks), [blocks]);
+  const pauseBlockIndexes = useMemo(
+    () => blocks.flatMap((block, index) => (block.type === 'pause' ? [index] : [])),
+    [blocks]
+  );
+  const hasSections = sections.length > 1;
 
   const {
     settings,
@@ -122,6 +138,8 @@ function Prompter({
   const playButtonRef = useRef<HTMLButtonElement>(null);
   const blockElsRef = useRef<(HTMLElement | null)[]>([]);
   const sectionOffsetsRef = useRef<number[]>([]);
+  const pauseOffsetsRef = useRef<number[]>([]);
+  const pixelsPerWordRef = useRef(pixelsPerWord(0, 0, initialSettings.fontSize));
   const sectionIdxRef = useRef(0);
   const panelRef = useRef<Panel>('none');
   panelRef.current = panel;
@@ -130,7 +148,6 @@ function Prompter({
   const padIdRef = useRef<string | null>(null);
   const dragRef = useRef<{ y: number; moved: boolean; startedAt: number } | null>(null);
   const wakeLoopRef = useRef<() => void>(() => undefined);
-  const elapsedRef = useRef<HTMLSpanElement>(null);
   const remainingRef = useRef<HTMLSpanElement>(null);
   const lastTimeDisplayRef = useRef('');
   const renderedPositionRef = useRef(Number.NaN);
@@ -140,7 +157,7 @@ function Prompter({
   const engineRef = useRef<ScrollEngine | null>(null);
   if (!engineRef.current) {
     const engine = new ScrollEngine();
-    engine.state.baseSpeed = initialSettings.speed;
+    engine.state.baseSpeed = pixelsPerSecond(initialSettings.speed, pixelsPerWordRef.current);
     engine.state.position = 0;
     engineRef.current = engine;
   }
@@ -171,9 +188,18 @@ function Prompter({
   const togglePlayRef = useRef(togglePlay);
   togglePlayRef.current = togglePlay;
 
+  // Speed is stored in words per minute; the engine scrolls in pixels per
+  // second through the measured layout, so text size and margins keep the pace.
+  const applyBaseSpeed = useCallback(() => {
+    requireEngine().state.baseSpeed = pixelsPerSecond(
+      settingsRef.current.speed,
+      pixelsPerWordRef.current
+    );
+  }, [requireEngine, settingsRef]);
+
   useEffect(() => {
-    requireEngine().state.baseSpeed = settings.speed;
-  }, [settings.speed, requireEngine]);
+    applyBaseSpeed();
+  }, [settings.speed, applyBaseSpeed]);
 
   useEffect(() => {
     requireController().setBindings(settings.controllerBindings);
@@ -283,7 +309,8 @@ function Prompter({
           setPanel((p) => (p === 'controllerGuide' ? 'none' : 'controllerGuide'));
           break;
         case 'toggleSections':
-          setPanel((p) => (p === 'sections' ? 'none' : 'sections'));
+          // Without headings there is nothing to browse.
+          if (sections.length > 1) setPanel((p) => (p === 'sections' ? 'none' : 'sections'));
           break;
       }
     },
@@ -301,8 +328,19 @@ function Prompter({
       sectionOffsetsRef.current = sections.map(
         (section) => blockElsRef.current[section.startBlockIndex]?.offsetTop ?? 0
       );
+      pauseOffsetsRef.current = pauseBlockIndexes.map(
+        (index) => blockElsRef.current[index]?.offsetTop ?? 0
+      );
       const maxPosition = content.scrollHeight - viewport.clientHeight;
       requireEngine().setMaxPosition(maxPosition);
+      // Top and bottom padding add up to one viewport, so the scroll range is
+      // the rendered script height.
+      pixelsPerWordRef.current = pixelsPerWord(
+        Math.max(0, maxPosition),
+        spokenWords,
+        settingsRef.current.fontSize
+      );
+      applyBaseSpeed();
       setContentFits(maxPosition <= 0);
     };
     measure();
@@ -310,7 +348,7 @@ function Prompter({
     observer.observe(viewport);
     observer.observe(content);
     return () => observer.disconnect();
-  }, [sections, blocks, requireEngine]);
+  }, [sections, blocks, pauseBlockIndexes, spokenWords, requireEngine, applyBaseSpeed, settingsRef]);
 
   // Gamepad + scrolling. When paused without a controller this drops to a low
   // polling rate to avoid spending battery on a permanent 60 fps loop.
@@ -364,7 +402,7 @@ function Prompter({
       engine.state.temporarySpeedMultiplier = temporarySpeedMultiplier;
       const multiplierVelocity =
         inputEnabled && !engine.state.playing && temporarySpeedMultiplier !== 1
-          ? settingsRef.current.speed * temporarySpeedMultiplier
+          ? engine.state.baseSpeed * temporarySpeedMultiplier
           : 0;
       const manualVelocity = inputEnabled ? frame.manualVelocity + multiplierVelocity : 0;
       const manualWakeActive = Math.abs(manualVelocity) > 0;
@@ -390,7 +428,23 @@ function Prompter({
         }
         engine.setManual(0, 0);
       }
-      const position = engine.tick(now);
+      const previousPosition = engine.state.position;
+      let position = engine.tick(now);
+      const readingLine = (viewportRef.current?.clientHeight ?? 0) * READING_LINE_FRACTION;
+      // A Markdown separator holds automatic scrolling once it reaches the
+      // reading line. Resuming starts exactly on it, so it never stops twice.
+      if (engine.state.playing) {
+        const pauseAt = pauseOffsetsRef.current
+          .map((offset) => offset - readingLine)
+          .find((target) => previousPosition < target && position >= target);
+        if (pauseAt !== undefined) {
+          engine.seek(pauseAt);
+          position = engine.state.position;
+          engine.state.playing = false;
+          setPlaying(false);
+          if (!gamepadConnectedRef.current) setControlsVisible(true);
+        }
+      }
       if (contentRef.current && position !== renderedPositionRef.current) {
         contentRef.current.style.transform = `translate3d(0, ${-position}px, 0)`;
         renderedPositionRef.current = position;
@@ -400,21 +454,19 @@ function Prompter({
         setPlaying(false);
         setControlsVisible(true);
       }
-      const readingLine = (viewportRef.current?.clientHeight ?? 0) * READING_LINE_FRACTION;
       const idx = currentSectionIndex(sectionOffsetsRef.current, position, readingLine);
       if (idx !== sectionIdxRef.current) {
         sectionIdxRef.current = idx;
         setSectionIdx(idx);
       }
-      const timeDisplay = `${Math.round(position)}:${Math.round(engine.maxPosition)}:${settingsRef.current.speed}:${engine.state.temporarySpeedMultiplier}`;
+      const timeDisplay = `${Math.round(position)}:${Math.round(engine.maxPosition)}:${engine.state.baseSpeed}:${engine.state.temporarySpeedMultiplier}`;
       if (timeDisplay !== lastTimeDisplayRef.current) {
         lastTimeDisplayRef.current = timeDisplay;
-        const effectiveSpeed = settingsRef.current.speed * engine.state.temporarySpeedMultiplier;
-        if (elapsedRef.current) elapsedRef.current.textContent = formatDuration(position / effectiveSpeed);
+        const effectiveSpeed = engine.state.baseSpeed * engine.state.temporarySpeedMultiplier;
         if (remainingRef.current) {
-          remainingRef.current.textContent = formatDuration(
+          remainingRef.current.textContent = `≈ ${formatReadingTime(
             (engine.maxPosition - position) / effectiveSpeed
-          );
+          )} left`;
         }
       }
       scheduleNext();
@@ -532,6 +584,8 @@ function Prompter({
     seekTo(requireEngine().state.position + event.deltaY * factor);
   };
 
+  const adjustSpeed = (delta: number) => updateSetting('speed', settings.speed + delta);
+
   const contentStyle = cssVars({
     '--prompter-font-size': `${settings.fontSize}px`,
     '--prompter-margin': `${settings.horizontalMargin}%`
@@ -541,8 +595,9 @@ function Prompter({
     <main className={styles.page} data-testid="prompter-page">
       <div
         ref={viewportRef}
-        className={styles.viewport}
+        className={settings.mirrorText ? `${styles.viewport} ${styles.mirrored}` : styles.viewport}
         data-testid="prompter-viewport"
+        data-mirrored={settings.mirrorText}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -588,9 +643,11 @@ function Prompter({
               <Icon name="back" />
             </button>
             <span className={styles.title}>{script.title}</span>
-            <span className={styles.sectionIndicator} data-testid="section-indicator">
-              {sectionIdx + 1} / {sections.length}
-            </span>
+            {hasSections && (
+              <span className={styles.sectionIndicator} data-testid="section-indicator">
+                {sectionIdx + 1} / {sections.length}
+              </span>
+            )}
             <span className={styles.visuallyHidden} role="status">
               {gamepadConnected ? 'Controller connected' : 'No controller connected'}
             </span>
@@ -627,33 +684,41 @@ function Prompter({
         onFocus={() => setControlsActivity((activity) => activity + 1)}
       >
             <div className={styles.controlMetaRow}>
-              <p
-                className={styles.timeEstimate}
-                title="Estimated reading time at the current speed"
-                aria-label="Estimated elapsed and remaining reading time"
-              >
-                <span ref={elapsedRef} className={styles.elapsedTime}>00:00</span>
-                <span className={styles.timeSeparator} aria-hidden="true">/</span>
-                <span ref={remainingRef} className={styles.remainingTime}>--:--</span>
+              <p className={styles.timeEstimate} data-testid="time-remaining">
+                <span className={styles.visuallyHidden}>Estimated reading time remaining: </span>
+                <span ref={remainingRef}>≈ – left</span>
               </p>
             </div>
             <div className={styles.speedRow}>
               <span className={styles.speedLabel}>Speed</span>
-              <input
-                type="range"
-                data-testid="speed-quick-slider"
-                min={SPEED_LIMITS.min}
-                max={SPEED_LIMITS.max}
-                step={SPEED_LIMITS.step}
-                value={settings.speed}
-                onChange={(e) => updateSetting('speed', Number(e.target.value))}
-                aria-label="Speed"
-              />
-              <span className={styles.speedValue} data-testid="speed-quick-value">
-                {settings.speed}
+              <button
+                type="button"
+                className={styles.speedStep}
+                data-testid="speed-quick-minus"
+                aria-label="Decrease speed"
+                disabled={settings.speed <= SPEED_LIMITS.min}
+                onClick={() => adjustSpeed(-SPEED_LIMITS.step)}
+              >
+                −
+              </button>
+              <span className={styles.speedValue}>
+                <span data-testid="speed-quick-value">{settings.speed}</span>
+                <span className={styles.speedUnit}> wpm</span>
               </span>
+              <button
+                type="button"
+                className={styles.speedStep}
+                data-testid="speed-quick-plus"
+                aria-label="Increase speed"
+                disabled={settings.speed >= SPEED_LIMITS.max}
+                onClick={() => adjustSpeed(SPEED_LIMITS.step)}
+              >
+                +
+              </button>
             </div>
-            <div className={styles.buttonRow}>
+            <div
+              className={hasSections ? styles.buttonRow : `${styles.buttonRow} ${styles.buttonRowCompact}`}
+            >
               <button
                 type="button"
                 className={styles.iconButton}
@@ -663,15 +728,17 @@ function Prompter({
               >
                 <Icon name="reset" />
               </button>
-              <button
-                type="button"
-                className={styles.iconButton}
-                data-testid="section-prev"
-                aria-label="Previous section"
-                onClick={() => applyAction('prevSection')}
-              >
-                <Icon name="previousSection" />
-              </button>
+              {hasSections && (
+                <button
+                  type="button"
+                  className={styles.iconButton}
+                  data-testid="section-prev"
+                  aria-label="Previous section"
+                  onClick={() => applyAction('prevSection')}
+                >
+                  <Icon name="previousSection" />
+                </button>
+              )}
               <button
                 type="button"
                 ref={playButtonRef}
@@ -687,24 +754,28 @@ function Prompter({
                 <Icon name={playing || countdown !== null ? 'pause' : 'play'} />
                 {countdown !== null ? 'CANCEL' : playing ? 'PAUSE' : 'START'}
               </button>
-              <button
-                type="button"
-                className={styles.iconButton}
-                data-testid="section-next"
-                aria-label="Next section"
-                onClick={() => applyAction('nextSection')}
-              >
-                <Icon name="nextSection" />
-              </button>
-              <button
-                type="button"
-                className={styles.iconButton}
-                data-testid="sections-toggle"
-                aria-label="Sections"
-                onClick={() => setPanel((p) => (p === 'sections' ? 'none' : 'sections'))}
-              >
-                <Icon name="list" />
-              </button>
+              {hasSections && (
+                <>
+                  <button
+                    type="button"
+                    className={styles.iconButton}
+                    data-testid="section-next"
+                    aria-label="Next section"
+                    onClick={() => applyAction('nextSection')}
+                  >
+                    <Icon name="nextSection" />
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.iconButton}
+                    data-testid="sections-toggle"
+                    aria-label="Sections"
+                    onClick={() => setPanel((p) => (p === 'sections' ? 'none' : 'sections'))}
+                  >
+                    <Icon name="list" />
+                  </button>
+                </>
+              )}
               <button
                 type="button"
                 className={styles.iconButton}

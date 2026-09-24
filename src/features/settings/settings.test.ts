@@ -32,7 +32,7 @@ describe('clampToLimit', () => {
   });
 
   it('alinea valores fuera de rejilla con el paso del límite', () => {
-    expect(clampToLimit(12.3, SPEED_LIMITS)).toBe(10);
+    expect(clampToLimit(12.3, SPEED_LIMITS)).toBe(40);
     expect(clampToLimit(57.4, SPEED_LIMITS)).toBe(55);
     expect(clampToLimit(21, FONT_LIMITS)).toBe(22);
     expect(clampToLimit(23, FONT_LIMITS)).toBe(24);
@@ -41,15 +41,35 @@ describe('clampToLimit', () => {
 });
 
 describe('normalizeSettings', () => {
-  it('uses schema version 4 for script-card typography', () => {
-    expect(SETTINGS_SCHEMA_VERSION).toBe(4);
+  it('uses schema version 5 for words-per-minute speed', () => {
+    expect(SETTINGS_SCHEMA_VERSION).toBe(5);
+  });
+
+  it('migrates legacy pixel-per-second speed to words per minute', () => {
+    expect(normalizeSettings({ speed: 55 }).speed).toBe(85);
+    expect(normalizeSettings({ speed: 300 }).speed).toBe(SPEED_LIMITS.max);
+    expect(normalizeSettings({ speed: 10 }).speed).toBe(SPEED_LIMITS.min);
+  });
+
+  it('keeps words-per-minute speed as stored', () => {
+    const normalized = normalizeSettings({ speed: 150, speedUnit: 'wordsPerMinute' });
+    expect(normalized.speed).toBe(150);
+    expect(normalized.speedUnit).toBe('wordsPerMinute');
+  });
+
+  it('only enables mirrored text for an explicit true', () => {
+    expect(normalizeSettings({}).mirrorText).toBe(false);
+    expect(normalizeSettings({ mirrorText: 'yes' }).mirrorText).toBe(false);
+    expect(normalizeSettings({ mirrorText: true }).mirrorText).toBe(true);
   });
 
   it('completa ajustes ausentes con los valores por defecto', () => {
     expect(normalizeSettings(undefined)).toEqual(defaultSettings());
     expect(normalizeSettings({})).toEqual(defaultSettings());
     expect(defaultSettings()).toMatchObject({
-      speed: 55,
+      speed: 130,
+      speedUnit: 'wordsPerMinute',
+      mirrorText: false,
       fontSize: 60,
       scriptCardTitleSize: 25
     });
@@ -80,6 +100,7 @@ describe('normalizeSettings', () => {
   it('conserva asignaciones válidas y descarta las inválidas', () => {
     const normalized = normalizeSettings({
       speed: 80,
+      speedUnit: 'wordsPerMinute',
       controllerBindings: { togglePlay: 5, backToScripts: 'x', resetToStart: -1, toggleControls: 99 }
     });
     expect(normalized.speed).toBe(80);

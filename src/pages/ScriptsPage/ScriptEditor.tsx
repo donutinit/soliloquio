@@ -5,19 +5,33 @@ import { DraftSaveQueue, type EditableScript } from '../../features/scripts/draf
 import { registerPendingSaveFlush } from '../../services/pendingSaves';
 import { useModalFocus } from '../../app/useModalFocus';
 import { Icon } from '../../components/Icon';
+import {
+  estimateSpokenWords,
+  formatReadingTime,
+  formatWordCount,
+  readingSeconds
+} from '../../features/prompter/pace';
+import { titleFromText } from '../../features/scripts/titleFromText';
 import styles from './ScriptsPage.module.css';
 
 const AUTOSAVE_DEBOUNCE_MS = 500;
+const DEFAULT_TITLE = 'New script';
+
+function canReadClipboard(): boolean {
+  return typeof navigator !== 'undefined' && typeof navigator.clipboard?.readText === 'function';
+}
 
 type SaveState = 'saved' | 'pending' | 'saving' | 'error';
 
 export function ScriptEditor({
   script,
+  wordsPerMinute,
   onSaved,
   onClose,
   onOpenPrompter
 }: {
   script: Script;
+  wordsPerMinute: number;
   onSaved: () => Promise<void> | void;
   onClose: () => void;
   onOpenPrompter: () => void;
@@ -25,6 +39,7 @@ export function ScriptEditor({
   const [title, setTitle] = useState(script.title);
   const [content, setContent] = useState(script.content);
   const [saveState, setSaveState] = useState<SaveState>('saved');
+  const [pasteError, setPasteError] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestRef = useRef<EditableScript>({ title, content });
   const mountedRef = useRef(true);
@@ -118,6 +133,32 @@ export function ScriptEditor({
   };
   const dialogRef = useModalFocus<HTMLDivElement>(() => void close());
 
+  const updateTitle = (value: string) => {
+    latestRef.current = { ...latestRef.current, title: value };
+    setTitle(value);
+  };
+  const updateContent = (value: string) => {
+    latestRef.current = { ...latestRef.current, content: value };
+    setContent(value);
+  };
+
+  // The clipboard read happens inside the tap, so iOS can show its Paste prompt.
+  const pasteFromClipboard = async () => {
+    setPasteError(false);
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text.trim()) return;
+      updateContent(text);
+      const derived = titleFromText(text);
+      if (derived && (title.trim() === '' || title === DEFAULT_TITLE)) updateTitle(derived);
+    } catch {
+      setPasteError(true);
+    }
+  };
+
+  const words = estimateSpokenWords(content, script.format);
+  const showPaste = content === '' && canReadClipboard();
+
   const statusText =
     saveState === 'saved'
       ? 'Saved'
@@ -174,10 +215,7 @@ export function ScriptEditor({
         className={styles.editorTitle}
         value={title}
         placeholder="Title"
-        onChange={(event) => {
-          latestRef.current = { ...latestRef.current, title: event.target.value };
-          setTitle(event.target.value);
-        }}
+        onChange={(event) => updateTitle(event.target.value)}
       />
       <label className={styles.visuallyHidden} htmlFor="editor-content">
         Script content
@@ -192,11 +230,24 @@ export function ScriptEditor({
             ? 'Write your script here. Markdown headings (#) create sections.'
             : 'Write your plain-text script here. Convert it to Markdown to create sections.'
         }
-        onChange={(event) => {
-          latestRef.current = { ...latestRef.current, content: event.target.value };
-          setContent(event.target.value);
-        }}
+        onChange={(event) => updateContent(event.target.value)}
       />
+      <footer className={styles.editorFooter}>
+        {showPaste && (
+          <button type="button" data-testid="editor-paste" onClick={() => void pasteFromClipboard()}>
+            Paste from clipboard
+          </button>
+        )}
+        {pasteError && (
+          <span className={styles.editorPasteError} role="status">
+            Clipboard unavailable. Long-press the text area to paste.
+          </span>
+        )}
+        <span className={styles.editorMeta} data-testid="editor-meta">
+          {formatWordCount(words)} · ≈ {formatReadingTime(readingSeconds(words, wordsPerMinute))} at{' '}
+          {wordsPerMinute} wpm
+        </span>
+      </footer>
     </div>
   );
 }

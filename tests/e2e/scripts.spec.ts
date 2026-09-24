@@ -115,7 +115,8 @@ test('shows readable card titles without import or update dates', async ({ page 
   await createSampleScript(page, 'Welcome to Soliloquio');
   const card = cardByTitle(page, 'Welcome to Soliloquio');
   await expect(card.getByTestId('card-title')).toHaveCSS('font-size', '25px');
-  await expect(card.getByTestId('open-prompter').locator('span')).toHaveCount(2);
+  await expect(card.getByTestId('open-prompter').locator('span')).toHaveCount(3);
+  await expect(card.getByTestId('card-meta')).toHaveText(/^\d+ words · ≈ \d+:\d{2}$/);
 });
 
 test('duplica un guion', async ({ page }) => {
@@ -132,4 +133,28 @@ test('elimina un guion con confirmación en dos pasos', async ({ page }) => {
   await expect(page.getByTestId('menu-delete')).toHaveText('Delete permanently?');
   await page.getByTestId('menu-delete').click();
   await expect(cardByTitle(page, 'Quick notes')).toHaveCount(0);
+});
+
+test('confirms menu actions and offers import and new script when the library is empty', async ({
+  page
+}) => {
+  const factoryCard = cardByTitle(page, 'Read me first');
+  await factoryCard.getByTestId('card-menu').click();
+  await page.getByTestId('menu-duplicate').click();
+  await expect(page.getByRole('status').filter({ hasText: 'Script duplicated.' })).toBeVisible();
+  await expect(page.getByTestId('script-card')).toHaveCount(2);
+
+  for (let remaining = 2; remaining > 0; remaining -= 1) {
+    await page.getByTestId('card-menu').first().click();
+    await page.getByTestId('menu-delete').click();
+    await page.getByTestId('menu-delete').click();
+    await expect(page.getByTestId('script-card')).toHaveCount(remaining - 1);
+  }
+  await expect(page.getByRole('status').filter({ hasText: 'Script deleted.' })).toBeVisible();
+
+  await expect(page.getByTestId('empty-state')).toBeVisible();
+  await expect(page.getByTestId('empty-import-input')).toBeAttached();
+  await page.getByTestId('empty-new-script').click();
+  await page.getByTestId('editor-content').fill('One two three.\n\n> not spoken');
+  await expect(page.getByTestId('editor-meta')).toHaveText(/^3 words · ≈ 0:01 at 130 wpm$/);
 });

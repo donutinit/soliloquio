@@ -28,34 +28,60 @@ export function ReadingSurface({
       >
         {title}
       </div>
-      {blocks.map((block, index) =>
-        block.type === 'heading' ? (
-          <div
-            key={index}
-            ref={(el) => {
-              blockElsRef.current[index] = el;
-            }}
-            role="heading"
-            aria-level={block.level}
-            className={styles.heading}
-            data-block-type="heading"
-          >
-            {block.text}
-          </div>
-        ) : (
-          <p
-            key={index}
-            ref={(el) => {
-              blockElsRef.current[index] = el;
-            }}
-            className={styles.text}
-            data-continuation={block.continuation ? 'true' : undefined}
-            data-block-type="text"
-          >
-            {block.text}
-          </p>
-        )
-      )}
+      {blocks.map((block, index) => {
+        const ref = (el: HTMLElement | null) => {
+          blockElsRef.current[index] = el;
+        };
+        switch (block.type) {
+          case 'heading':
+            return (
+              <div
+                key={index}
+                ref={ref}
+                role="heading"
+                aria-level={block.level}
+                className={styles.heading}
+                data-block-type="heading"
+              >
+                {block.text}
+              </div>
+            );
+          case 'note':
+            return (
+              <p key={index} ref={ref} className={styles.note} data-block-type="note">
+                <span className={styles.visuallyHidden}>Note: </span>
+                {block.text}
+              </p>
+            );
+          case 'pause':
+            return (
+              <div key={index} ref={ref} className={styles.pauseMarker} data-block-type="pause">
+                <span>Pause</span>
+              </div>
+            );
+          case 'text':
+            return (
+              <p
+                key={index}
+                ref={ref}
+                className={styles.text}
+                data-continuation={block.continuation ? 'true' : undefined}
+                data-block-type="text"
+              >
+                {block.runs
+                  ? block.runs.map((run, runIndex) => {
+                      if (run.strong && run.emphasis) {
+                        return <strong key={runIndex}><em>{run.text}</em></strong>;
+                      }
+                      if (run.strong) return <strong key={runIndex}>{run.text}</strong>;
+                      if (run.emphasis) return <em key={runIndex}>{run.text}</em>;
+                      return run.text;
+                    })
+                  : block.text}
+              </p>
+            );
+        }
+      })}
     </div>
   );
 }

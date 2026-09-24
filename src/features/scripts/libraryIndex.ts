@@ -1,9 +1,11 @@
 import type { Script } from '../../types';
 import { scriptExcerpt } from './excerpt';
+import { estimateSpokenWords } from '../prompter/pace';
 
 export type ScriptLibraryEntry = {
   script: Script;
   excerpt: string;
+  words: number;
   searchText: string;
 };
 
@@ -11,6 +13,7 @@ export function buildScriptLibraryIndex(scripts: readonly Script[]): ScriptLibra
   return scripts.map((script) => ({
     script,
     excerpt: scriptExcerpt(script.content) || 'Empty',
+    words: estimateSpokenWords(script.content, script.format),
     searchText: `${script.title}\n${script.content}`.toLowerCase()
   }));
 }

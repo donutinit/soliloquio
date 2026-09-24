@@ -7,7 +7,7 @@ tags: [obsidian, prueba]
 
 Bienvenidos al programa de hoy, donde hablaremos de **temas importantes** con *calma*.
 
-> Esta cita debe leerse como texto normal, sin formato especial.
+> Nota para quien lee: respira antes de continuar.
 
 ## Desarrollo
 

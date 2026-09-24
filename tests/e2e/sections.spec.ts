@@ -37,9 +37,13 @@ test('el navegador de secciones lista y salta a una sección', async ({ page }) 
   await expect(page.getByTestId('section-indicator')).toHaveText('3 / 4');
 });
 
-test('un guion sin headings tiene una única sección implícita', async ({ page }) => {
+test('un guion sin headings oculta los controles de sección', async ({ page }) => {
   await openScriptInPrompter(page, 'Quick notes');
-  await expect(page.getByTestId('section-indicator')).toHaveText('1 / 1');
-  await page.getByTestId('section-next').click();
-  await expect(page.getByTestId('section-indicator')).toHaveText('1 / 1');
+  await expect(page.getByTestId('play-pause')).toBeVisible();
+  await expect(page.getByTestId('section-indicator')).toHaveCount(0);
+  await expect(page.getByTestId('section-prev')).toHaveCount(0);
+  await expect(page.getByTestId('section-next')).toHaveCount(0);
+  await expect(page.getByTestId('sections-toggle')).toHaveCount(0);
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByTestId('sections-panel')).toHaveCount(0);
 });

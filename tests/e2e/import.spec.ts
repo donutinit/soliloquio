@@ -44,11 +44,18 @@ test('el markdown importado se aplana: headings sí, resto texto plano', async (
   await expect(page.locator('[data-block-type="text"]', { hasText: 'tags:' })).toHaveCount(0);
   await expect(page.locator('[data-block-type="text"]', { hasText: 'title:' })).toHaveCount(0);
 
-  // Sin HTML enriquecido: ni blockquotes, ni listas, ni negritas, ni enlaces.
-  await expect(page.locator('blockquote, ul, ol, strong, em, a, table')).toHaveCount(0);
+  // Sin HTML enriquecido: ni blockquotes, ni listas, ni enlaces, ni tablas.
+  await expect(page.locator('blockquote, ul, ol, a, table')).toHaveCount(0);
+  // Negrita y cursiva quedan como énfasis de lectura.
+  await expect(page.locator('[data-block-type="text"] strong')).toHaveText('temas importantes');
+  await expect(page.locator('[data-block-type="text"] em')).toHaveText('calma');
+  // El blockquote es una nota para quien lee, no texto hablado.
   await expect(
-    page.locator('[data-block-type="text"]', { hasText: 'Esta cita debe leerse' })
+    page.locator('[data-block-type="note"]', { hasText: 'respira antes de continuar' })
   ).toBeVisible();
+  await expect(
+    page.locator('[data-block-type="text"]', { hasText: 'respira antes de continuar' })
+  ).toHaveCount(0);
   // La tabla quedó como línea legible.
   await expect(page.locator('[data-block-type="text"]', { hasText: 'Duración — 10 minutos' })).toBeVisible();
   // La imagen quedó reducida a su texto alternativo.

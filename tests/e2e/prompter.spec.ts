@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { openScriptInPrompter, prompterOffset } from './helpers';
+import { cardByTitle, createScriptFixture, openScriptInPrompter, prompterOffset } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
@@ -38,9 +38,9 @@ test('reproduce y pausa el desplazamiento automático', async ({ page }) => {
 test('los ajustes manuales cambian valores sin mostrar el HUD del mando', async ({ page }) => {
   await page.getByTestId('settings-toggle').click();
 
-  const speedBefore = Number(await page.getByTestId('speed-value').textContent());
+  const speedBefore = Number.parseInt((await page.getByTestId('speed-value').textContent()) ?? '', 10);
   await page.getByTestId('speed-plus').click();
-  await expect(page.getByTestId('speed-value')).toHaveText(String(speedBefore + 5));
+  await expect(page.getByTestId('speed-value')).toHaveText(`${speedBefore + 5} wpm`);
   await expect(page.getByTestId('adjustment-feedback')).toHaveCount(0);
 
   await expect(page.getByTestId('font-value')).toHaveText('60px');
@@ -121,12 +121,13 @@ test('desktop wheel and keyboard navigate the reader without taking over focused
   await page.keyboard.press('ArrowLeft');
   await expect(page.getByTestId('section-indicator')).toHaveText('1 / 4');
   await page.keyboard.press('+');
-  await expect(page.getByTestId('speed-quick-value')).toHaveText('60');
+  await expect(page.getByTestId('speed-quick-value')).toHaveText('135');
 
-  await page.getByTestId('speed-quick-slider').focus();
-  await page.keyboard.press('ArrowRight');
+  await page.getByTestId('speed-quick-plus').click();
   await expect(page.getByTestId('section-indicator')).toHaveText('1 / 4');
-  await expect(page.getByTestId('speed-quick-value')).toHaveText('65');
+  await expect(page.getByTestId('speed-quick-value')).toHaveText('140');
+  await page.getByTestId('speed-quick-minus').click();
+  await expect(page.getByTestId('speed-quick-value')).toHaveText('135');
 });
 
 test('un guion corto termina el desplazamiento solo y recupera los controles', async ({ page }) => {
@@ -192,4 +193,47 @@ test('opens the current script directly in the editor', async ({ page }) => {
   await page.getByTestId('edit-script').click();
   await expect(page.getByTestId('editor-title')).toHaveValue('Welcome to Soliloquio');
   await expect(page.getByTestId('editor-content')).toHaveValue(/This sample script/);
+});
+
+test('muestra notas y énfasis y se detiene en cada pausa', async ({ page }) => {
+  await page.getByTestId('back-to-scripts').click();
+  await createScriptFixture(
+    page,
+    'Formatted',
+    '# Opening\n\nSay this **clearly** and *warmly* to the lens.\n\n> Look at the lens\n\n---\n\nAfter the pause we keep going with a few more words to read.'
+  );
+  await cardByTitle(page, 'Formatted').getByTestId('open-prompter').click();
+
+  await expect(page.locator('[data-block-type="note"]')).toHaveText(/Look at the lens/);
+  await expect(page.locator('[data-block-type="text"] strong')).toHaveText('clearly');
+  await expect(page.locator('[data-block-type="text"] em')).toHaveText('warmly');
+  await expect(page.locator('[data-block-type="pause"]')).toHaveCount(1);
+
+  const playButton = page.getByTestId('play-pause');
+  await playButton.click();
+  await expect(playButton).toHaveAttribute('data-playing', 'true');
+  await expect(playButton).toHaveAttribute('data-playing', 'false', { timeout: 10_000 });
+  await expect(page.getByTestId('bottom-controls')).toHaveAttribute('data-visible', 'true');
+  const heldAt = await prompterOffset(page);
+  expect(heldAt).toBeGreaterThan(0);
+  await page.waitForTimeout(300);
+  expect(Math.abs((await prompterOffset(page)) - heldAt)).toBeLessThan(1);
+
+  await playButton.click();
+  await expect.poll(() => prompterOffset(page)).toBeGreaterThan(heldAt + 5);
+});
+
+test('la velocidad en palabras por minuto no cambia el tiempo restante al agrandar el texto', async ({
+  page
+}) => {
+  const remaining = page.getByTestId('time-remaining');
+  await expect(remaining).toContainText(/≈ \d+:\d{2} left/);
+  const before = await remaining.textContent();
+
+  await page.getByTestId('settings-toggle').click();
+  for (let i = 0; i < 5; i += 1) await page.getByTestId('font-plus').click();
+  await page.getByTestId('settings-close').click();
+
+  await expect(page.getByTestId('font-value')).toHaveCount(0);
+  await expect.poll(() => remaining.textContent()).toBe(before);
 });
