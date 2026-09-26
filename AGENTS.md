@@ -114,20 +114,31 @@ The Playwright configuration starts `npm run preview`; do not start a second pre
 Unit tests live beside source as `*.test.ts`. Add E2E tests only for important user workflows and
 prefer stable roles/test IDs over CSS selectors.
 
-The primary development computer intentionally has no Node, npm, or Docker. Never install or try
-to run them on that computer. Do not use substitute runtimes or package managers there either.
-GitHub Actions in `.github/workflows/ci.yml` is the authoritative validation path:
+The development host has Node and npm. Use them for fast local checks before pushing
+(`npm ci`, `typecheck`, `lint`, `test -- --run`, `build`), under a strict npm policy:
+
+- Install only with `npm ci`; the lockfile is authoritative. Never delete or regenerate it to work
+  around an error.
+- Lifecycle scripts stay disabled (`ignore-scripts`) and versions are saved exact. Do not
+  override either per command.
+- Adding or upgrading a dependency requires explicit approval, an exact version, and a review of
+  the `package-lock.json` diff.
+- No global installs, no `npx` of packages missing from the lockfile, and no substitute runtimes
+  or package managers (bun, pnpm, yarn, deno).
+- Docker is not used on the development host.
+
+GitHub Actions in `.github/workflows/ci.yml` remains the authoritative validation path:
 
 1. Make the scoped change and inspect the diff.
-2. Run `git diff --check`.
+2. Run `git diff --check` and the local checks above.
 3. Commit without trailers and push normally; never force-push or rewrite history.
 4. Find the workflow run for the exact commit SHA.
 5. Watch it through typecheck, lint, unit tests, build, E2E, and image publication.
 6. If it fails, inspect failed logs, fix the cause, and validate the new exact SHA.
 
-Never describe a change as validated while the required CI run is failing or incomplete. The
-manual `lockfile.yml` workflow is the supported way to regenerate `package-lock.json` on a host
-without npm.
+Never describe a change as validated while the required CI run is failing or incomplete. Passing
+local checks do not replace CI. The manual `lockfile.yml` workflow can still regenerate
+`package-lock.json` when a dependency change is approved.
 
 ## Git and change hygiene
 
