@@ -157,7 +157,8 @@ Pushing `main` publishes multi-architecture GHCR images after CI succeeds; it do
 production deployment. Deploy only when the user explicitly asks.
 
 - Deploy only a commit-addressed `sha-<full-commit>` image whose exact CI run is green.
-- Use `./scripts/deploy-shaolin.sh`; do not hand-roll a parallel deployment path.
+- Use `./scripts/deploy-shaolin.sh` (`status` and `rollback` too); do not hand-roll a parallel
+  deployment path. Its server side is `deploy/shaolin-deploy.sh`, which re-checks CI on its own.
 - The remote host only runs the built image. Never build, clone source, or install development tools
   there.
 - Scope every Compose command to the `soliloquio` project/service.

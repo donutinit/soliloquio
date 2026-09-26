@@ -328,21 +328,34 @@ image pinned to the full-commit SHA tag whose exact CI run has passed with:
 ./scripts/deploy-shaolin.sh
 ```
 
-The script verifies CI, checks the anonymous registry pull and server preconditions, creates
-timestamped configuration backups, and updates only the `soliloquio` service:
+The script checks CI locally and hands the SHA to `deploy/shaolin-deploy.sh`, installed on the
+server as `~/.local/libexec/soliloquio-deploy`. The server verifies on its own, through the public
+GitHub API, that CI passed for that commit on `main`. It then checks the anonymous registry pull and
+its preconditions, downloads `deploy/compose.yaml` from that same commit, creates timestamped
+configuration backups, and updates only the `soliloquio` service:
 
 ```bash
 docker compose --project-name soliloquio --file compose.yaml config --quiet
-docker compose --project-name soliloquio --file compose.yaml pull soliloquio
 docker compose --project-name soliloquio --file compose.yaml up -d --no-deps soliloquio
 ```
+
+The deploy key used from the development host is pinned to that script in the server's
+`authorized_keys`, so it can only deploy CI-green commits, show status, or roll back:
+
+```text
+restrict,command="/home/<user>/.local/libexec/soliloquio-deploy" ssh-ed25519 AAAA… deploy-key
+```
+
+After changing `deploy/shaolin-deploy.sh`, reinstall it on the server with an administrator key.
 
 Never run `docker compose down`, any `prune`, `--remove-orphans`, or commands that affect other
 services on the host.
 
 ### Rollback
 
-Restore a previous timestamped `.env` backup, then update only this service and verify health:
+`./scripts/deploy-shaolin.sh rollback` restores the most recent `.env` and `compose.yaml` backups
+and verifies health; `./scripts/deploy-shaolin.sh status` shows the running image. By hand, with an
+administrator key:
 
 ```bash
 ssh shaolin
