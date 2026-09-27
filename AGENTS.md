@@ -177,10 +177,60 @@ changes.
 ## Mirrored instruction file
 
 `AGENTS.md` is canonical. `CLAUDE.md` intentionally contains the same bytes and should be a hard
-link to it on working filesystems. Git stores file contents, not inode relationships, so a fresh
+link to it on working filesystems. Private host details live in the untracked `CLAUDE.local.md`:
+every agent (Claude, Codex, opencode) must read it before deploying. Git stores file contents, not inode relationships, so a fresh
 checkout may materialize them as separate files. After changing either file, keep them identical;
 where appropriate, recreate the local link with:
 
 ```bash
 cmp -s AGENTS.md CLAUDE.md && unlink CLAUDE.md && ln AGENTS.md CLAUDE.md
 ```
+
+## Project memory
+
+Decisions and lessons from earlier sessions. They apply to every agent.
+
+### Product decisions
+
+- **Import-first, disposable library.** Scripts live outside the app (imported from Files), so
+  the library is not permanent storage. Deleting everything is fine, and the double tap on the
+  same button to delete is deliberate. Do not suggest backup reminders, a trash bin or
+  stricter delete confirmations; keep import → read fast.
+- **Rejected directions (2026-09-24), do not suggest them or variants again:** presentation
+  clickers or pedals, slide/clicker modes ("the app is not a presentation tool"), a setting to
+  move the reading anchor to the top or center, voice-following scroll or speech recognition,
+  and a camera preview (`getUserMedia`). Accepted: timed pauses (`--- 5s`), fit to time, elapsed
+  time, smooth start, Remove all scripts, and drag & drop.
+
+### Visual identity ("Telón", 2026-09-16/17)
+
+- Theater curtain red `#3c0c0c`, gold `#e8c270`, bone `#efe7d8`, gold shade `#9c7432`
+  (`gold-shade`). Big Shoulders Display (uppercase) for titles, Atkinson Hyperlegible Next for
+  UI and reading; reading view in pure black and white.
+- **No rounded corners anywhere:** never reintroduce `border-radius`, curved icons or round
+  line caps.
+- Icons are **vectors** on a 24 grid with a 2 px stroke everywhere, square caps, mitred joins,
+  exact 45° diagonals, solids only for dots, tips and buttons; one single gamepad icon for all
+  controller families; rendered at exactly 24 px in CSS. Bitmap icons were rejected (they
+  deform with zoom); do not go back to them.
+- Favicon and PWA/iOS icons are the pixel-art curtain: `generate-icons.mjs` keeps the 32 and
+  16 module bitmaps and scales only by integers (iOS ×5, 192 ×5, 512 ×14, maskable ×9).
+- Present visual options before implementing branding or icon changes.
+
+### Operations
+
+- The repo was renamed from `teleprompter` on 2026-09-05 (GitHub redirects the old name). The
+  image is `ghcr.io/donutinit/soliloquio`; the old package `ghcr.io/donutinit/teleprompter` is
+  an orphan.
+- Canonical URL: https://soli.vondiego.com (tele.vondiego.com is the legacy origin). The public
+  domain goes through Cloudflare, which caches static files (favicon, icons) for about 4 hours,
+  so right after a deploy the origin can be ahead of the public site.
+- **Flaky E2E:** `tests/e2e/micro-gamepad.spec.ts` ("applies Micro-profile-only scroll and
+  settings") fails intermittently in Actions at the same step: after releasing SELECT used as
+  a modifier, the 120 ms `pressButton(SELECT)` does not open the controller guide. Playwright's
+  2 retries share the worker and the load, so 3 failures in a row are not independent evidence.
+  Re-run first (`gh run rerun <id> --failed`); only treat it as a regression if it fails across
+  separate runs. The likely root cause (a race between releasing the modifier and the next
+  short press in the same gamepad polling frame) is still unfixed.
+- If there are someone else's uncommitted changes in the tree, run local checks in a temporary
+  `git worktree` that contains only your own files.
