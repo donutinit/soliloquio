@@ -34,8 +34,10 @@ Preserve these product decisions unless the user explicitly changes them:
 - `src/services/`: Dexie/IndexedDB persistence, PWA lifecycle, update checks, and wake lock.
 - `tests/e2e/`: Playwright coverage against the production build in Chromium.
 - `public/`: static assets copied as-is.
-- `scripts/`: icon generation and guarded deployment automation.
+- `scripts/`: icon generation, README media capture, and guarded deployment automation.
 - `deploy/`: production Compose definition.
+- `docs/media/`: README screenshots and animations. After a visible UI change, regenerate them
+  with `npm run build && node scripts/readme-media.mjs` (needs `ffmpeg` and `img2webp`).
 
 The stack is React 18, strict TypeScript, Vite, Dexie, Vitest, Playwright, and
 `vite-plugin-pwa`. Avoid adding dependencies when the platform or a small local utility is enough.
