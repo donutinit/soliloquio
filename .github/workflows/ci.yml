@@ -87,7 +87,7 @@ jobs:
           labels: |
             org.opencontainers.image.title=soliloquio
             org.opencontainers.image.description=Soliloquio, teleprompter PWA local y sin conexión
-            org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.licenses=AGPL-3.0
       - id: immutable
         name: Check the commit-addressed image
         env:
