@@ -3,8 +3,14 @@ import type { PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent }
 import type { PrompterBlock, PrompterSettings, Script } from '../../types';
 import { applyKeepScreenAwake } from '../../services/keepAwake';
 import { getActiveGamepad } from '../../services/gamepads';
-import { buildSections, currentSectionIndex, stepSection } from '../../features/sections/sections';
+import {
+  buildSections,
+  currentSectionIndex,
+  sectionStepTarget,
+  stepSection
+} from '../../features/sections/sections';
 import { ScrollEngine } from '../../features/prompter/scrollEngine';
+import { positionAfterRelayout, type ReaderLayout } from '../../features/prompter/readingPlace';
 import {
   formatReadingTime,
   pixelsPerSecond,
@@ -153,6 +159,7 @@ function Prompter({
   const blockElsRef = useRef<(HTMLElement | null)[]>([]);
   const sectionOffsetsRef = useRef<number[]>([]);
   const pauseOffsetsRef = useRef<number[]>([]);
+  const layoutRef = useRef<ReaderLayout | null>(null);
   const pixelsPerWordRef = useRef(pixelsPerWord(0, 0, initialSettings.fontSize));
   const sectionIdxRef = useRef(0);
   const panelRef = useRef<Panel>('none');
@@ -160,7 +167,12 @@ function Prompter({
   const previousPanelRef = useRef<Panel>('none');
   const gamepadConnectedRef = useRef(false);
   const padIdRef = useRef<string | null>(null);
-  const dragRef = useRef<{ y: number; moved: boolean; startedAt: number } | null>(null);
+  const dragRef = useRef<{
+    pointerId: number;
+    y: number;
+    moved: boolean;
+    startedAt: number;
+  } | null>(null);
   const wakeLoopRef = useRef<() => void>(() => undefined);
   const remainingRef = useRef<HTMLSpanElement>(null);
   const elapsedRef = useRef<HTMLSpanElement>(null);
@@ -294,11 +306,17 @@ function Prompter({
           setControlsVisible((v) => !v);
           break;
         case 'prevSection':
-          jumpToSection(stepSection(sectionIdxRef.current, -1, sections.length));
+        case 'nextSection': {
+          const target = sectionStepTarget(
+            sections,
+            sectionOffsetsRef.current,
+            requireEngine().state.position,
+            (viewportRef.current?.clientHeight ?? 0) * READING_LINE_FRACTION,
+            action === 'prevSection' ? -1 : 1
+          );
+          if (target !== undefined) jumpToSection(target);
           break;
-        case 'nextSection':
-          jumpToSection(stepSection(sectionIdxRef.current, 1, sections.length));
-          break;
+        }
         case 'speedDown':
           updateSetting('speed', current.speed - SPEED_LIMITS.step, true);
           break;
@@ -329,7 +347,16 @@ function Prompter({
           break;
       }
     },
-    [togglePlay, resetReader, exitToScripts, jumpToSection, updateSetting, sections.length, settingsRef]
+    [
+      togglePlay,
+      resetReader,
+      exitToScripts,
+      jumpToSection,
+      updateSetting,
+      sections,
+      requireEngine,
+      settingsRef
+    ]
   );
   const applyActionRef = useRef(applyAction);
   applyActionRef.current = applyAction;
@@ -340,6 +367,7 @@ function Prompter({
     const content = contentRef.current;
     if (!viewport || !content) return;
     const measure = () => {
+      const engine = requireEngine();
       sectionOffsetsRef.current = sections.map(
         (section) => blockElsRef.current[section.startBlockIndex]?.offsetTop ?? 0
       );
@@ -347,7 +375,20 @@ function Prompter({
         (index) => blockElsRef.current[index]?.offsetTop ?? 0
       );
       const maxPosition = content.scrollHeight - viewport.clientHeight;
-      requireEngine().setMaxPosition(maxPosition);
+      // Text size, margins, or rotation reflow the script: keep the line being
+      // read on the reading line instead of keeping the old pixel offset.
+      const layout: ReaderLayout = {
+        maxPosition,
+        readingLine: viewport.clientHeight * READING_LINE_FRACTION,
+        paddingTop: Number.parseFloat(getComputedStyle(content).paddingTop) || 0,
+        anchors: [...pauseOffsetsRef.current, ...sectionOffsetsRef.current]
+      };
+      const previousLayout = layoutRef.current;
+      layoutRef.current = layout;
+      if (previousLayout) {
+        engine.state.position = positionAfterRelayout(engine.state.position, previousLayout, layout);
+      }
+      engine.setMaxPosition(maxPosition);
       // Top and bottom padding add up to one viewport, so the scroll range is
       // the rendered script height.
       pixelsPerWordRef.current = pixelsPerWord(
@@ -357,6 +398,7 @@ function Prompter({
       );
       applyBaseSpeed();
       setContentFits(maxPosition <= 0);
+      wakeLoopRef.current();
     };
     measure();
     const observer = new ResizeObserver(measure);
@@ -491,9 +533,14 @@ function Prompter({
         if (elapsedRef.current) elapsedRef.current.textContent = formatReadingTime(elapsed);
         // A momentary brake or boost is not the pace: estimate at the configured
         // speed (a full brake would otherwise divide by zero).
+        // Timed separators still ahead hold the reader too, like Fit to time counts them.
         if (remainingRef.current) {
+          let holdsAhead = engine.state.holdSeconds;
+          pauseOffsetsRef.current.forEach((offset, index) => {
+            if (offset - readingLine > position) holdsAhead += pauseHoldsRef.current[index] ?? 0;
+          });
           remainingRef.current.textContent = `≈ ${formatReadingTime(
-            (engine.maxPosition - position) / engine.state.baseSpeed
+            (engine.maxPosition - position) / engine.state.baseSpeed + holdsAhead
           )} left`;
         }
       }
@@ -580,27 +627,39 @@ function Prompter({
   });
 
   // Scroll manual táctil + tap para mostrar/ocultar controles.
+  // One finger drives a drag; a second finger on the glass is ignored instead
+  // of making the text jump between the two touch points.
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
-    if (panel !== 'none') return;
+    if (panel !== 'none' || dragRef.current) return;
     applyKeepScreenAwake(settingsRef.current.keepScreenAwake);
-    dragRef.current = { y: e.clientY, moved: false, startedAt: performance.now() };
+    dragRef.current = {
+      pointerId: e.pointerId,
+      y: e.clientY,
+      moved: false,
+      startedAt: performance.now()
+    };
     e.currentTarget.setPointerCapture(e.pointerId);
     wakeLoopRef.current();
   };
   const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
-    if (!drag) return;
+    if (!drag || drag.pointerId !== e.pointerId) return;
     const dy = e.clientY - drag.y;
     if (Math.abs(dy) > 4) drag.moved = true;
     drag.y = e.clientY;
     seekTo(requireEngine().state.position - dy);
   };
-  const onPointerUp = () => {
+  const onPointerUp = (e: ReactPointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
+    if (!drag || drag.pointerId !== e.pointerId) return;
     dragRef.current = null;
-    if (drag && !drag.moved && performance.now() - drag.startedAt < 400) {
+    if (!drag.moved && performance.now() - drag.startedAt < 400) {
       setControlsVisible((v) => !v);
     }
+  };
+  // A capture lost without pointerup (the browser took over) still ends the drag.
+  const onLostPointerCapture = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (dragRef.current?.pointerId === e.pointerId) dragRef.current = null;
   };
   const onWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
     if (panel !== 'none' || event.ctrlKey || event.deltaY === 0) return;
@@ -630,6 +689,7 @@ function Prompter({
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
+        onLostPointerCapture={onLostPointerCapture}
         onWheel={onWheel}
       >
         <ReadingSurface

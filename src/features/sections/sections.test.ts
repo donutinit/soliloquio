@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { buildSections, currentSectionIndex, stepSection, IMPLICIT_SECTION_ID } from './sections';
+import {
+  buildSections,
+  currentSectionIndex,
+  sectionStepTarget,
+  stepSection,
+  IMPLICIT_SECTION_ID
+} from './sections';
 import type { PrompterBlock } from '../../types';
 
 const blocks: PrompterBlock[] = [
@@ -49,5 +55,37 @@ describe('stepSection', () => {
     expect(stepSection(0, -1, 3)).toBe(0);
     expect(stepSection(1, -1, 3)).toBe(0);
     expect(stepSection(5, 1, 0)).toBe(0);
+  });
+});
+
+describe('sectionStepTarget', () => {
+  const sections = buildSections(blocks);
+  const offsets = [400, 900, 1600];
+  const readingLine = 100;
+
+  it('moves to the neighbouring section from inside one', () => {
+    expect(sectionStepTarget(sections, offsets, 1000, readingLine, 1)).toBe(2);
+    expect(sectionStepTarget(sections, offsets, 1000, readingLine, -1)).toBe(0);
+  });
+
+  it('does nothing past the last or before the first section', () => {
+    expect(sectionStepTarget(sections, offsets, 1700, readingLine, 1)).toBeUndefined();
+    expect(sectionStepTarget(sections, offsets, 400, readingLine, -1)).toBeUndefined();
+  });
+
+  it('treats text before the first heading as before section 0', () => {
+    const coldOpen = buildSections([{ type: 'text', text: 'Cold open' }, ...blocks]);
+    expect(sectionStepTarget(coldOpen, offsets, 0, readingLine, 1)).toBe(0);
+    expect(sectionStepTarget(coldOpen, offsets, 0, readingLine, -1)).toBeUndefined();
+  });
+
+  it('starts in the first section when the script opens with a heading', () => {
+    expect(sectionStepTarget(sections, offsets, 0, readingLine, 1)).toBe(1);
+  });
+
+  it('never jumps in a script without headings', () => {
+    const implicit = buildSections([{ type: 'text', text: 'solo texto' }]);
+    expect(sectionStepTarget(implicit, [450], 3000, readingLine, -1)).toBeUndefined();
+    expect(sectionStepTarget(implicit, [450], 0, readingLine, 1)).toBeUndefined();
   });
 });

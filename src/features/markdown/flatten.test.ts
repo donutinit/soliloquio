@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { markdownToBlocks, scriptToBlocks, textToBlocks } from './flatten';
+import { spokenWordCount } from '../prompter/pace';
 
 describe('markdownToBlocks', () => {
   it('conserva los headings con nivel e id de sección estable', () => {
@@ -183,5 +184,14 @@ describe('textToBlocks', () => {
     expect(blocks.length).toBeGreaterThan(1);
     expect(blocks.every((block) => ('text' in block ? block.text : '').length <= 4_096)).toBe(true);
     expect(blocks.map((block) => ('text' in block ? block.text : '')).join('')).toBe(content.trim());
+  });
+
+  it('corta los párrafos largos entre palabras', () => {
+    const content = 'palabra '.repeat(40_000);
+    const blocks = scriptToBlocks({ content, format: 'text' });
+    const texts = blocks.map((block) => ('text' in block ? block.text : ''));
+    expect(texts.length).toBeGreaterThan(1);
+    expect(texts.slice(0, -1).every((text) => text.endsWith('palabra '))).toBe(true);
+    expect(spokenWordCount(blocks)).toBe(40_000);
   });
 });

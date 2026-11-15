@@ -9,10 +9,15 @@ const parser = unified().use(remarkParse).use(remarkGfm);
 const LARGE_SCRIPT_CHARS = 200_000;
 const MAX_TEXT_CHUNK_CHARS = 4_096;
 
+/** Splits long text into reading blocks at a space, so no word is cut in two. */
 function pushTextChunks(blocks: PrompterBlock[], text: string): void {
   let offset = 0;
   while (offset < text.length) {
-    const end = Math.min(offset + MAX_TEXT_CHUNK_CHARS, text.length);
+    let end = Math.min(offset + MAX_TEXT_CHUNK_CHARS, text.length);
+    if (end < text.length) {
+      const space = text.lastIndexOf(' ', end - 1);
+      if (space > offset) end = space + 1;
+    }
     blocks.push({
       type: 'text',
       text: text.slice(offset, end),
