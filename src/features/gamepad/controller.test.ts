@@ -128,6 +128,31 @@ describe('GamepadController', () => {
     expect(released.actions).not.toContain('backToScripts');
   });
 
+  it('el Pro 3 no dispara Select ni A cuando la combinación llega en dos cuadros', () => {
+    const bindings = { ...DEFAULT_GAMEPAD_BINDINGS, toggleSections: 28 };
+    const pro3 = (buttons: Record<number, { pressed: boolean; value: number }> = {}) =>
+      fakePad({ id: PRO_3_ID, buttons });
+    const select = { 8: { pressed: true, value: 1 } };
+    const a = { 0: { pressed: true, value: 1 } };
+
+    for (const first of [select, a]) {
+      const controller = new GamepadController(bindings);
+      controller.update(pro3(), -100);
+      const frames = [
+        controller.update(pro3(first), 0),
+        controller.update(pro3({ ...select, ...a }), 16),
+        controller.update(pro3(), 120),
+        // A second L4 press right away must not read as a double tap of A.
+        controller.update(pro3({ ...select, ...a }), 200),
+        controller.update(pro3(), 300)
+      ];
+      const actions = frames.flatMap((frame) => frame.actions);
+      expect(actions.filter((action) => action === 'toggleSections')).toHaveLength(2);
+      expect(actions).not.toContain('toggleControllerGuide');
+      expect(actions).not.toContain('backToScripts');
+    }
+  });
+
   it('no sintetiza los botones virtuales del Pro 3 en otros mandos', () => {
     const controller = new GamepadController({
       ...DEFAULT_GAMEPAD_BINDINGS,

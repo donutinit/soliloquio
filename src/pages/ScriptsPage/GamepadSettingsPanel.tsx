@@ -84,12 +84,24 @@ export function GamepadSettingsPanel({
   // intervalo en cada render del padre.
   useEffect(() => {
     if (!listening) return;
+    const isDown = (button: { pressed: boolean; value: number }) =>
+      button.pressed || button.value > 0.5;
+    // With only a controller, the confirm press that opened listening is still
+    // held: each button already down must be released before it can be bound.
+    const held = new Set<number>();
+    getActiveGamepad()?.buttons.forEach((button, index) => {
+      if (isDown(button)) held.add(index);
+    });
     const interval = setInterval(() => {
       const { bindings: currentBindings, family: currentFamily, onChange: currentOnChange } =
         listenStateRef.current;
       const pad = getActiveGamepad();
       if (!pad) return;
-      const rawIndex = pad.buttons.findIndex((b) => b.pressed || b.value > 0.5);
+      for (const index of held) {
+        const button = pad.buttons[index];
+        if (!button || !isDown(button)) held.delete(index);
+      }
+      const rawIndex = pad.buttons.findIndex((button, index) => !held.has(index) && isDown(button));
       if (rawIndex < 0) return;
       const currentMicro = is8BitDoMicro(pad.id);
       if (currentMicro && MICRO_RESERVED_BUTTONS.includes(rawIndex)) {
