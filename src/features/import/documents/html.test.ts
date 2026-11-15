@@ -21,4 +21,10 @@ describe('htmlToMarkdown', () => {
       ].join('\n\n')
     );
   });
+
+  it('keeps table cells apart', () => {
+    expect(htmlToMarkdown('<table><tr><th>VIDEO</th><th>AUDIO</th></tr><tr><td>Plano</td><td>Hola</td></tr></table>')).toBe(
+      'VIDEO\n\nAUDIO\n\nPlano\n\nHola'
+    );
+  });
 });

@@ -1,3 +1,5 @@
+import { decodeEntities } from './markup';
+
 const TIMECODE = /^\s*(?:\d{1,2}:)?\d{1,2}:\d{2}[.,]\d{1,3}\s*-->/;
 
 /**
@@ -13,7 +15,9 @@ export function subtitlesToText(content: string): string {
     if (/^(WEBVTT|NOTE|STYLE|REGION)\b/.test(lines[0])) continue;
     const timecodeIndex = lines.findIndex((line) => TIMECODE.test(line));
     const spoken = (timecodeIndex >= 0 ? lines.slice(timecodeIndex + 1) : lines)
-      .map((line) => line.replace(/<[^>]+>/g, '').replace(/\{\\[^}]*\}/g, '').trim())
+      .map((line) =>
+        decodeEntities(line.replace(/<[^>]+>/g, '').replace(/\{\\[^}]*\}/g, '')).trim()
+      )
       .filter(Boolean);
     if (spoken.length > 0) cues.push(spoken.join(' '));
   }

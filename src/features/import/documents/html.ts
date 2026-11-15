@@ -2,7 +2,7 @@ import { decodeEntities, escapeMarkdown, joinParagraphs } from './markup';
 
 const DROPPED_ELEMENTS = /<(script|style|head|noscript|template|svg|iframe|object)\b[\s\S]*?<\/\1\s*>/gi;
 const BLOCK_BOUNDARY =
-  /<\/?(p|div|section|article|header|footer|main|aside|blockquote|li|ul|ol|table|tr|pre|figure|figcaption|dd|dt|dl|hr)\b[^>]*>/gi;
+  /<\/?(p|div|section|article|header|footer|main|aside|blockquote|li|ul|ol|table|tr|td|th|pre|figure|figcaption|dd|dt|dl|hr)\b[^>]*>/gi;
 
 /**
  * Converts an HTML document to Markdown text: headings keep their level,
