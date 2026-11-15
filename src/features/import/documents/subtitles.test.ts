@@ -11,4 +11,9 @@ describe('subtitlesToText', () => {
     const vtt = 'WEBVTT\n\nNOTE internal\n\nintro\n00:01.000 --> 00:02.000 align:start\n<v Ana>Primera línea</v>\n\n00:02.000 --> 00:03.000\nSegunda';
     expect(subtitlesToText(vtt)).toBe('Primera línea Segunda');
   });
+
+  it('decodes WebVTT entities', () => {
+    const vtt = 'WEBVTT\n\n00:01.000 --> 00:02.000\nTom &amp; Jerry &gt;&gt; next';
+    expect(subtitlesToText(vtt)).toBe('Tom & Jerry >> next');
+  });
 });

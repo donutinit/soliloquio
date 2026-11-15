@@ -125,6 +125,25 @@ export function decodeTextBytes(bytes: Uint8Array): string | null {
   }
 }
 
+/**
+ * Text of a file in a known text format. A UTF-8 or UTF-16 byte order mark
+ * decides the encoding; without one the bytes are read as UTF-8, falling back
+ * to Windows-1252 (legacy Windows editors, Word web pages, old subtitles).
+ */
+export function decodeDocumentText(bytes: Uint8Array): string {
+  if (bytes[0] === 0xff && bytes[1] === 0xfe) return new TextDecoder('utf-16le').decode(bytes);
+  if (bytes[0] === 0xfe && bytes[1] === 0xff) return new TextDecoder('utf-16be').decode(bytes);
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  } catch {
+    return new TextDecoder('windows-1252').decode(bytes);
+  }
+}
+
+async function readDocumentText(file: File): Promise<string> {
+  return decodeDocumentText(new Uint8Array(await file.arrayBuffer()));
+}
+
 /** Reads a PDF's text; supplied by the browser layer so this module stays pure. */
 export type PdfTextReader = (buffer: ArrayBuffer) => Promise<string>;
 
@@ -139,16 +158,16 @@ async function convertFile(
 ): Promise<Converted> {
   switch (kind) {
     case 'markdown':
-      return { content: stripFrontmatter(await file.text()), format: 'markdown' };
+      return { content: stripFrontmatter(await readDocumentText(file)), format: 'markdown' };
     case 'text':
-      return { content: await file.text(), format: 'text' };
+      return { content: await readDocumentText(file), format: 'text' };
     case 'html':
-      return { content: htmlToMarkdown(await file.text()), format: 'markdown' };
+      return { content: htmlToMarkdown(await readDocumentText(file)), format: 'markdown' };
     case 'subtitles':
-      return { content: subtitlesToText(await file.text()), format: 'text' };
+      return { content: subtitlesToText(await readDocumentText(file)), format: 'text' };
     case 'rtf':
       try {
-        return { content: rtfToText(await file.text()), format: 'text' };
+        return { content: rtfToText(await readDocumentText(file)), format: 'text' };
       } catch {
         throw new ConversionError('This RTF document could not be read');
       }
@@ -194,11 +213,15 @@ function emptyResultMessage(kind: DocumentKind): string {
 /**
  * Elimina el frontmatter YAML de Obsidian (`--- … ---` al inicio del archivo).
  * Se aplica SOLO al importar y solo sobre el contenido que se guarda; el
- * archivo de origen nunca se modifica.
+ * archivo de origen nunca se modifica. Un guion que empieza con una pausa
+ * (`---`) seguida de texto no es frontmatter: solo cuenta un bloque vacío o
+ * uno cuya primera línea es una clave YAML (`title: …`).
  */
 export function stripFrontmatter(content: string): string {
-  const match = /^\uFEFF?---[ \t]*\r?\n[\s\S]*?\r?\n---[ \t]*(?:\r?\n|$)/.exec(content);
+  const match = /^\uFEFF?---[ \t]*\r?\n(?:([\s\S]*?)\r?\n)?---[ \t]*(?:\r?\n|$)/.exec(content);
   if (!match) return content;
+  const firstLine = (match[1] ?? '').split(/\r?\n/).find((line) => line.trim()) ?? '';
+  if (firstLine && !/^[\w-][\w .-]*:(?:\s|$)/.test(firstLine)) return content;
   return content.slice(match[0].length).replace(/^\s*\n/, '');
 }
 

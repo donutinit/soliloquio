@@ -10,6 +10,12 @@ describe('rtfToText', () => {
     expect(rtfToText(rtf)).toBe('Hola, árbol y € euro.\n\nSegunda\nlínea {llaves}\n\nnegrita fin—ok');
   });
 
+  it('keeps the visible text of links and other fields', () => {
+    const rtf =
+      '{\\rtf1 Visit {\\field{\\*\\fldinst HYPERLINK "https://example.com"}{\\fldrslt our site}} today.}';
+    expect(rtfToText(rtf)).toBe('Visit our site today.');
+  });
+
   it('rejects text that is not RTF', () => {
     expect(() => rtfToText('plain text')).toThrow();
   });

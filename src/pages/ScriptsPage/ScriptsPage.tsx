@@ -339,6 +339,9 @@ export function ScriptsPage({
         setSettingsError(null);
       }
     } catch {
+      // The panel goes back to the stored settings, so nothing is pending any
+      // more: a later Done, update, or pending-save flush must not keep failing.
+      if (appSettingsSaveRef.current === save) appSettingsSaveRef.current = Promise.resolve();
       if (appSettingsChangeVersionRef.current === changeVersion) {
         const persisted = persistedAppSettingsRef.current ?? previous;
         appSettingsRef.current = persisted;

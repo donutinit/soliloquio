@@ -117,6 +117,26 @@ export const installFakeGamepad = (
   navigator.getGamepads = () => (exposed ? [pad as unknown as Gamepad] : []);
 };
 
+/**
+ * Waits for the page to render `count` animation frames. The reader polls the
+ * gamepad in its own frame callback, which runs before one registered here,
+ * so afterwards it has seen the current button state. Waiting on the clock
+ * instead loses edges whenever a loaded runner stalls a frame.
+ */
+export async function readerFrames(page: Page, count = 2): Promise<void> {
+  await page.evaluate(
+    (frames) =>
+      new Promise<void>((resolve) => {
+        const step = (left: number) => {
+          if (left === 0) resolve();
+          else requestAnimationFrame(() => step(left - 1));
+        };
+        step(frames);
+      }),
+    count
+  );
+}
+
 export async function setButton(page: Page, index: number, pressed: boolean): Promise<void> {
   await page.evaluate(
     ([i, p]) => {

@@ -2,6 +2,16 @@ import { describe, expect, it, vi } from 'vitest';
 import { DraftSaveQueue, type EditableScript } from './draftSaveQueue';
 
 describe('editor draft saves', () => {
+  it('does not rewrite a script just because its stored title has stray spaces', async () => {
+    const stored = { title: '  Talk  ', content: 'Body' };
+    const save = vi.fn(async () => undefined);
+    const queue = new DraftSaveQueue(stored, () => stored, save, () => undefined);
+
+    expect(queue.isCurrentSaved()).toBe(true);
+    await queue.flush();
+    expect(save).not.toHaveBeenCalled();
+  });
+
   it('waits for an in-flight write before accepting a reverted draft as saved', async () => {
     const original = { title: 'Original', content: 'First version' };
     let current: EditableScript = { title: 'Changed', content: 'Second version' };

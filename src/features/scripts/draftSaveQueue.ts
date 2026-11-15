@@ -20,7 +20,9 @@ export class DraftSaveQueue {
     private readonly save: (draft: EditableScript) => Promise<void>,
     private readonly afterSave: () => Promise<void> | void
   ) {
-    this.committed = initial;
+    // Stored titles are compared as they will be saved, so opening a script whose
+    // title has stray spaces (or none) does not count as an edit.
+    this.committed = normalizeDraft(initial);
   }
 
   isCurrentSaved(): boolean {

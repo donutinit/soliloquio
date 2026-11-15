@@ -12,6 +12,7 @@ const SOUTH = 0;
 const EAST = 1;
 const DPAD_DOWN = 13;
 const DPAD_RIGHT = 15;
+const L3 = 10;
 const SHARE = 8;
 const OPTIONS = 9;
 const R3 = 11;
@@ -192,6 +193,27 @@ test('el modo escucha del panel Gamepad suspende la navegación', async ({ page 
   await expect(page.getByTestId('gamepad-feedback')).toContainText('Play / Pause is now Cross.');
   await expect(page.getByTestId('bind-togglePlay-value')).toHaveText('Cross');
   await expect(page.getByTestId('gamepad-settings-panel')).toBeVisible();
+});
+
+test('el botón que abre la escucha no queda asignado', async ({ page }) => {
+  await waitForNavReady(page);
+  await page.getByTestId('app-settings-button').click();
+  await page.getByTestId('open-gamepad-settings').click();
+  await expect(page.getByTestId('gamepad-settings-panel')).toBeVisible();
+  await waitForNavReady(page);
+
+  // Solo con el mando: Sur abre la escucha y sigue presionado unos cuadros.
+  await page.getByTestId('bind-toggleSections').focus();
+  await setButton(page, SOUTH, true);
+  await expect(page.getByTestId('bind-toggleSections-value')).toHaveText('Press…');
+  await page.waitForTimeout(150);
+  await setButton(page, SOUTH, false);
+  await page.waitForTimeout(120);
+  await expect(page.getByTestId('bind-toggleSections-value')).toHaveText('Press…');
+
+  await pressNav(page, L3);
+  await expect(page.getByTestId('bind-toggleSections-value')).toHaveText('L3');
+  await expect(page.getByTestId('bind-togglePlay-value')).toHaveText('Cross');
 });
 
 test('Diagnostics muestra la entrada cruda sin navegar la interfaz', async ({ page }) => {

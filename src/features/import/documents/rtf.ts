@@ -13,7 +13,7 @@ const SKIPPED_DESTINATIONS = new Set([
   'footerl',
   'footerr',
   'footnote',
-  'field',
+  // A field's instructions are skipped; its result (a link's text) stays.
   'fldinst',
   'listtable',
   'listoverridetable',

@@ -10,6 +10,7 @@ import {
   MAX_SCRIPT_IMPORT_TOTAL_BYTES,
   readImportedFiles,
   stripFrontmatter,
+  decodeDocumentText,
   titleFromFileName
 } from './importFiles';
 import { makeZip } from './documents/testing/makeZip';
@@ -96,6 +97,37 @@ describe('stripFrontmatter', () => {
     const content = '---\na: 1\n---\nuno\n\n---\n\ndos';
     expect(stripFrontmatter(content)).toBe('uno\n\n---\n\ndos');
   });
+
+  it('conserva un guion que empieza con una pausa', () => {
+    const content = '---\n\nIntro hablada\n\n---\n\nDos';
+    expect(stripFrontmatter(content)).toBe(content);
+  });
+
+  it('elimina un frontmatter vacío', () => {
+    expect(stripFrontmatter('---\n---\ncuerpo')).toBe('cuerpo');
+  });
+});
+
+describe('decodeDocumentText', () => {
+  const encode = (text: string) => new TextEncoder().encode(text);
+
+  it('lee UTF-8, con o sin BOM', () => {
+    expect(decodeDocumentText(encode('canción'))).toBe('canción');
+    expect(decodeDocumentText(new Uint8Array([0xef, 0xbb, 0xbf, ...encode('sí')]))).toBe('sí');
+  });
+
+  it('lee UTF-16 con BOM, como el "Unicode" del Bloc de notas', () => {
+    const littleEndian = [0xff, 0xfe, ...[...'Hola ñ'].flatMap((c) => [c.charCodeAt(0), 0])];
+    const bigEndian = [0xfe, 0xff, ...[...'Hola ñ'].flatMap((c) => [0, c.charCodeAt(0)])];
+    expect(decodeDocumentText(new Uint8Array(littleEndian))).toBe('Hola ñ');
+    expect(decodeDocumentText(new Uint8Array(bigEndian))).toBe('Hola ñ');
+  });
+
+  it('cae a Windows-1252 cuando los bytes no son UTF-8', () => {
+    // "canción “ya”" saved by an old Windows editor.
+    const bytes = new Uint8Array([0x63, 0x61, 0x6e, 0x63, 0x69, 0xf3, 0x6e, 0x20, 0x93, 0x79, 0x61, 0x94]);
+    expect(decodeDocumentText(bytes)).toBe('canción “ya”');
+  });
 });
 
 describe('readImportedFiles', () => {
@@ -122,7 +154,7 @@ describe('readImportedFiles', () => {
   it('aísla errores por archivo sin tumbar el lote', async () => {
     const good = new File(['hola'], 'ok.txt', { type: 'text/plain' });
     const bad = new File([''], 'malo.txt', { type: 'text/plain' });
-    Object.defineProperty(bad, 'text', {
+    Object.defineProperty(bad, 'arrayBuffer', {
       value: () => Promise.reject(new Error('boom'))
     });
     const outcomes = await readImportedFiles([good, bad]);
@@ -137,29 +169,30 @@ describe('readImportedFiles', () => {
 
   it('lee secuencialmente para acotar el pico de memoria', async () => {
     const started: string[] = [];
-    let finishFirst = (content: string): void => {
-      throw new Error(`The first file did not start reading: ${content}`);
+    const bytes = (text: string) => new TextEncoder().encode(text).buffer as ArrayBuffer;
+    let finishFirst = (content: ArrayBuffer): void => {
+      throw new Error(`The first file did not start reading: ${content.byteLength}`);
     };
     const first = new File(['uno'], 'uno.txt', { type: 'text/plain' });
     const second = new File(['dos'], 'dos.txt', { type: 'text/plain' });
-    Object.defineProperty(first, 'text', {
+    Object.defineProperty(first, 'arrayBuffer', {
       value: () => {
         started.push('uno');
-        return new Promise<string>((resolve) => {
+        return new Promise<ArrayBuffer>((resolve) => {
           finishFirst = resolve;
         });
       }
     });
-    Object.defineProperty(second, 'text', {
+    Object.defineProperty(second, 'arrayBuffer', {
       value: () => {
         started.push('dos');
-        return Promise.resolve('dos');
+        return Promise.resolve(bytes('dos'));
       }
     });
 
     const reading = readImportedFiles([first, second]);
     expect(started).toEqual(['uno']);
-    finishFirst('uno');
+    finishFirst(bytes('uno'));
 
     expect((await reading).map((outcome) => outcome.ok)).toEqual([true, true]);
     expect(started).toEqual(['uno', 'dos']);

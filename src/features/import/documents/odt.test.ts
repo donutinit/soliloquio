@@ -18,6 +18,17 @@ describe('odfXmlToMarkdown', () => {
   });
 });
 
+describe('odfXmlToMarkdown with review marks', () => {
+  it('drops comments and tracked deletions without cutting the paragraph', () => {
+    const xml =
+      '<office:text><text:tracked-changes><text:changed-region text:id="c1"><text:deletion>' +
+      '<text:p>Borrado</text:p></text:deletion></text:changed-region></text:tracked-changes>' +
+      '<text:p>Antes<office:annotation><dc:creator>Ana</dc:creator><text:p>Revisar</text:p>' +
+      '</office:annotation> después.</text:p></office:text>';
+    expect(odfXmlToMarkdown(xml)).toBe('Antes después.');
+  });
+});
+
 describe('odtToMarkdown', () => {
   it('reads content.xml from the package', async () => {
     const zip = await makeZip([

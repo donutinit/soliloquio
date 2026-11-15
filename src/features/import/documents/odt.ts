@@ -18,7 +18,12 @@ function inlineText(xml: string): string {
 export function odfXmlToMarkdown(contentXml: string): string {
   const body = (
     /<office:text[^>]*>([\s\S]*)<\/office:text>/.exec(contentXml)?.[1] ?? contentXml
-  ).replace(/<text:note\b[\s\S]*?<\/text:note>/g, '');
+  )
+    // Footnotes, comments, and the deleted text kept by tracked changes are not body text.
+    .replace(/<text:note(?:\s[^>]*)?>[\s\S]*?<\/text:note>/g, '')
+    .replace(/<office:annotation(?:\s[^>]*)?>[\s\S]*?<\/office:annotation>/g, '')
+    .replace(/<office:annotation(?:\s[^>]*)?\/>/g, '')
+    .replace(/<text:tracked-changes(?:\s[^>]*)?>[\s\S]*?<\/text:tracked-changes>/g, '');
   const paragraphs: string[] = [];
   for (const block of body.matchAll(BLOCK)) {
     const kind = block[1] ?? block[3];

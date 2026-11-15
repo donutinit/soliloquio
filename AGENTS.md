@@ -139,8 +139,10 @@ GitHub Actions in `.github/workflows/ci.yml` remains the authoritative validatio
 6. If it fails, inspect failed logs, fix the cause, and validate the new exact SHA.
 
 Never describe a change as validated while the required CI run is failing or incomplete. Passing
-local checks do not replace CI. The manual `lockfile.yml` workflow can still regenerate
-`package-lock.json` when a dependency change is approved.
+local checks do not replace CI. The local npm cannot resolve this lockfile, so the manual
+`lockfile.yml` workflow regenerates `package-lock.json` when a dependency change is approved. With
+`update=true` it also moves every dependency to the newest version its range allows, limited to
+versions published before `before` (seven days ago by default); review the downloaded diff.
 
 ## Git and change hygiene
 
@@ -227,12 +229,13 @@ Decisions and lessons from earlier sessions. They apply to every agent.
 - Canonical URL: https://soli.vondiego.com (tele.vondiego.com is the legacy origin). The public
   domain goes through Cloudflare, which caches static files (favicon, icons) for about 4 hours,
   so right after a deploy the origin can be ahead of the public site.
-- **Flaky E2E:** `tests/e2e/micro-gamepad.spec.ts` ("applies Micro-profile-only scroll and
-  settings") fails intermittently in Actions at the same step: after releasing SELECT used as
-  a modifier, the 120 ms `pressButton(SELECT)` does not open the controller guide. Playwright's
-  2 retries share the worker and the load, so 3 failures in a row are not independent evidence.
-  Re-run first (`gh run rerun <id> --failed`); only treat it as a regression if it fails across
-  separate runs. The likely root cause (a race between releasing the modifier and the next
-  short press in the same gamepad polling frame) is still unfixed.
+- **Gamepad E2E timing (fixed 2026-11-15):** `tests/e2e/micro-gamepad.spec.ts` used to fail
+  intermittently in Actions after releasing SELECT used as a modifier: a loaded runner skipped
+  the reader's animation frames during the 150 ms wait, so the reader never saw SELECT go up
+  and the next tap was swallowed. It was test timing, not a product bug (the Gamepad API only
+  exposes the current state). Gamepad specs that need the reader to see an edge wait with
+  `readerFrames(page)` from `tests/e2e/helpers.ts`, never with a bare `waitForTimeout`. If a
+  gamepad spec still flakes, re-run first (`gh run rerun <id> --failed`); Playwright's 2
+  retries share the worker and the load, so 3 failures in one run are not independent evidence.
 - If there are someone else's uncommitted changes in the tree, run local checks in a temporary
   `git worktree` that contains only your own files.

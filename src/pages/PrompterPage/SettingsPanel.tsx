@@ -111,7 +111,10 @@ export function SettingsPanel({
     const speed = speedForDuration(spokenWords, targetSeconds, timedPauseSeconds, SPEED_LIMITS);
     onChange('speed', speed);
     const duration = formatReadingTime(readingSeconds(spokenWords, speed) + timedPauseSeconds);
+    // Speeds snap to whole steps, so only a pace stuck at a limit misses the target.
+    const atLimit = speed === SPEED_LIMITS.min || speed === SPEED_LIMITS.max;
     const unreachable =
+      atLimit &&
       Math.abs(readingSeconds(spokenWords, speed) + timedPauseSeconds - targetSeconds) > 2;
     setFitResult(
       unreachable

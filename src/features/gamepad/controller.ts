@@ -222,13 +222,21 @@ export class GamepadController {
         .filter(({ index }) => boundVirtualIndexes.has(index))
         .map((virtualButton) => [virtualButton.index, virtualButton] as const)
     );
-    for (const { chord } of activeVirtualButtons.values()) {
-      for (const index of chord) this.suppressedPro3Buttons.add(index);
-    }
     const actionButtonIndex = (action: GamepadAction): number => {
       const index = this.bindings[action];
       return normalizeFaceButtons ? translateNintendoFaceButtonIndex(index) : index;
     };
+    for (const { chord } of activeVirtualButtons.values()) {
+      for (const index of chord) {
+        if (this.suppressedPro3Buttons.has(index)) continue;
+        this.suppressedPro3Buttons.add(index);
+        // The chord consumes its buttons. When one of them arrived a frame
+        // early, drop the press it started instead of firing it as a release.
+        for (const action of GAMEPAD_ACTIONS) {
+          if (actionButtonIndex(action) === index) this.resetMachine(action);
+        }
+      }
+    }
     const button = (action: GamepadAction): ButtonLike => {
       const configuredIndex = this.bindings[action];
       if (activeVirtualButtons.has(configuredIndex)) return { pressed: true, value: 1 };

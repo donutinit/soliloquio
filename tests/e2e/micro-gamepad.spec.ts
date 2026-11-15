@@ -1,5 +1,11 @@
 import { expect, test } from '@playwright/test';
-import { installFakeGamepad, openScriptInPrompter, prompterOffset, setButton } from './helpers';
+import {
+  installFakeGamepad,
+  openScriptInPrompter,
+  prompterOffset,
+  readerFrames,
+  setButton
+} from './helpers';
 
 const MICRO_ID = '8BitDo Micro gamepad Gamepad';
 const B = 1;
@@ -10,10 +16,13 @@ const DPAD_DOWN = 13;
 const DPAD_LEFT = 14;
 const DPAD_RIGHT = 15;
 
+/** A short tap that the reader is guaranteed to sample both down and up. */
 async function pressButton(page: import('@playwright/test').Page, button: number): Promise<void> {
   await setButton(page, button, true);
+  await readerFrames(page);
   await page.waitForTimeout(120);
   await setButton(page, button, false);
+  await readerFrames(page);
 }
 
 test.beforeEach(async ({ page }) => {
@@ -102,7 +111,9 @@ test('aplica scroll y ajustes exclusivos del perfil Micro', async ({ page }) => 
   await expect(page.getByTestId('controller-guide')).toHaveCount(0);
   // Deja que el lector observe la liberación del Select de la combinación:
   // sin ese hueco, la supresión pendiente se traga también la pulsación nueva.
-  await page.waitForTimeout(150);
+  // Se esperan cuadros del lector y no tiempo: un runner cargado puede saltarse
+  // los cuadros de 150 ms y unir la liberación con la pulsación siguiente.
+  await readerFrames(page);
 
   await pressButton(page, SELECT);
   await expect(page.getByRole('heading', { name: '8BitDo Micro controls' })).toBeVisible();
@@ -124,7 +135,7 @@ test('aplica scroll y ajustes exclusivos del perfil Micro', async ({ page }) => 
   await expect(page.getByTestId('sections-panel')).toBeVisible();
   await expect(page.getByTestId('play-pause')).toHaveAttribute('data-playing', 'false');
   await setButton(page, SELECT, false);
-  await page.waitForTimeout(100);
+  await readerFrames(page);
 
   await setButton(page, SELECT, true);
   await pressButton(page, B);
@@ -132,7 +143,7 @@ test('aplica scroll y ajustes exclusivos del perfil Micro', async ({ page }) => 
   await expect(page.getByTestId('section-indicator')).toHaveText(/^1 \/ /);
   await expect(page.getByTestId('play-pause')).toHaveAttribute('data-playing', 'false');
   await setButton(page, SELECT, false);
-  await page.waitForTimeout(100);
+  await readerFrames(page);
 
   await pressButton(page, START);
   await expect(page.getByTestId('settings-panel')).toBeVisible();
