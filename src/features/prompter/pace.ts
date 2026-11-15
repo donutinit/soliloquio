@@ -4,7 +4,6 @@ import { clampToLimit, type Limit } from '../settings/settings';
 
 const WORD_PATTERN = /[\p{L}\p{N}]/u;
 const THEMATIC_BREAK = /^ {0,3}([-*_])(?:[ \t]*\1){2,}[ \t]*$/;
-const NOTE_OR_HEADING = /^ {0,3}(?:#{1,6}(?:\s|$)|>)/;
 
 /** Counts words that contain at least one letter or number. */
 export function countWords(text: string): number {
@@ -24,22 +23,92 @@ export function spokenWordCount(blocks: readonly PrompterBlock[]): number {
   return count;
 }
 
+const ATX_HEADING = /^ {0,3}#{1,6}(?:\s|$)/;
+const QUOTE = /^ {0,3}>/;
+const EMPTY_QUOTE = /^ {0,3}>\s*$/;
+const SETEXT_UNDERLINE = /^ {0,3}(?:=+|-+)[ \t]*$/;
+const LIST_MARKER = /^ {0,3}(?:[-*+]|\d{1,9}[.)])(?:[ \t]+(?:\[[ xX]\][ \t]+)?|$)/;
+const FENCE_OPEN = /^ {0,3}(`{3,}|~{3,})/;
+const LINK_DEFINITION = /^ {0,3}\[(?!\^)[^\]]+\]:\s*\S/;
+const FOOTNOTE_LABEL = /\[\^[^\]\s]+\]:?/g;
+const HTML_COMMENT = /<!--[\s\S]*?-->/g;
+const HTML_TAG = /<\/?[A-Za-z][A-Za-z0-9-]*(?:\s[^<>]*)?\/?>/g;
+
+function closesFence(line: string, fence: string): boolean {
+  const trimmed = line.trim();
+  return (
+    line.search(/\S/) <= 3 &&
+    trimmed.length >= fence.length &&
+    [...trimmed].every((char) => char === fence[0])
+  );
+}
+
 /**
- * Cheap estimate for the library and editor, without a full Markdown parse:
- * skips headings, blockquote notes, and separators, like the reader does.
+ * Cheap estimate for the library and editor, without a full Markdown parse.
+ * It skips what the reader does not speak: headings (also `Title` underlined
+ * with `---` or `===`), notes with their continuation lines, separators, list
+ * markers, fence lines, HTML, and footnote or link labels.
  */
 export function estimateSpokenWords(content: string, format: ScriptFormat): number {
   if (format === 'text') return countWords(content);
   let count = 0;
-  for (const line of content.split('\n')) {
-    if (
-      NOTE_OR_HEADING.test(line) ||
-      THEMATIC_BREAK.test(line) ||
-      timedPauseSeconds(line) !== undefined
-    ) {
+  let fence: string | null = null;
+  let inNote = false;
+  // An underline turns the open top-level paragraph into a heading.
+  let paragraph: 'none' | 'top' | 'list' = 'none';
+  let paragraphWords = 0;
+  for (const rawLine of content.replace(HTML_COMMENT, ' ').split(/\r?\n/)) {
+    if (fence !== null) {
+      if (closesFence(rawLine, fence)) fence = null;
+      else count += countWords(rawLine);
       continue;
     }
-    count += countWords(line);
+    const opening = FENCE_OPEN.exec(rawLine);
+    if (opening) {
+      fence = opening[1];
+      inNote = false;
+      paragraph = 'none';
+      continue;
+    }
+    const line = rawLine.replace(HTML_TAG, ' ');
+    if (!line.trim()) {
+      inNote = false;
+      paragraph = 'none';
+      continue;
+    }
+    if (paragraph === 'top' && SETEXT_UNDERLINE.test(line)) {
+      count -= paragraphWords;
+      paragraph = 'none';
+      continue;
+    }
+    if (QUOTE.test(line)) {
+      inNote = !EMPTY_QUOTE.test(line);
+      paragraph = 'none';
+      continue;
+    }
+    if (
+      ATX_HEADING.test(line) ||
+      THEMATIC_BREAK.test(line) ||
+      timedPauseSeconds(line) !== undefined ||
+      LINK_DEFINITION.test(line)
+    ) {
+      inNote = false;
+      paragraph = 'none';
+      continue;
+    }
+    // A line right under a note continues it, as Markdown reads it.
+    if (inNote) continue;
+    const marker = LIST_MARKER.exec(line);
+    const words = countWords((marker ? line.slice(marker[0].length) : line).replace(FOOTNOTE_LABEL, ' '));
+    count += words;
+    if (marker) {
+      paragraph = 'list';
+    } else if (paragraph === 'top') {
+      paragraphWords += words;
+    } else if (paragraph === 'none') {
+      paragraph = 'top';
+      paragraphWords = words;
+    }
   }
   return count;
 }

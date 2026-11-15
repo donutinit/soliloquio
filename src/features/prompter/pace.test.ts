@@ -12,6 +12,7 @@ import {
   timedPauseTotal
 } from './pace';
 import { SPEED_LIMITS } from '../settings/settings';
+import { markdownToBlocks } from '../markdown/flatten';
 
 describe('countWords', () => {
   it('counts words with letters or numbers and ignores punctuation', () => {
@@ -39,6 +40,29 @@ describe('estimateSpokenWords', () => {
   it('skips headings, notes, and separators in Markdown', () => {
     const content = '# Title\n\nOne **two** three.\n\n> a note\n\n---\n\n- four\n#hashtag five';
     expect(estimateSpokenWords(content, 'markdown')).toBe(6);
+  });
+
+  it('matches what the reader speaks for common Markdown', () => {
+    const samples = [
+      '1. First point\n2. Second point\n- [x] done item',
+      '> Look at the lens\nand smile\n\nNow speak.',
+      '> Cue\n>\nSpoken after an empty quote line.',
+      'Setext title\n===\n\nBody text here.',
+      'Two line\nheading\n---\n\nBody.',
+      '- item\nlazy line\n---\n\nafter',
+      'Text <!-- trim if long --> stays.\n\n<!--\nhidden note\n-->\nMore.',
+      'Inline <span class="x">markup</span> and <https://example.com> link.',
+      '```js\n# shown as code\n> also code\n```\n\nAfter the fence.',
+      'Footnote here[^1].\n\n[^1]: The note text.\n\n[site]: https://example.com',
+      '| Shot | Line |\n| --- | --- |\n| A | Hello there |',
+      'Windows lines\r\n\r\n--- 5s\r\n\r\nend',
+      '# Title\n\nOne **two** three.\n\n> a note\n\n---\n\n- four\n#hashtag five'
+    ];
+    for (const sample of samples) {
+      expect(estimateSpokenWords(sample, 'markdown'), sample).toBe(
+        spokenWordCount(markdownToBlocks(sample))
+      );
+    }
   });
 
   it('counts every word in plain text', () => {
