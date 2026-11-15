@@ -19,6 +19,27 @@ test('keeps an editor open when IndexedDB rejects the pending save', async ({ pa
   await expect(page.getByTestId('prompter-page')).toHaveCount(0);
 });
 
+test('App settings still close after a settings save fails', async ({ page }) => {
+  await page.goto('/');
+  await page.getByTestId('app-settings-button').click();
+  const toggle = page.getByTestId('keep-awake-setting');
+  await expect(toggle).toBeChecked();
+
+  await page.evaluate(() => {
+    const failPut = () => {
+      throw new DOMException('Storage is full', 'QuotaExceededError');
+    };
+    IDBObjectStore.prototype.put = failPut as typeof IDBObjectStore.prototype.put;
+  });
+  // The failed write puts the switch straight back, so click instead of uncheck().
+  await toggle.click();
+
+  await expect(page.getByRole('alert')).toHaveText('The screen setting could not be saved.');
+  await expect(toggle).toBeChecked();
+  await page.getByRole('button', { name: 'Done' }).click();
+  await expect(page.getByTestId('keep-awake-setting')).toHaveCount(0);
+});
+
 test('does not claim a backup exists when sharing is cancelled', async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(navigator, 'canShare', {

@@ -53,6 +53,29 @@ describe('PWA update application', () => {
     unregister();
   });
 
+  it('waits for the reader to close before an automatic update reloads', async () => {
+    const page = Object.assign(new EventTarget(), { location: { hash: '#/prompter/abc' } });
+    vi.stubGlobal('window', page);
+    const { setupPWA } = await import('./pwa');
+    const { registerSW } = await import('virtual:pwa-register');
+    setupPWA();
+    const onNeedRefresh = vi.mocked(registerSW).mock.calls.at(-1)?.[0]?.onNeedRefresh;
+    expect(onNeedRefresh).toBeDefined();
+
+    onNeedRefresh?.();
+    await Promise.resolve();
+    expect(serviceWorkerUpdate).not.toHaveBeenCalled();
+
+    page.location.hash = '#/prompter/other';
+    page.dispatchEvent(new Event('hashchange'));
+    await Promise.resolve();
+    expect(serviceWorkerUpdate).not.toHaveBeenCalled();
+
+    page.location.hash = '#/';
+    page.dispatchEvent(new Event('hashchange'));
+    await vi.waitFor(() => expect(serviceWorkerUpdate).toHaveBeenCalledWith(true));
+  });
+
   it('checks on opening and foreground return without polling while open', async () => {
     const page = new EventTarget();
     let visibility: DocumentVisibilityState = 'visible';

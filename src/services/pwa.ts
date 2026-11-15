@@ -43,6 +43,28 @@ export async function applyPendingPWAUpdate(): Promise<void> {
   await applyServiceWorkerUpdate(true);
 }
 
+const READER_ROUTE = /^#\/prompter\//;
+let readerExit: Promise<void> | null = null;
+
+/**
+ * Resolves once the reader is not on screen. Reading positions are not saved,
+ * so an automatic update that reloads mid-take would send the script back to
+ * the start; it waits for the reader to close instead.
+ */
+function whenReaderCloses(): Promise<void> {
+  if (!READER_ROUTE.test(window.location.hash)) return Promise.resolve();
+  readerExit ??= new Promise<void>((resolve) => {
+    const onHashChange = () => {
+      if (READER_ROUTE.test(window.location.hash)) return;
+      window.removeEventListener('hashchange', onHashChange);
+      readerExit = null;
+      resolve();
+    };
+    window.addEventListener('hashchange', onHashChange);
+  });
+  return readerExit;
+}
+
 function checkServiceWorker(
   registration: ServiceWorkerRegistration,
   swUrl: string
@@ -99,7 +121,8 @@ export async function checkForPWAUpdate(): Promise<PWAUpdateResult> {
 
 /**
  * Auto-update: cuando se detecta una versión nueva se vacían primero los
- * guardados pendientes y la página se recarga sola. La detección ocurre al
+ * guardados pendientes y la página se recarga sola, nunca con el lector
+ * abierto: espera a que se cierre. La detección ocurre al
  * abrir la app y al volver a primer plano. App Settings y factory reset
  * también pueden pedir una comprobación explícita.
  */
@@ -109,9 +132,11 @@ export function setupPWA(): void {
   const updateSW = registerSW({
     immediate: true,
     onNeedRefresh() {
-      void applyPendingPWAUpdate().catch((error) => {
-        console.warn('App update paused until pending saves succeed', error);
-      });
+      void whenReaderCloses()
+        .then(applyPendingPWAUpdate)
+        .catch((error) => {
+          console.warn('App update paused until pending saves succeed', error);
+        });
     },
     onOfflineReady() {
       // La app ya funciona sin conexión; no hace falta molestar al usuario.
